@@ -9,7 +9,7 @@ function getGameServiceUrl(): string {
   if (envUrl && envUrl.length > 0) {
     return envUrl;
   }
-  return "https://trouvix-grille-production.up.railway.app";
+  return "https://trouvix-game-service-production.up.railway.app";
 }
 
 export function getSocket(): Socket {
