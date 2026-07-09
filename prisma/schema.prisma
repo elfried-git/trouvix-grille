@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Card {
+  id        String   @id @default(cuid())
+  category  String   // "couple" | "culture" | "defi" | "souvenir" | "surprise"
+  prompt    String   // The question / challenge text
+  answer    String?  // Optional answer (for culture trivia)
+  points    Int      // Points awarded on success
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+model GameResult {
+  id        String   @id @default(cuid())
+  winnerName String
+  winnerScore Int
+  players   String   // JSON string of players summary
+  durationMin Int
+  createdAt DateTime @default(now())
+}
