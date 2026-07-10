@@ -242,11 +242,10 @@ export function OnlineGameScreen() {
               {ranked.map((p, i) => (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${
-                    p.id === singleWinner?.id
+                  className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${p.id === singleWinner?.id
                       ? "border-amber-400/50 bg-amber-500/10"
                       : "border-border/50 bg-card/40"
-                  }`}
+                    }`}
                 >
                   <span className="w-6 text-center font-display text-lg font-bold text-amber-200">
                     {i + 1}
@@ -303,11 +302,10 @@ export function OnlineGameScreen() {
               size="sm"
               onClick={togglePauseAction}
               disabled={state.resolving}
-              className={`h-10 gap-1.5 sm:h-8 ${
-                state.isPaused
+              className={`h-10 gap-1.5 sm:h-8 ${state.isPaused
                   ? "border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/10"
                   : "border-amber-400/40 text-amber-200 hover:bg-amber-500/10"
-              }`}
+                }`}
             >
               {state.isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               <span className="hidden sm:inline">{state.isPaused ? "Reprendre" : "Pause"}</span>
@@ -343,9 +341,8 @@ export function OnlineGameScreen() {
                 </div>
               </div>
               <div
-                className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${
-                  state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
-                }`}
+                className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
+                  }`}
               >
                 {state.isPaused ? (
                   <>
@@ -449,11 +446,11 @@ export function OnlineGameScreen() {
                         type="button"
                         disabled={!canPlay}
                         onClick={() => {
-                          if (canPlay) placePawnAction(row, col);
+                          if (!canPlay) return;
+                          placePawnAction(row, col);
                         }}
-                        className={`group relative aspect-square touch-manipulation rounded-full bg-[oklch(0.10_0.015_22)] ring-1 ring-black/40 outline-none transition focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
-                          canPlay ? "cursor-pointer" : "cursor-default"
-                        }`}
+                        className={`group relative aspect-square touch-manipulation rounded-full bg-[oklch(0.10_0.015_22)] ring-1 ring-black/40 outline-none transition focus-visible:ring-2 focus-visible:ring-amber-300/60 ${canPlay ? "cursor-pointer" : "cursor-default"
+                          }`}
                         aria-label={`Placer un pion ligne ${row + 1} colonne ${col + 1}`}
                       >
                         {filled ? (
@@ -461,13 +458,12 @@ export function OnlineGameScreen() {
                             initial={{ scale: 0.3, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ type: "spring", stiffness: 360, damping: 18 }}
-                            className={`absolute inset-[2px] rounded-full shadow-lg ${
-                              isFresh
+                            className={`absolute inset-[2px] rounded-full shadow-lg ${isFresh
                                 ? "ring-4 ring-amber-200 pulse-glow z-20"
                                 : isSquareCell
                                   ? "ring-[3px] ring-amber-300/80 z-10"
                                   : "ring-2 ring-white/30"
-                            }`}
+                              }`}
                             style={{ backgroundColor: cellColor }}
                           >
                             {isSquareCell && !isFresh && (
@@ -540,11 +536,10 @@ export function OnlineGameScreen() {
                   <motion.div
                     key={p.id}
                     layout
-                    className={`relative overflow-hidden rounded-xl border p-4 transition-all sm:p-3 ${
-                      isCurrent
+                    className={`relative overflow-hidden rounded-xl border p-4 transition-all sm:p-3 ${isCurrent
                         ? "border-amber-400/60 bg-amber-500/10 shadow-[0_0_20px_-5px_oklch(0.80_0.14_84/0.4)]"
                         : "border-border/60 bg-card/40"
-                    }`}
+                      }`}
                   >
                     {isCurrent && <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-amber-300 to-rose-500" />}
                     <div className="flex items-center gap-3">
