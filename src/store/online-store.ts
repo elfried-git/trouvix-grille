@@ -22,21 +22,19 @@ interface OnlineStore {
   state: OnlineGameState | null;
   errorMessage: string | null;
   pendingAction: boolean;
-  challenges: Challenge[]; // pending challenges for Benchou Ferrari
-  isBenchou: boolean; // true if this client registered as Benchou Ferrari
+  challenges: Challenge[];
+  isBenchou: boolean;
+  challengeDeclined: boolean;
 
-  // lifecycle
   init: () => void;
   teardown: () => void;
 
-  // actions
   createRoom: (player: SetupPlayer, totalRounds: number) => Promise<void>;
   joinRoom: (roomCode: string, player: SetupPlayer) => Promise<void>;
   challengeBenchou: (player: SetupPlayer, totalRounds: number) => Promise<void>;
   registerAsBenchou: (pin: string) => Promise<void>;
   acceptChallenge: (challengeId: string) => Promise<void>;
   declineChallenge: (challengeId: string) => Promise<void>;
-  challengeDeclined: boolean; // true when Benchou declined the current challenge
   startGame: () => void;
   placePawn: (row: number, col: number) => void;
   togglePause: () => void;
@@ -61,7 +59,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   init: () => {
     const socket = getSocket();
-    // Guard: don't re-attach listeners if THIS socket instance already has them
     if ((socket as any).__trouvixListeners) return;
     (socket as any).__trouvixListeners = true;
 
@@ -69,8 +66,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     socket.on("connect", () => set({ connected: true }));
     socket.on("disconnect", () => set({ connected: false }));
     socket.on("state-update", (payload: { state: OnlineGameState }) => {
-      // Always set a NEW object reference so Zustand detects the change
-      // (socket.io may reuse the same parsed object in some edge cases)
       set({
         state: { ...payload.state },
         roomCode: payload.state.roomCode,
@@ -79,7 +74,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     socket.on("error", (payload: { message: string }) => {
       set({ errorMessage: payload.message });
     });
-    // Receive challenge notifications (for Benchou Ferrari)
     socket.on("benchou-challenge", (payload: { challenge: Challenge }) => {
       const challenge = payload.challenge;
       set((s) => ({
@@ -87,9 +81,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           ? s.challenges
           : [...s.challenges, challenge],
       }));
-      // Play a notification sound + browser notification
       if (typeof window !== "undefined") {
-        // Browser notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("🎮 Défi Trouvix Grille", {
             body: `${challenge.challengerName} vous sollicite pour une partie ! Cliquez pour rejoindre.`,
@@ -97,7 +89,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
             tag: challenge.id,
           });
         }
-        // Sound (simple beep via Web Audio API)
         try {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
           const osc = ctx.createOscillator();
@@ -112,14 +103,12 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         } catch {}
       }
     });
-    // Challenge declined by Benchou Ferrari (received by the challenger)
     socket.on("challenge-declined", (payload: { challengeId: string }) => {
       set({ challengeDeclined: true });
     });
   },
 
   teardown: () => {
-    // Clean up the listeners flag so init() can re-attach on a new socket
     try {
       const socket = getSocket();
       delete (socket as any).__trouvixListeners;
@@ -143,7 +132,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     get().init();
     set({ errorMessage: null, pendingAction: true });
 
-    // Wait for socket connection before emitting
     if (!socket.connected) {
       await new Promise<void>((resolve) => {
         const t = setTimeout(() => resolve(), 5000);
@@ -180,25 +168,18 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   joinRoom: async (roomCode, player) => {
     const socket = getSocket();
-    get().init(); // ensure listeners
+    get().init();
     const upperCode = roomCode.toUpperCase();
     set({ errorMessage: null, pendingAction: true, roomCode: upperCode });
 
-    // Wait for socket to be connected before emitting (max 5s)
-    const ensureConnected = (): Promise<void> => {
-      return new Promise((resolve) => {
-        if (socket.connected) return resolve();
-        const timeout = setTimeout(() => resolve(), 5000);
-        socket.once("connect", () => {
-          clearTimeout(timeout);
-          resolve();
-        });
+    if (!socket.connected) {
+      await new Promise<void>((resolve) => {
+        const t = setTimeout(() => resolve(), 5000);
+        socket.once("connect", () => { clearTimeout(t); resolve(); });
       });
-    };
-    await ensureConnected();
+    }
 
     return new Promise<void>((resolve) => {
-      // Timeout: if server doesn't respond in 8s, show error
       const timeout = setTimeout(() => {
         set({ pendingAction: false, errorMessage: "Le serveur ne répond pas. Réessaie." });
         resolve();
@@ -227,7 +208,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   challengeBenchou: async (player, totalRounds) => {
     const socket = getSocket();
-    get().init(); // ensure listeners
+    get().init();
     set({ errorMessage: null, pendingAction: true });
     return new Promise<void>((resolve) => {
       socket.emit(
@@ -252,9 +233,8 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   registerAsBenchou: async (pin) => {
     const socket = getSocket();
-    get().init(); // ensure listeners
+    get().init();
     set({ errorMessage: null });
-    // Request browser notification permission
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "default") {
         await Notification.requestPermission();
@@ -282,7 +262,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           set({ errorMessage: res.error });
         } else if (res?.ok && res?.roomCode && res?.playerId) {
           set({ myPlayerId: res.playerId, roomCode: res.roomCode });
-          // Remove accepted challenge from the list
           set((s) => ({
             challenges: s.challenges.filter((c) => c.id !== challengeId),
           }));
@@ -305,7 +284,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         if (res?.error) {
           set({ errorMessage: res.error });
         } else if (res?.ok) {
-          // Remove declined challenge from the list
           set((s) => ({
             challenges: s.challenges.filter((c) => c.id !== challengeId),
           }));
@@ -316,31 +294,52 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   },
 
   startGame: () => {
-    getSocket().emit("start-game");
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("start-game");
+    }
   },
 
   placePawn: (row, col) => {
-    getSocket().emit("place-pawn", { row, col });
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("place-pawn", { row, col }, (res: { ok?: boolean; error?: string }) => {
+        if (res?.error && process.env.NODE_ENV !== "production") {
+          console.log("[place-pawn] server error:", res.error);
+        }
+      });
+    }
   },
 
   togglePause: () => {
-    getSocket().emit("toggle-pause");
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("toggle-pause");
+    }
   },
 
   endGame: () => {
-    getSocket().emit("end-game");
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("end-game");
+    }
   },
 
   restart: () => {
-    getSocket().emit("restart");
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("restart");
+    }
   },
 
   rematchTied: () => {
-    getSocket().emit("rematch-tied");
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("rematch-tied");
+    }
   },
 
   leaveRoom: () => {
-    // Emit leave-room but DON'T destroy the socket — keep it alive for rejoin
     const socket = getSocket();
     if (socket.connected) {
       socket.emit("leave-room");
@@ -360,8 +359,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     });
   },
 
-  // Try to reconnect to a previous session (after page reload).
-  // Returns true if a rejoin was attempted.
   tryReconnect: () => {
     try {
       const savedRoom = localStorage.getItem("trouvix_room");
@@ -373,7 +370,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
             if (res?.ok) {
               set({ myPlayerId: savedPlayer, roomCode: savedRoom });
             } else {
-              // Room/player no longer exists — clear storage
               localStorage.removeItem("trouvix_room");
               localStorage.removeItem("trouvix_player");
             }
