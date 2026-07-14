@@ -94,16 +94,6 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
           )}
         </div>
 
-        {/* Pause overlay */}
-        {isPaused && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/60 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-2 text-amber-100">
-              <span className="text-5xl">⏸️</span>
-              <p className="font-display text-xl font-bold">Partie en pause</p>
-              <p className="text-xs text-amber-200/70">Clique sur « Reprendre » pour continuer</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
