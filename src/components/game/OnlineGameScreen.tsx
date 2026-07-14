@@ -231,6 +231,40 @@ export function OnlineGameScreen() {
             avec {singleWinner?.score ?? 0} points
           </p>
 
+          {/* Ranking — all players with their names and scores */}
+          <div className="mt-8 w-full max-w-md">
+            <p className="mb-2 font-display text-xs uppercase tracking-widest text-muted-foreground">
+              Classement
+            </p>
+            <div className="flex flex-col gap-2">
+              {ranked.map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + i * 0.1 }}
+                  className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${
+                    p.id === singleWinner?.id
+                      ? "border-amber-400/50 bg-amber-500/10"
+                      : "border-border/50 bg-card/40"
+                  }`}
+                >
+                  <span className="w-6 text-center font-display text-lg font-bold text-amber-200">
+                    {i + 1}
+                  </span>
+                  <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="truncate font-display text-sm font-semibold text-foreground">{p.name}</p>
+                    {p.id === singleWinner?.id && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Champion</span>
+                    )}
+                  </div>
+                  <span className="font-display text-2xl font-bold sm:text-xl">{p.score} pts</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button onClick={handleQuit} size="lg" variant="outline">
               <Home className="mr-2 h-5 w-5" /> Accueil
