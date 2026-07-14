@@ -44,7 +44,6 @@ interface GameState {
 
   goToSetup: () => void;
   goToOnlineSetup: () => void;
-  goToReviews: () => void;
   goToBenchouAdmin: () => void;
   goToTournoi: () => void;
   startGame: (players: SetupPlayer[], rounds: number) => void;
@@ -133,8 +132,8 @@ export const useGameStore = create<GameState>((set, get) => {
 
     goToSetup: () => set({ phase: "setup" }),
     goToOnlineSetup: () => set({ phase: "online-setup" }),
-    goToReviews: () => set({ phase: "avis" }),
     goToBenchouAdmin: () => set({ phase: "benchou-admin" }),
+    goToTournoi: () => set({ phase: "tournoi" }),
 
     backHome: () =>
       set({
