@@ -23,10 +23,10 @@ function containsProfanity(text: string): boolean {
   return false;
 }
 
-// ===== In-memory rate limiter =====
+// ===== In-memory rate limiter (assoupli) =====
 const rateLimitMap = new Map<string, { count: number; firstAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const RATE_LIMIT_MAX = 10; // 10 avis par 10 minutes (assoupli)
 
 function getClientIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for");
