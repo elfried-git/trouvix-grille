@@ -23,7 +23,7 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Trouvix Grille",
   description:
-    "Trouvix Grille : le jeu du carré. Place tes pions où tu veux dans la grille, forme un carré de 4 pions (2×2) pour marquer, 10 secondes par coup, pause à tout moment, de 2 à 8 joueurs, match à 5/10/15 rounds.",
+    "Trouvix Grille : le jeu du carré. Place tes pions où tu veux dans la grille, forme un carré de 4 pions (2×2) pour marquer, 10 secondes par coup, pause à tout moment, de 2 à 6 joueurs, match à 5/10/15 rounds.",
   keywords: [
     "Trouvix Grille",
     "Trouvix",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Trouvix Grille",
     description:
-      "Place tes pions librement, forme un carré 2×2, 10s par coup, pause à tout moment, 2 à 8 joueurs.",
+      "Place tes pions librement, forme un carré 2×2, 10s par coup, pause à tout moment, 2 à 6 joueurs.",
     type: "website",
     images: ["/trouvix-logo.svg"],
   },
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Trouvix Grille",
     description:
-      "Place tes pions librement, forme un carré 2×2, 10s par coup, pause à tout moment, 2 à 8 joueurs.",
+      "Place tes pions librement, forme un carré 2×2, 10s par coup, pause à tout moment, 2 à 6 joueurs.",
     images: ["/trouvix-logo.svg"],
   },
 };

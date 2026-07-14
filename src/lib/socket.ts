@@ -75,3 +75,11 @@ export interface SetupPlayer {
   color: string;
   emoji: string;
 }
+export interface Reaction {
+  id: string;
+  playerId: string;
+  playerName: string;
+  playerColor: string;
+  emoji: string;
+  timestamp: number;
+}

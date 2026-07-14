@@ -46,6 +46,7 @@ interface GameState {
   goToOnlineSetup: () => void;
   goToReviews: () => void;
   goToBenchouAdmin: () => void;
+  goToTournoi: () => void;
   startGame: (players: SetupPlayer[], rounds: number) => void;
   backHome: () => void;
   placePawn: (row: number, col: number) => void; // free placement

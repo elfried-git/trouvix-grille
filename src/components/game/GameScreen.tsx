@@ -101,14 +101,6 @@ export function GameScreen() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/5 px-3 py-1.5 text-sm text-amber-200/90 sm:text-xs">
-            <Square className="h-3.5 w-3.5" />
-            Carré {currentRound}/{totalRounds}
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-sm text-rose-200/90 sm:text-xs">
-            <Target className="h-3.5 w-3.5" />
-            Carré = +1
-          </div>
           {/* Pause / Resume button */}
           <Button
             variant="outline"
@@ -156,10 +148,11 @@ export function GameScreen() {
       <div className="grid flex-1 grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         {/* Grid + timer + status */}
         <div className="flex flex-col gap-4">
-          {/* Timer bar */}
+          {/* Professional score counter — above the grid */}
           <div className="glass-card rounded-2xl p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              {/* Current player + timer */}
+              <div className="flex items-center gap-2.5">
                 <Avatar
                   avatar={current?.emoji ?? "❓"}
                   color={current?.color ?? "#52525b"}
@@ -167,12 +160,15 @@ export function GameScreen() {
                   emojiSize="text-xl"
                 />
                 <div>
-                  <p className="text-xs text-muted-foreground sm:text-[11px]">Tour de</p>
+                  <p className="text-xs text-muted-foreground sm:text-[11px]">
+                    {current?.isAI ? "L'IA joue" : "À toi de jouer"}
+                  </p>
                   <p className="font-display text-base font-bold leading-tight">
                     {current?.name}
                   </p>
                 </div>
               </div>
+              {/* Timer */}
               <div
                 className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${
                   isPaused
@@ -194,7 +190,8 @@ export function GameScreen() {
                 )}
               </div>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+            {/* Timer progress bar */}
+            <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
               <motion.div
                 className="h-full rounded-full"
                 style={{
@@ -202,9 +199,31 @@ export function GameScreen() {
                     ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
                     : `linear-gradient(90deg, ${current?.color ?? "#f59e0b"}, #fbbf24)`,
                 }}
-                animate={{ width: isPaused ? `${timePct}%` : `${timePct}%` }}
+                animate={{ width: `${timePct}%` }}
                 transition={{ duration: 0.1, ease: "linear" }}
               />
+            </div>
+            {/* Square progress counter — professional segmented bar */}
+            <div className="mt-3 flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <Square className="h-4 w-4 text-amber-300" />
+                <span className="font-display text-sm font-bold text-amber-100">
+                  {currentRound}/{totalRounds}
+                </span>
+                <span className="text-xs text-muted-foreground">carrés</span>
+              </div>
+              <div className="flex flex-1 gap-1">
+                {Array.from({ length: totalRounds }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                      i < currentRound
+                        ? "bg-gradient-to-r from-amber-400 to-amber-300"
+                        : "bg-muted/60"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -250,24 +269,30 @@ export function GameScreen() {
             )}
           </AnimatePresence>
 
-          {/* Squares formed counter (visible to all) */}
+          {/* Squares formed — per-player counter badges */}
           {formedSquares.length > 0 && !resolving && (
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {formedSquares.map((sq, i) => {
-                const owner = players.find((p) => p.id === sq.playerId);
+              {players.map((p) => {
+                const count = formedSquares.filter((sq) => sq.playerId === p.id).length;
+                if (count === 0) return null;
                 return (
                   <motion.div
-                    key={i}
+                    key={p.id}
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs"
+                    className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold"
+                    style={{
+                      borderColor: `${p.color}80`,
+                      backgroundColor: `${p.color}15`,
+                    }}
                   >
+                    <Avatar avatar={p.emoji} color={p.color} size={20} emojiSize="text-xs" />
+                    <span style={{ color: p.color }}>{p.name}</span>
                     <span
-                      className="h-3 w-3 rounded-full ring-1 ring-white/40"
-                      style={{ backgroundColor: owner?.color }}
-                    />
-                    <span className="text-amber-200/90">
-                      Carré {i + 1} · {owner?.name}
+                      className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white"
+                      style={{ backgroundColor: p.color }}
+                    >
+                      {count}
                     </span>
                   </motion.div>
                 );
@@ -280,22 +305,8 @@ export function GameScreen() {
             players={players}
             currentPlayerId={current?.id ?? null}
             isPaused={isPaused}
+            isAITurn={!!current?.isAI}
           />
-
-          {/* Status bar */}
-          <div className="glass-card flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-center">
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={statusMessage}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="font-display text-sm font-medium text-foreground sm:text-base"
-              >
-                {statusMessage}
-              </motion.p>
-            </AnimatePresence>
-          </div>
         </div>
 
         {/* Side panel */}

@@ -10,7 +10,7 @@ import { Avatar } from "./Avatar";
 import { isPhotoAvatar } from "@/lib/types";
 import { ArrowLeft, ArrowRight, Swords, Users, Minus, Plus, Target, Check, Camera, X, Bot } from "lucide-react";
 
-// Elegant color palette — 16 distinct deep tones (so up to 8 players always have a unique choice)
+// Elegant color palette — 16 distinct deep tones (so up to 6 players always have a unique choice)
 const COLOR_PALETTE = [
   "#9f1239", // carmin profond
   "#b8860b", // or sombre
@@ -37,12 +37,12 @@ export function SetupScreen() {
   const backHome = useGameStore((s) => s.backHome);
   const [count, setCount] = useState(2);
   // Names default to empty — each player must type their own name
-  const [names, setNames] = useState<string[]>(Array.from({ length: 8 }, () => ""));
+  const [names, setNames] = useState<string[]>(Array.from({ length: 6 }, () => ""));
   const [colors, setColors] = useState<string[]>([...COLOR_PALETTE]);
   // Avatar state: empty string = no photo yet (photo is required for humans); data URL = uploaded photo
-  const [emojis, setEmojis] = useState<string[]>(Array.from({ length: 8 }, () => ""));
+  const [emojis, setEmojis] = useState<string[]>(Array.from({ length: 6 }, () => ""));
   // isAI: true = AI-controlled player (no photo required, robot avatar)
-  const [isAI, setIsAI] = useState<boolean[]>(Array.from({ length: 8 }, () => false));
+  const [isAI, setIsAI] = useState<boolean[]>(Array.from({ length: 6 }, () => false));
   const [rounds, setRounds] = useState(10);
 
   // Validation: every visible player must have a name. Photo is now OPTIONAL.
@@ -176,8 +176,8 @@ export function SetupScreen() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setCount((c) => Math.min(8, c + 1))}
-              disabled={count >= 8}
+              onClick={() => setCount((c) => Math.min(6, c + 1))}
+              disabled={count >= 6}
               className="h-12 w-12 sm:h-9 sm:w-9"
             >
               <Plus className="h-5 w-5 sm:h-4 sm:w-4" />

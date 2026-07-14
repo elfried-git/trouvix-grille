@@ -9,6 +9,7 @@ import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { isPhotoAvatar } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Camera,
@@ -39,6 +40,7 @@ type Tab = "menu" | "create" | "join" | "benchou" | "lobby";
 export function OnlineSetupScreen() {
   const backHome = useGameStore((s) => s.backHome);
   const goToBenchouAdmin = useGameStore((s) => s.goToBenchouAdmin);
+  const { toast } = useToast();
   // Use precise selectors to avoid re-rendering on every state-update (timer ticks at 10Hz)
   const onlineConnected = useOnlineStore((s) => s.connected);
   const onlineRoomCode = useOnlineStore((s) => s.roomCode);
@@ -109,6 +111,10 @@ export function OnlineSetupScreen() {
     if (onlineRoomCode) {
       navigator.clipboard?.writeText(onlineRoomCode);
       setCopied(true);
+      toast({
+        title: "Code copié !",
+        description: "Partage-le avec tes amis."
+      });
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -131,15 +137,12 @@ export function OnlineSetupScreen() {
             size="sm"
             onClick={() => {
               if (activeTab === "lobby") {
-                // In the lobby: leave the room and go home
                 onlineLeaveRoom();
                 backHome();
               } else if (activeTab === "menu") {
-                // On the online menu: go back to the home screen
                 onlineTeardown();
                 backHome();
               } else {
-                // On create/join form: go back to the online menu
                 setTab("menu");
               }
             }}
@@ -253,7 +256,6 @@ export function OnlineSetupScreen() {
                     maxLength={6}
                     className="bg-background/60 text-center text-lg tracking-[0.3em]"
                   />
-                  {/* Error message displayed right here, next to the input — not at the top */}
                   {onlineError && showPinForm && (
                     <p className="text-center text-xs font-medium text-rose-300">
                       ⚠️ {onlineError}
@@ -326,7 +328,6 @@ export function OnlineSetupScreen() {
                   : "Rejoindre un salon"}
             </h2>
 
-            {/* Benchou Ferrari preview */}
             {activeTab === "benchou" && (
               <div className="mt-4 flex items-center gap-3 rounded-xl border border-violet-400/30 bg-violet-500/5 p-3">
                 <img
@@ -345,7 +346,6 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Profile */}
             <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-4 sm:p-3">
               <Label className="flex items-center gap-1 text-xs text-muted-foreground">
                 Ton profil <span className="text-rose-400">*</span>
@@ -388,7 +388,6 @@ export function OnlineSetupScreen() {
                   </button>
                 )}
               </div>
-              {/* Color picker */}
               <div className="mt-2 flex flex-wrap gap-2 sm:gap-1.5">
                 {COLOR_PALETTE.map((c) => {
                   const taken =
@@ -418,7 +417,6 @@ export function OnlineSetupScreen() {
               </div>
             </div>
 
-            {/* Round choice (create only) */}
             {(activeTab === "create" || activeTab === "benchou") && (
               <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
@@ -445,7 +443,6 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Join code input (join only) */}
             {activeTab === "join" && (
               <div className="mt-4 rounded-xl border border-border/60 bg-card/40 p-4">
                 <Label className="text-xs text-muted-foreground">Code du salon</Label>
@@ -516,9 +513,9 @@ export function OnlineSetupScreen() {
               <div className="mb-2 flex items-center justify-between">
                 <p className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
                   <Users className="h-3.5 w-3.5" />
-                  Joueurs ({players.length}/8)
+                  Joueurs ({players.length}/6)
                 </p>
-                {players.length >= 8 && (
+                {players.length >= 6 && (
                   <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-300">
                     Salon complet
                   </span>
@@ -538,7 +535,6 @@ export function OnlineSetupScreen() {
                     <div className="flex flex-1 flex-col gap-0.5">
                       <span className="flex items-center gap-1.5 font-medium">
                         {p.name}
-                        {/* Online status indicator */}
                         {p.connected !== false ? (
                           <span className="flex items-center gap-0.5 text-[10px] font-bold uppercase text-emerald-300">
                             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -610,10 +606,8 @@ export function OnlineSetupScreen() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                // Leave room but keep socket alive for quick rejoin
                 onlineLeaveRoom();
                 setTab("menu");
-                // Don't clear name/emoji — user might just want to modify, not re-enter everything
               }}
               className="mt-3 w-full text-muted-foreground hover:text-foreground"
             >

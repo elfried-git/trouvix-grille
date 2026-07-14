@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { Flag, Home, Timer, Square, Pause, Play, Crown, WifiOff, Swords } from "lucide-react";
 
+// ===== Reaction emojis =====
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
+
 const ROWS = 10;
 const COLS = 10;
 
@@ -23,6 +26,8 @@ export function OnlineGameScreen() {
   const rematchTiedAction = useOnlineStore((s) => s.rematchTied);
   const leaveRoomAction = useOnlineStore((s) => s.leaveRoom);
   const backHome = useGameStore((s) => s.backHome);
+  const reactions = useOnlineStore((s) => s.reactions);
+  const sendReactionAction = useOnlineStore((s) => s.sendReaction);
 
   // === AI auto-play (host computes moves for AI players) ===
   // Must be before any early return (rules of hooks).
@@ -242,10 +247,11 @@ export function OnlineGameScreen() {
               {ranked.map((p, i) => (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${p.id === singleWinner?.id
+                  className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${
+                    p.id === singleWinner?.id
                       ? "border-amber-400/50 bg-amber-500/10"
                       : "border-border/50 bg-card/40"
-                    }`}
+                  }`}
                 >
                   <span className="w-6 text-center font-display text-lg font-bold text-amber-200">
                     {i + 1}
@@ -292,20 +298,17 @@ export function OnlineGameScreen() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/5 px-3 py-1.5 text-sm text-amber-200/90 sm:text-xs">
-            <Square className="h-3.5 w-3.5" />
-            Carré {state.currentRound}/{state.totalRounds}
-          </div>
           {amHost && (
             <Button
               variant="outline"
               size="sm"
               onClick={togglePauseAction}
               disabled={state.resolving}
-              className={`h-10 gap-1.5 sm:h-8 ${state.isPaused
+              className={`h-10 gap-1.5 sm:h-8 ${
+                state.isPaused
                   ? "border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/10"
                   : "border-amber-400/40 text-amber-200 hover:bg-amber-500/10"
-                }`}
+              }`}
             >
               {state.isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               <span className="hidden sm:inline">{state.isPaused ? "Reprendre" : "Pause"}</span>
@@ -328,10 +331,11 @@ export function OnlineGameScreen() {
       <div className="grid flex-1 grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         {/* Grid + timer */}
         <div className="flex flex-col gap-4">
-          {/* Timer */}
+          {/* Professional score counter — above the grid */}
           <div className="glass-card rounded-2xl p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              {/* Current player + timer */}
+              <div className="flex items-center gap-2.5">
                 <Avatar avatar={current?.emoji ?? ""} color={current?.color ?? "#52525b"} size={44} emojiSize="text-xl" />
                 <div>
                   <p className="text-xs text-muted-foreground sm:text-[11px]">
@@ -340,9 +344,11 @@ export function OnlineGameScreen() {
                   <p className="font-display text-base font-bold leading-tight">{current?.name}</p>
                 </div>
               </div>
+              {/* Timer */}
               <div
-                className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
-                  }`}
+                className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${
+                  state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
+                }`}
               >
                 {state.isPaused ? (
                   <>
@@ -356,7 +362,8 @@ export function OnlineGameScreen() {
                 )}
               </div>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+            {/* Timer progress bar */}
+            <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
               <motion.div
                 className="h-full rounded-full"
                 style={{
@@ -367,6 +374,28 @@ export function OnlineGameScreen() {
                 animate={{ width: `${timePct}%` }}
                 transition={{ duration: 0.25, ease: "linear" }}
               />
+            </div>
+            {/* Square progress counter — professional segmented bar */}
+            <div className="mt-3 flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <Square className="h-4 w-4 text-amber-300" />
+                <span className="font-display text-sm font-bold text-amber-100">
+                  {state.currentRound}/{state.totalRounds}
+                </span>
+                <span className="text-xs text-muted-foreground">carrés</span>
+              </div>
+              <div className="flex flex-1 gap-1">
+                {Array.from({ length: state.totalRounds }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                      i < state.currentRound
+                        ? "bg-gradient-to-r from-amber-400 to-amber-300"
+                        : "bg-muted/60"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -407,20 +436,31 @@ export function OnlineGameScreen() {
             )}
           </AnimatePresence>
 
-          {/* Squares formed badges */}
+          {/* Squares formed — per-player counter badges */}
           {state.formedSquares.length > 0 && !state.resolving && (
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {state.formedSquares.map((sq, i) => {
-                const owner = players.find((p) => p.id === sq.playerId);
+              {players.map((p) => {
+                const count = state.formedSquares.filter((sq) => sq.playerId === p.id).length;
+                if (count === 0) return null;
                 return (
                   <motion.div
-                    key={i}
+                    key={p.id}
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs"
+                    className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold"
+                    style={{
+                      borderColor: `${p.color}80`,
+                      backgroundColor: `${p.color}15`,
+                    }}
                   >
-                    <span className="h-3 w-3 rounded-full ring-1 ring-white/40" style={{ backgroundColor: owner?.color }} />
-                    <span className="text-amber-200/90">Carré {i + 1} · {owner?.name}</span>
+                    <Avatar avatar={p.emoji} color={p.color} size={20} emojiSize="text-xs" />
+                    <span style={{ color: p.color }}>{p.name}</span>
+                    <span
+                      className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white"
+                      style={{ backgroundColor: p.color }}
+                    >
+                      {count}
+                    </span>
                   </motion.div>
                 );
               })}
@@ -447,10 +487,13 @@ export function OnlineGameScreen() {
                         disabled={!canPlay}
                         onClick={() => {
                           if (!canPlay) return;
+                          // Optimistic: disable this cell immediately to prevent double-click
+                          // The server broadcast will update the real state
                           placePawnAction(row, col);
                         }}
-                        className={`group relative aspect-square touch-manipulation rounded-full bg-[oklch(0.10_0.015_22)] ring-1 ring-black/40 outline-none transition focus-visible:ring-2 focus-visible:ring-amber-300/60 ${canPlay ? "cursor-pointer" : "cursor-default"
-                          }`}
+                        className={`group relative aspect-square touch-manipulation rounded-full bg-[oklch(0.10_0.015_22)] ring-1 ring-black/40 outline-none transition focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
+                          canPlay ? "cursor-pointer" : "cursor-default"
+                        }`}
                         aria-label={`Placer un pion ligne ${row + 1} colonne ${col + 1}`}
                       >
                         {filled ? (
@@ -458,12 +501,13 @@ export function OnlineGameScreen() {
                             initial={{ scale: 0.3, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ type: "spring", stiffness: 360, damping: 18 }}
-                            className={`absolute inset-[2px] rounded-full shadow-lg ${isFresh
+                            className={`absolute inset-[2px] rounded-full shadow-lg ${
+                              isFresh
                                 ? "ring-4 ring-amber-200 pulse-glow z-20"
                                 : isSquareCell
                                   ? "ring-[3px] ring-amber-300/80 z-10"
                                   : "ring-2 ring-white/30"
-                              }`}
+                            }`}
                             style={{ backgroundColor: cellColor }}
                           >
                             {isSquareCell && !isFresh && (
@@ -502,22 +546,50 @@ export function OnlineGameScreen() {
                   </p>
                 </div>
               )}
+
+              {/* Floating reactions — appear on top of the grid without blocking it */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+                <AnimatePresence>
+                  {reactions.map((r) => {
+                    // Distribute reactions across the grid horizontally
+                    const xOffset = ((r.timestamp % 80) - 40);
+                    return (
+                      <motion.div
+                        key={r.id}
+                        initial={{ opacity: 0, y: 40, scale: 0.5 }}
+                        animate={{
+                          opacity: [0, 1, 1, 0],
+                          y: [40, -20, -80, -160],
+                          scale: [0.5, 1.3, 1, 0.8],
+                          x: xOffset,
+                        }}
+                        exit={{ opacity: 0, scale: 0.5 }}
+                        transition={{ duration: 3, ease: "easeOut" }}
+                        className="absolute bottom-4 left-1/2 -translate-x-1/2"
+                      >
+                        <span className="text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                          {r.emoji}
+                        </span>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
 
-          {/* Status */}
-          <div className="glass-card flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-center">
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={state.statusMessage}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="font-display text-sm font-medium text-foreground sm:text-base"
+          {/* Reaction bar — emoji reactions during the game */}
+          <div className="glass-card flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl px-3 py-2 sm:flex-nowrap sm:gap-1.5 sm:px-3 sm:py-2.5">
+            {REACTION_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => sendReactionAction(emoji)}
+                className="rounded-full px-1.5 py-0.5 text-2xl transition-transform hover:scale-125 active:scale-95 sm:text-xl"
+                title={`Réagir avec ${emoji}`}
               >
-                {state.statusMessage}
-              </motion.p>
-            </AnimatePresence>
+                {emoji}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -536,10 +608,11 @@ export function OnlineGameScreen() {
                   <motion.div
                     key={p.id}
                     layout
-                    className={`relative overflow-hidden rounded-xl border p-4 transition-all sm:p-3 ${isCurrent
+                    className={`relative overflow-hidden rounded-xl border p-4 transition-all sm:p-3 ${
+                      isCurrent
                         ? "border-amber-400/60 bg-amber-500/10 shadow-[0_0_20px_-5px_oklch(0.80_0.14_84/0.4)]"
                         : "border-border/60 bg-card/40"
-                      }`}
+                    }`}
                   >
                     {isCurrent && <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-amber-300 to-rose-500" />}
                     <div className="flex items-center gap-3">

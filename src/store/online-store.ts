@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { getSocket, disconnectSocket } from "@/lib/socket";
-import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
+import type { OnlineGameState, SetupPlayer, Reaction } from "@/lib/socket";
 
 // ===== Benchou session persistence (sessionStorage) =====
 const BENCHOU_PIN_KEY = "trouvix_benchou_pin";
@@ -55,6 +55,10 @@ interface OnlineStore {
   benchouPin: string | null;
   challengeDeclined: boolean;
 
+  // ===== Reactions (emoji reactions during the game) =====
+  reactions: Reaction[];
+  sendReaction: (emoji: string) => void;
+
   init: () => void;
   teardown: () => void;
 
@@ -86,6 +90,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   isBenchou: false,
   benchouPin: typeof window !== "undefined" ? loadBenchouPin() : null,
   challengeDeclined: false,
+  reactions: [],
 
   init: () => {
     const socket = getSocket();
@@ -164,6 +169,32 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     });
     socket.on("challenge-declined", (payload: { challengeId: string }) => {
       set({ challengeDeclined: true });
+    });
+    // ===== Reactions (emoji reactions during the game) =====
+    socket.on("reaction-received", (payload: Omit<Reaction, "id">) => {
+      const reaction: Reaction = {
+        ...payload,
+        id: `${payload.playerId}-${payload.timestamp}-${Math.random()}`,
+      };
+      set((s) => ({ reactions: [...s.reactions, reaction] }));
+      setTimeout(() => {
+        set((s) => ({ reactions: s.reactions.filter((r) => r.id !== reaction.id) }));
+      }, 3000);
+    });
+    // Room destroyed (host left) — clear all state and go home silently
+    socket.on("room-destroyed", (payload: { reason: string }) => {
+      set({
+        myPlayerId: null,
+        roomCode: null,
+        state: null,
+        errorMessage: null,
+        challenges: [],
+        reactions: [],
+      });
+      try {
+        localStorage.removeItem("trouvix_room");
+        localStorage.removeItem("trouvix_player");
+      } catch {}
     });
   },
 
@@ -450,4 +481,12 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   },
 
   clearError: () => set({ errorMessage: null }),
+
+  // ===== Reactions =====
+  sendReaction: (emoji: string) => {
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("send-reaction", { emoji });
+    }
+  },
 }));

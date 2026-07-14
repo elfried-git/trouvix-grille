@@ -3,14 +3,14 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, Dices, Sparkles, Pause, Globe, Gamepad2, MessageSquareQuote } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, Dices, Sparkles, Pause, Globe, Gamepad2, Medal } from "lucide-react";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
   { icon: Grid3x3, label: "Placement libre", desc: "Pose où tu veux", color: "text-amber-300" },
   { icon: Timer, label: "10 s / coup", desc: "Joue vite ou perds la main", color: "text-emerald-300" },
   { icon: Pause, label: "Pause à tout moment", desc: "Chrono gelé", color: "text-fuchsia-300" },
-  { icon: Users, label: "2 à 8 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
+  { icon: Users, label: "2 à 6 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
   { icon: Trophy, label: "Champion Ultime", desc: "Meilleur score gagne", color: "text-sky-300" },
 ];
 
@@ -19,7 +19,7 @@ const FLOAT_ICONS = ["🟥", "🟨", "🟦", "⏱️", "🎯", "🏆", "⬜", "�
 export function HomeScreen() {
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
-  const goToReviews = useGameStore((s) => s.goToReviews);
+  const goToTournoi = useGameStore((s) => s.goToTournoi);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-10">
@@ -75,7 +75,7 @@ export function HomeScreen() {
           Place tes pions <span className="font-semibold text-amber-200">où tu veux</span> dans la
           grille et forme un <span className="font-semibold text-rose-200">carré de 4 pions</span>{" "}
           (2×2) pour marquer. <span className="font-semibold text-amber-200">10 secondes</span> par
-          coup, pause à tout moment. De 2 à 8 joueurs. 🏆
+          coup, pause à tout moment. De 2 à 6 joueurs. 🏆
         </p>
 
         <motion.div
@@ -102,13 +102,13 @@ export function HomeScreen() {
             Jouer en ligne
           </Button>
           <Button
-            onClick={goToReviews}
+            onClick={goToTournoi}
             size="lg"
             variant="outline"
-            className="h-14 w-full rounded-full border-amber-400/40 bg-amber-500/5 px-8 text-base font-semibold text-amber-100/90 transition hover:border-amber-400/70 hover:bg-amber-500/15 sm:w-auto"
+            className="h-14 w-full rounded-full border-amber-400/40 bg-gradient-to-r from-amber-500/10 to-rose-500/10 px-8 text-base font-semibold text-amber-100 transition hover:from-amber-500/20 hover:to-rose-500/20 sm:w-auto"
           >
-            <MessageSquareQuote className="mr-2 h-5 w-5" />
-            Avis
+            <Medal className="mr-2 h-5 w-5" />
+            Tournoi
           </Button>
         </motion.div>
 
@@ -133,7 +133,7 @@ export function HomeScreen() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-2"><Grid3x3 className="h-4 w-4 text-rose-300" /> Grille 10×10</span>
           <span className="flex items-center gap-2"><Timer className="h-4 w-4 text-amber-300" /> 10s par coup</span>
-          <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 8 joueurs</span>
+          <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 6 joueurs</span>
         </div>
       </motion.div>
     </div>
