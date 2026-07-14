@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Grid } from "./Grid";
 import { PlayerPanel } from "./PlayerPanel";
 import { Avatar } from "./Avatar";
@@ -23,12 +23,8 @@ export function GameScreen() {
   const phase = useGameStore((s) => s.phase);
   const currentPlayerIndex = useGameStore((s) => s.currentPlayerIndex);
   const turnTimeLeft = useGameStore((s) => s.turnTimeLeft);
-  const statusMessage = useGameStore((s) => s.statusMessage);
   const resolving = useGameStore((s) => s.resolving);
   const isPaused = useGameStore((s) => s.isPaused);
-  const lastSquareCells = useGameStore((s) => s.lastSquareCells);
-  const lastSquareerId = useGameStore((s) => s.lastSquareerId);
-  const formedSquares = useGameStore((s) => s.formedSquares);
   const togglePause = useGameStore((s) => s.togglePause);
   const totalRounds = useGameStore((s) => s.totalRounds);
   const currentRound = useGameStore((s) => s.currentRound);
@@ -207,37 +203,6 @@ export function GameScreen() {
               />
             </div>
           </div>
-
-          {/* Squares formed — per-player counter badges */}
-          {formedSquares.length > 0 && !resolving && (
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {players.map((p) => {
-                const count = formedSquares.filter((sq) => sq.playerId === p.id).length;
-                if (count === 0) return null;
-                return (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold"
-                    style={{
-                      borderColor: `${p.color}80`,
-                      backgroundColor: `${p.color}15`,
-                    }}
-                  >
-                    <Avatar avatar={p.emoji} color={p.color} size={20} emojiSize="text-xs" />
-                    <span style={{ color: p.color }}>{p.name}</span>
-                    <span
-                      className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white"
-                      style={{ backgroundColor: p.color }}
-                    >
-                      {count}
-                    </span>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
 
           {/* The board */}
           <Grid
