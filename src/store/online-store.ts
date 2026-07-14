@@ -59,6 +59,10 @@ interface OnlineStore {
   reactions: Reaction[];
   sendReaction: (emoji: string) => void;
 
+  // ===== Replay =====
+  replayGame: () => void;
+  requestBenchouReplay: () => void;
+
   init: () => void;
   teardown: () => void;
 
@@ -487,6 +491,24 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     const socket = getSocket();
     if (socket.connected) {
       socket.emit("send-reaction", { emoji });
+    }
+  },
+
+  // ===== Replay =====
+  replayGame: () => {
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("replay-game");
+    }
+  },
+  requestBenchouReplay: () => {
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("request-benchou-replay", {}, (res: { ok?: boolean; error?: string }) => {
+        if (res?.error) {
+          set({ errorMessage: res.error });
+        }
+      });
     }
   },
 }));

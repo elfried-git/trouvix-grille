@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
-import { Flag, Home, Timer, Square, Pause, Play, Crown, WifiOff, Swords } from "lucide-react";
+import { Flag, Home, Timer, Square, Pause, Play, Crown, WifiOff, Swords, RotateCcw, Loader2 } from "lucide-react";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -16,7 +16,6 @@ const ROWS = 10;
 const COLS = 10;
 
 export function OnlineGameScreen() {
-  // Use precise selectors to avoid excessive re-renders (timer ticks at 10Hz)
   const state = useOnlineStore((s) => s.state);
   const myId = useOnlineStore((s) => s.myPlayerId);
   const placePawnAction = useOnlineStore((s) => s.placePawn);
@@ -28,9 +27,20 @@ export function OnlineGameScreen() {
   const backHome = useGameStore((s) => s.backHome);
   const reactions = useOnlineStore((s) => s.reactions);
   const sendReactionAction = useOnlineStore((s) => s.sendReaction);
+  const replayGameAction = useOnlineStore((s) => s.replayGame);
+  const requestBenchouReplayAction = useOnlineStore((s) => s.requestBenchouReplay);
+
+  const [replayWaiting, setReplayWaiting] = useState(false);
+
+  // Reset replay waiting state when the game restarts
+  useEffect(() => {
+    if (state?.phase !== "gameover") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReplayWaiting(false);
+    }
+  }, [state?.phase]);
 
   // === AI auto-play (host computes moves for AI players) ===
-  // Must be before any early return (rules of hooks).
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (aiTimerRef.current) {
@@ -108,6 +118,7 @@ export function OnlineGameScreen() {
     const ranked = [...players].sort((a, b) => b.score - a.score);
     const maxScore = ranked.length > 0 ? ranked[0].score : 0;
     const tiedPlayerIds = state.tiedPlayerIds ?? [];
+    const benchouInGame = players.some((p) => p.name === "Benchou Ferrari");
     const isTie = tiedPlayerIds.length > 1;
     const singleWinner = !isTie ? ranked[0] : null;
 
@@ -140,7 +151,6 @@ export function OnlineGameScreen() {
               {tiedPlayers.length} joueurs sont à égalité. Un challenge décisif va les départager.
             </p>
 
-            {/* Tied players highlighted */}
             <div className="mt-8 w-full max-w-md">
               <p className="mb-2 font-display text-xs uppercase tracking-widest text-violet-300/80">
                 En lice pour le challenge
@@ -162,7 +172,6 @@ export function OnlineGameScreen() {
               </div>
             </div>
 
-            {/* Eliminated players */}
             {eliminated.length > 0 && (
               <div className="mt-4 w-full max-w-md">
                 <p className="mb-2 font-display text-xs uppercase tracking-widest text-muted-foreground/60">
@@ -197,9 +206,6 @@ export function OnlineGameScreen() {
                 <Home className="mr-2 h-5 w-5" /> Accueil
               </Button>
             </div>
-            <p className="mt-6 text-xs text-muted-foreground">
-              Seuls les joueurs à égalité participent au challenge. Le premier à avoir plus de points gagne.
-            </p>
           </motion.div>
         </div>
       );
@@ -265,11 +271,40 @@ export function OnlineGameScreen() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {amHost && !benchouInGame && !replayWaiting && (
+              <Button
+                onClick={() => replayGameAction()}
+                size="lg"
+                className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+              >
+                <RotateCcw className="mr-2 h-5 w-5" />
+                Rejouer
+              </Button>
+            )}
+            {amHost && benchouInGame && !replayWaiting && (
+              <Button
+                onClick={async () => {
+                  setReplayWaiting(true);
+                  requestBenchouReplayAction();
+                }}
+                size="lg"
+                className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400"
+              >
+                <RotateCcw className="mr-2 h-5 w-5" />
+                Rejouer avec Benchou
+              </Button>
+            )}
+            {amHost && replayWaiting && (
+              <div className="flex items-center gap-2 rounded-full border border-violet-400/40 bg-violet-500/10 px-5 py-3 text-violet-100">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                En attente de Benchou Ferrari...
+              </div>
+            )}
             {amHost && (
               <Button
                 onClick={restartAction}
                 size="lg"
-                className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                variant="outline"
               >
                 Retour au salon
               </Button>
@@ -334,7 +369,6 @@ export function OnlineGameScreen() {
           {/* Professional score counter — above the grid */}
           <div className="glass-card rounded-2xl p-4">
             <div className="flex items-center justify-between gap-3">
-              {/* Current player + timer */}
               <div className="flex items-center gap-2.5">
                 <Avatar avatar={current?.emoji ?? ""} color={current?.color ?? "#52525b"} size={44} emojiSize="text-xl" />
                 <div>
@@ -344,7 +378,6 @@ export function OnlineGameScreen() {
                   <p className="font-display text-base font-bold leading-tight">{current?.name}</p>
                 </div>
               </div>
-              {/* Timer */}
               <div
                 className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${
                   state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
@@ -362,7 +395,6 @@ export function OnlineGameScreen() {
                 )}
               </div>
             </div>
-            {/* Timer progress bar */}
             <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
               <motion.div
                 className="h-full rounded-full"
@@ -398,43 +430,6 @@ export function OnlineGameScreen() {
               </div>
             </div>
           </div>
-
-          {/* Celebration banner */}
-          <AnimatePresence>
-            {state.resolving && state.lastSquareCells && state.lastSquareerId && (
-              <motion.div
-                initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 200, damping: 18 }}
-                className="glass-card flex items-center justify-center gap-3 rounded-2xl border-2 border-amber-400/60 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-6 py-4 text-center shadow-[0_0_30px_-5px_oklch(0.80_0.14_84/0.5)]"
-              >
-                <motion.span
-                  animate={{ rotate: [0, -15, 15, 0], scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.6, repeat: 2 }}
-                  className="text-4xl"
-                >
-                  🟦
-                </motion.span>
-                <div className="text-left">
-                  <p className="font-display text-lg font-black text-amber-200 sm:text-xl">CARRÉ !</p>
-                  <p className="text-sm text-foreground">
-                    <span className="font-bold" style={{ color: players.find((p) => p.id === state.lastSquareerId)?.color }}>
-                      {players.find((p) => p.id === state.lastSquareerId)?.name}
-                    </span>{" "}
-                    marque <span className="font-bold text-amber-200">+1 point</span>
-                  </p>
-                </div>
-                <motion.span
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity }}
-                  className="text-3xl"
-                >
-                  ⭐
-                </motion.span>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Squares formed — per-player counter badges */}
           {state.formedSquares.length > 0 && !state.resolving && (
@@ -478,7 +473,6 @@ export function OnlineGameScreen() {
                     const isSquareCell = inAnySquare(row, col);
                     const isFresh = inLastSquare(row, col);
                     const cellColor = players.find((p) => p.id === cellVal)?.color ?? "#52525b";
-                    // canPlay: it's my turn, cell is empty, not resolving/paused, game is playing
                     const canPlay = isMyTurn && !filled && !state.resolving && !state.isPaused && state.phase === "playing";
                     return (
                       <button
@@ -487,8 +481,6 @@ export function OnlineGameScreen() {
                         disabled={!canPlay}
                         onClick={() => {
                           if (!canPlay) return;
-                          // Optimistic: disable this cell immediately to prevent double-click
-                          // The server broadcast will update the real state
                           placePawnAction(row, col);
                         }}
                         className={`group relative aspect-square touch-manipulation rounded-full bg-[oklch(0.10_0.015_22)] ring-1 ring-black/40 outline-none transition focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
@@ -528,30 +520,10 @@ export function OnlineGameScreen() {
                 )}
               </div>
 
-              {/* Pause overlay */}
-              {state.isPaused && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/60 backdrop-blur-sm">
-                  <div className="flex flex-col items-center gap-2 text-amber-100">
-                    <span className="text-5xl">⏸️</span>
-                    <p className="font-display text-xl font-bold">Partie en pause</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Not-your-turn overlay */}
-              {!isMyTurn && state.phase === "playing" && !state.resolving && !state.isPaused && (
-                <div className="pointer-events-none absolute inset-0 flex items-end justify-center rounded-3xl bg-black/30 p-4">
-                  <p className="rounded-full bg-black/60 px-4 py-1.5 text-xs text-amber-100">
-                    En attente du tour de {current?.name}...
-                  </p>
-                </div>
-              )}
-
-              {/* Floating reactions — appear on top of the grid without blocking it */}
+              {/* Floating reactions */}
               <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
                 <AnimatePresence>
                   {reactions.map((r) => {
-                    // Distribute reactions across the grid horizontally
                     const xOffset = ((r.timestamp % 80) - 40);
                     return (
                       <motion.div
@@ -575,10 +547,29 @@ export function OnlineGameScreen() {
                   })}
                 </AnimatePresence>
               </div>
+
+              {/* Pause overlay */}
+              {state.isPaused && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/60 backdrop-blur-sm">
+                  <div className="flex flex-col items-center gap-2 text-amber-100">
+                    <span className="text-5xl">⏸️</span>
+                    <p className="font-display text-xl font-bold">Partie en pause</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Not-your-turn overlay */}
+              {!isMyTurn && state.phase === "playing" && !state.resolving && !state.isPaused && (
+                <div className="pointer-events-none absolute inset-0 flex items-end justify-center rounded-3xl bg-black/30 p-4">
+                  <p className="rounded-full bg-black/60 px-4 py-1.5 text-xs text-amber-100">
+                    En attente du tour de {current?.name}...
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Reaction bar — emoji reactions during the game */}
+          {/* Reaction bar */}
           <div className="glass-card flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl px-3 py-2 sm:flex-nowrap sm:gap-1.5 sm:px-3 sm:py-2.5">
             {REACTION_EMOJIS.map((emoji) => (
               <button

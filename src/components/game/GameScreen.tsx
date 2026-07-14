@@ -101,6 +101,14 @@ export function GameScreen() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/5 px-3 py-1.5 text-sm text-amber-200/90 sm:text-xs">
+            <Square className="h-3.5 w-3.5" />
+            Carré {currentRound}/{totalRounds}
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-sm text-rose-200/90 sm:text-xs">
+            <Target className="h-3.5 w-3.5" />
+            Carré = +1
+          </div>
           {/* Pause / Resume button */}
           <Button
             variant="outline"
@@ -148,11 +156,10 @@ export function GameScreen() {
       <div className="grid flex-1 grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         {/* Grid + timer + status */}
         <div className="flex flex-col gap-4">
-          {/* Professional score counter — above the grid */}
+          {/* Timer bar */}
           <div className="glass-card rounded-2xl p-4">
-            <div className="flex items-center justify-between gap-3">
-              {/* Current player + timer */}
-              <div className="flex items-center gap-2.5">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <Avatar
                   avatar={current?.emoji ?? "❓"}
                   color={current?.color ?? "#52525b"}
@@ -160,15 +167,12 @@ export function GameScreen() {
                   emojiSize="text-xl"
                 />
                 <div>
-                  <p className="text-xs text-muted-foreground sm:text-[11px]">
-                    {current?.isAI ? "L'IA joue" : "À toi de jouer"}
-                  </p>
+                  <p className="text-xs text-muted-foreground sm:text-[11px]">Tour de</p>
                   <p className="font-display text-base font-bold leading-tight">
                     {current?.name}
                   </p>
                 </div>
               </div>
-              {/* Timer */}
               <div
                 className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${
                   isPaused
@@ -190,8 +194,7 @@ export function GameScreen() {
                 )}
               </div>
             </div>
-            {/* Timer progress bar */}
-            <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
               <motion.div
                 className="h-full rounded-full"
                 style={{
@@ -199,75 +202,11 @@ export function GameScreen() {
                     ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
                     : `linear-gradient(90deg, ${current?.color ?? "#f59e0b"}, #fbbf24)`,
                 }}
-                animate={{ width: `${timePct}%` }}
+                animate={{ width: isPaused ? `${timePct}%` : `${timePct}%` }}
                 transition={{ duration: 0.1, ease: "linear" }}
               />
             </div>
-            {/* Square progress counter — professional segmented bar */}
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <Square className="h-4 w-4 text-amber-300" />
-                <span className="font-display text-sm font-bold text-amber-100">
-                  {currentRound}/{totalRounds}
-                </span>
-                <span className="text-xs text-muted-foreground">carrés</span>
-              </div>
-              <div className="flex flex-1 gap-1">
-                {Array.from({ length: totalRounds }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                      i < currentRound
-                        ? "bg-gradient-to-r from-amber-400 to-amber-300"
-                        : "bg-muted/60"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
-
-          {/* Square celebration banner */}
-          <AnimatePresence>
-            {resolving && lastSquareCells && lastSquareerId && (
-              <motion.div
-                initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 200, damping: 18 }}
-                className="glass-card flex items-center justify-center gap-3 rounded-2xl border-2 border-amber-400/60 bg-gradient-to-r from-amber-500/20 to-rose-500/20 px-6 py-4 text-center shadow-[0_0_30px_-5px_oklch(0.80_0.14_84/0.5)]"
-              >
-                <motion.span
-                  animate={{ rotate: [0, -15, 15, 0], scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.6, repeat: 2 }}
-                  className="text-4xl"
-                >
-                  🟦
-                </motion.span>
-                <div className="text-left">
-                  <p className="font-display text-lg font-black text-amber-200 sm:text-xl">
-                    CARRÉ !
-                  </p>
-                  <p className="text-sm text-foreground">
-                    <span
-                      className="font-bold"
-                      style={{ color: players.find((p) => p.id === lastSquareerId)?.color }}
-                    >
-                      {players.find((p) => p.id === lastSquareerId)?.name}
-                    </span>{" "}
-                    marque <span className="font-bold text-amber-200">+1 point</span>
-                  </p>
-                </div>
-                <motion.span
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity }}
-                  className="text-3xl"
-                >
-                  ⭐
-                </motion.span>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Squares formed — per-player counter badges */}
           {formedSquares.length > 0 && !resolving && (
@@ -305,7 +244,6 @@ export function GameScreen() {
             players={players}
             currentPlayerId={current?.id ?? null}
             isPaused={isPaused}
-            isAITurn={!!current?.isAI}
           />
         </div>
 
