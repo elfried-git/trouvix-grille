@@ -40,12 +40,17 @@ export function ReviewsScreen() {
   const loadReviews = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetch("/api/reviews", { cache: "no-store" });
-      if (!res.ok) throw new Error("Erreur");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.detail ? `${data.error} (${data.detail})` : (data.error ?? "Erreur");
+        throw new Error(msg);
+      }
       const data = await res.json();
       setReviews(data.reviews ?? []);
-    } catch {
-      setError("Impossible de charger les avis.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Impossible de charger les avis.");
     } finally {
       setLoading(false);
     }
@@ -81,7 +86,9 @@ export function ReviewsScreen() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Erreur");
+        // Inclut le détail de l'erreur si disponible (utile pour diagnostiquer en prod)
+        const msg = data.detail ? `${data.error} (${data.detail})` : (data.error ?? "Erreur");
+        throw new Error(msg);
       }
       // Réinitialise le formulaire
       setAuthorName("");

@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   allowedDevOrigins: ["*.space-z.ai", "*.chatglm.cn"],
+  // Prisma doit rester un module externe (pas bundlé) pour fonctionner en production
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
 };
 
 export default nextConfig;

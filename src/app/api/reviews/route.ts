@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+// Helper : extrait un message d'erreur lisible
+function errMsg(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
 // GET /api/reviews — liste publique de tous les avis (auto-visibles, pas de modération)
 export async function GET() {
   try {
@@ -12,7 +18,10 @@ export async function GET() {
   } catch (err) {
     console.error("[reviews] GET error:", err);
     return NextResponse.json(
-      { error: "Impossible de charger les avis." },
+      {
+        error: "Impossible de charger les avis.",
+        detail: errMsg(err),
+      },
       { status: 500 }
     );
   }
@@ -56,7 +65,10 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[reviews] POST error:", err);
     return NextResponse.json(
-      { error: "Impossible d'enregistrer l'avis." },
+      {
+        error: "Impossible d'enregistrer l'avis.",
+        detail: errMsg(err),
+      },
       { status: 500 }
     );
   }
