@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+// Benchou Ferrari PIN
 const BENCHOU_PIN = process.env.BENCHOU_PIN || "331991";
 
 function validatePin(req: NextRequest): boolean {
@@ -10,6 +11,10 @@ function validatePin(req: NextRequest): boolean {
   return !!pin && pin === BENCHOU_PIN;
 }
 
+// ===== DELETE /api/reviews/[id] — admin only =====
+// Permanently deletes a review regardless of its status (pending, approved, or
+// rejected). Used by the Benchou Ferrari dashboard to remove inappropriate
+// reviews that may have already been published.
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

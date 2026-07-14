@@ -8,8 +8,8 @@ const TURN_SECONDS = 10
 const RESOLVE_MS = 1700 // celebration lock after a square
 const BOARD_FULL_RESOLVE_MS = 1200
 const BENCHOU_PIN = process.env.BENCHOU_PIN || '331991' // Secret PIN (override via env in production)
-const TICK_MS = 100 // server timer interval (100ms = smooth real-time countdown)
-const TICK_DT = TICK_MS / 1000 // 0.1 seconds
+const TICK_MS = 500 // 500ms = good balance between smoothness and memory
+const TICK_DT = TICK_MS / 1000 // 0.5 seconds
 const MAX_PLAYERS = 8
 const PORT = parseInt(process.env.PORT || '3003', 10)
 
@@ -199,10 +199,9 @@ function freshState(): GameState {
 }
 
 // Shape broadcast to clients.
-// IMPORTANT: always create fresh objects/arrays so React/Zustand detect the change.
+// Lightweight clone: only clone what changes between ticks (grid, players, formedSquares)
 function publicState(room: Room): any {
   const s = room.state
-  // Detect ties: only among CONNECTED players sharing the max score (at gameover)
   let tiedPlayerIds: string[] = []
   if (s.phase === 'gameover' && s.players.length > 0) {
     const connected = s.players.filter((p) => p.connected !== false)
@@ -211,30 +210,21 @@ function publicState(room: Room): any {
       tiedPlayerIds = connected.filter((p) => p.score === maxScore).map((p) => p.id)
     }
   }
-  // Deep clone grid so the client always gets a new reference
-  const gridCopy = s.grid.map((row) => [...row])
-  // Clone players array so client gets new reference
-  const playersCopy = s.players.map((p) => ({ ...p }))
-  // Clone formedSquares
-  const formedSquaresCopy = s.formedSquares.map((sq) => ({
-    cells: sq.cells.map((c) => ({ ...c })),
-    playerId: sq.playerId,
-  }))
   return {
     roomCode: room.roomCode,
     hostId: room.hostId,
     totalRounds: room.totalRounds,
     phase: s.phase,
-    players: playersCopy,
+    players: s.players.map((p) => ({ ...p })),
     currentPlayerIndex: s.currentPlayerIndex,
-    grid: gridCopy,
-    turnTimeLeft: s.turnTimeLeft,
+    grid: s.grid.map((row) => [...row]),
+    turnTimeLeft: Math.round(s.turnTimeLeft * 10) / 10, // round to 1 decimal (reduces JSON size)
     statusMessage: s.statusMessage,
     winnerId: s.winnerId,
-    tiedPlayerIds,
+    tiedPlayerIds: [...tiedPlayerIds],
     lastSquareCells: s.lastSquareCells ? s.lastSquareCells.map((c) => ({ ...c })) : null,
     lastSquareerId: s.lastSquareerId,
-    formedSquares: formedSquaresCopy,
+    formedSquares: s.formedSquares.map((sq) => ({ cells: sq.cells, playerId: sq.playerId })),
     resolving: s.resolving,
     isPaused: s.isPaused,
     currentRound: s.currentRound,
@@ -285,6 +275,7 @@ function nextPlayerIndex(room: Room): number {
 
 // ====== HTTP + Socket.io setup ======
 const httpServer = createServer((req, res) => {
+  // Health check endpoint — Railway uses this to verify the service is alive
   if (req.url === '/health' || req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ status: 'ok', service: 'trouvix-game-service', time: new Date().toISOString() }))
@@ -299,6 +290,54 @@ const io = new Server(httpServer, {
   pingTimeout: 60000,
   pingInterval: 25000,
 })
+
+// ====== Admin helpers ======
+interface AdminRoomInfo {
+  roomCode: string
+  hostName: string
+  hostId: string
+  playerCount: number
+  maxPlayers: number
+  phase: string
+  totalRounds: number
+  currentRound: number
+  players: { id: string; name: string; color: string; emoji: string; score: number; connected: boolean; isAI: boolean }[]
+  createdAt: number
+}
+
+function getAdminRoomList(): AdminRoomInfo[] {
+  return Array.from(rooms.values()).map((room) => ({
+    roomCode: room.roomCode,
+    hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
+    hostId: room.hostId,
+    playerCount: room.state.players.filter((p) => p.connected !== false).length,
+    maxPlayers: MAX_PLAYERS,
+    phase: room.state.phase,
+    totalRounds: room.totalRounds,
+    currentRound: room.state.currentRound,
+    players: room.state.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      emoji: p.emoji,
+      score: p.score,
+      connected: p.connected !== false,
+      isAI: p.isAI ?? false,
+    })),
+    createdAt: Date.now(), // approximate
+  }))
+}
+
+function sendAdminRoomList(socket: any): void {
+  socket.emit('admin-rooms-update', { rooms: getAdminRoomList() })
+}
+
+// Broadcast admin room list to Benchou if online
+function broadcastAdminRoomList(): void {
+  if (benchouSocketId) {
+    sendAdminRoomList(io.sockets.sockets.get(benchouSocketId))
+  }
+}
 
 // ====== Connection handling ======
 io.on('connection', (socket) => {
@@ -331,7 +370,7 @@ io.on('connection', (socket) => {
         socketBindings.set(socket.id, { roomCode, playerId: player.id })
         console.log(`[room ${roomCode}] created by ${player.name} (${player.id}), totalRounds=${totalRounds}`)
         if (ack) ack({ roomCode, playerId: player.id })
-        broadcastState(room)
+        broadcastState(room); broadcastAdminRoomList()
       } catch (err) {
         console.error('[create-room] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -341,8 +380,7 @@ io.on('connection', (socket) => {
   )
 
   // ---- register-as-benchou ----
-  // Benchou Ferrari identifies himself with a secret PIN to receive challenge notifications.
-  // Strict PIN verification: no one can impersonate Benchou Ferrari without the code.
+  // Benchou Ferrari identifies himself with a secret PIN to receive challenge notifications + admin access.
   socket.on('register-as-benchou', (payload: { pin?: string }, ack?: (res: any) => void) => {
     const pin = payload?.pin
     if (!pin || pin !== BENCHOU_PIN) {
@@ -351,14 +389,162 @@ io.on('connection', (socket) => {
       return
     }
     benchouSocketId = socket.id
+    ;(socket as any).__isBenchou = true
     console.log(`[benchou] Benchou Ferrari authenticated & online (socket ${socket.id})`)
     // Send all pending challenges
     const pending = Array.from(challenges.values()).filter((c) => c.status === 'pending')
     if (ack) ack({ ok: true, pendingChallenges: pending })
-    // Also emit each challenge individually for real-time UI
     pending.forEach((c) => {
       socket.emit('benchou-challenge', { challenge: c })
     })
+    // Send admin room list
+    sendAdminRoomList(socket)
+  })
+
+  // ---- admin-list-rooms ----
+  // Benchou Ferrari requests the full list of active rooms.
+  socket.on('admin-list-rooms', (_payload: any, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé. PIN requis.' })
+      return
+    }
+    if (ack) ack({ rooms: getAdminRoomList() })
+  })
+
+  // ---- admin-delete-room ----
+  // Benchou Ferrari deletes a room. The room code becomes invalid immediately.
+  socket.on('admin-delete-room', (payload: { roomCode: string }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const code = (payload?.roomCode || '').toUpperCase()
+    const room = rooms.get(code)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    // Notify all players in the room that it was deleted
+    io.to(code).emit('room-deleted', { roomCode: code, message: 'Le salon a été supprimé par l\'administrateur.' })
+    // Disconnect all sockets from the room
+    io.in(code).socketsLeave(code)
+    // Delete the room
+    rooms.delete(code)
+    // Also delete any pending challenges for this room
+    for (const [chId, ch] of challenges.entries()) {
+      if (ch.roomCode === code) {
+        ch.status = 'expired'
+      }
+    }
+    console.log(`[admin] Room ${code} deleted by Benchou Ferrari`)
+    if (ack) ack({ ok: true, rooms: getAdminRoomList() })
+  })
+
+  // ---- admin-kick-player ----
+  // Benchou Ferrari kicks a player from a room.
+  socket.on('admin-kick-player', (payload: { roomCode: string; playerId: string }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const code = (payload?.roomCode || '').toUpperCase()
+    const playerId = payload?.playerId
+    const room = rooms.get(code)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    // Find the player's socket via socketBindings
+    let kickedSocket: any = null
+    for (const [sockId, binding] of socketBindings.entries()) {
+      if (binding.roomCode === code && binding.playerId === playerId) {
+        kickedSocket = sockId
+        break
+      }
+    }
+    if (kickedSocket) {
+      // Emit kick event to the player
+      io.to(kickedSocket).emit('kicked', { roomCode: code, message: 'Vous avez été expulsé du salon par l\'administrateur.' })
+      // Remove from room
+      const sock = io.sockets.sockets.get(kickedSocket)
+      if (sock) sock.leave(code)
+    }
+    // Mark player as disconnected in the room state
+    const player = room.state.players.find((p) => p.id === playerId)
+    if (player) {
+      player.connected = false
+      // If lobby phase, remove entirely
+      if (room.state.phase === 'lobby') {
+        room.state.players = room.state.players.filter((p) => p.id !== playerId)
+      }
+    }
+    room.state.statusMessage = `Un joueur a été expulsé par l'administrateur.`
+    console.log(`[admin] Player ${playerId} kicked from room ${code} by Benchou Ferrari`)
+    broadcastState(room); broadcastAdminRoomList()
+    if (ack) ack({ ok: true, rooms: getAdminRoomList() })
+  })
+
+  // ---- admin-join-room ----
+  // Benchou Ferrari joins a room directly (as a player, not as host).
+  socket.on('admin-join-room', (payload: { roomCode: string }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const code = (payload?.roomCode || '').toUpperCase()
+    const room = rooms.get(code)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    if (room.state.phase !== 'lobby') {
+      if (ack) ack({ error: 'La partie a déjà commencé' })
+      return
+    }
+    if (room.state.players.length >= MAX_PLAYERS) {
+      if (ack) ack({ error: 'Le salon est complet' })
+      return
+    }
+    // Check if Benchou is already in the room
+    if (room.state.players.some((p) => p.name === 'Benchou Ferrari')) {
+      if (ack) ack({ error: 'Benchou Ferrari est déjà dans ce salon.' })
+      return
+    }
+    const BENCHOU_COLORS = ['#b8860b', '#0f766e', '#6d28d9', '#0e7490', '#166534', '#1e3a8a']
+    const taken = new Set(room.state.players.map((p) => p.color))
+    const benchouColor = BENCHOU_COLORS.find((c) => !taken.has(c)) ?? '#b8860b'
+    const benchou: Player = {
+      id: makeId(),
+      name: 'Benchou Ferrari',
+      color: benchouColor,
+      emoji: '/benchou-ferrari-small.jpg',
+      score: 0,
+      alignments: 0,
+      isAI: false,
+      connected: true,
+    }
+    room.state.players.push(benchou)
+    socket.join(code)
+    socketBindings.set(socket.id, { roomCode: code, playerId: benchou.id })
+    room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/${MAX_PLAYERS})`
+    console.log(`[admin] Benchou Ferrari joined room ${code}`)
+    if (ack) ack({ ok: true, roomCode: code, playerId: benchou.id })
+    broadcastState(room); broadcastAdminRoomList()
+  })
+
+  // ---- public-list-rooms ----
+  // Anyone can see the list of public rooms (room code + host name + player count).
+  // Joining still requires the correct code.
+  socket.on('public-list-rooms', (_payload: any, ack?: (res: any) => void) => {
+    const publicRooms = Array.from(rooms.values()).map((room) => ({
+      roomCode: room.roomCode,
+      hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
+      playerCount: room.state.players.filter((p) => p.connected !== false).length,
+      maxPlayers: MAX_PLAYERS,
+      phase: room.state.phase,
+      totalRounds: room.totalRounds,
+    }))
+    if (ack) ack({ rooms: publicRooms })
   })
 
   // ---- challenge-benchou ----
@@ -421,7 +607,7 @@ io.on('connection', (socket) => {
         }).catch(() => {}) // ignore errors — email is best-effort
 
         if (ack) ack({ roomCode, playerId: player.id, challengeId: challenge.id })
-        broadcastState(room)
+        broadcastState(room); broadcastAdminRoomList()
       } catch (err) {
         console.error('[challenge-benchou] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -474,7 +660,7 @@ io.on('connection', (socket) => {
         room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/8)`
         console.log(`[challenge] Benchou Ferrari accepted challenge — room ${room.roomCode}`)
         if (ack) ack({ ok: true, roomCode: room.roomCode, playerId: benchou.id })
-        broadcastState(room)
+        broadcastState(room); broadcastAdminRoomList()
       } catch (err) {
         console.error('[accept-challenge] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -507,7 +693,7 @@ io.on('connection', (socket) => {
           })
           // Update room status message
           room.state.statusMessage = `Benchou Ferrari a décliné le défi. Tu peux quitter le salon.`
-          broadcastState(room)
+          broadcastState(room); broadcastAdminRoomList()
         }
 
         if (ack) ack({ ok: true })
@@ -555,7 +741,7 @@ io.on('connection', (socket) => {
         if (ack) ack({ playerId: player.id })
         // Notify others, then full state to everyone
         socket.to(code).emit('player-joined', { player })
-        broadcastState(room)
+        broadcastState(room); broadcastAdminRoomList()
       } catch (err) {
         console.error('[join-room] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -585,7 +771,7 @@ io.on('connection', (socket) => {
         socketBindings.set(socket.id, { roomCode: code, playerId })
         console.log(`[room ${code}] player ${playerId} rejoined via socket ${socket.id}`)
         if (ack) ack({ ok: true })
-        broadcastState(room)
+        broadcastState(room); broadcastAdminRoomList()
       } catch (err) {
         console.error('[rejoin-room] error', err)
         if (ack) ack({ ok: false, error: 'Erreur interne' })
@@ -631,83 +817,94 @@ io.on('connection', (socket) => {
     room.state.statusMessage = `${first.name} commence ! 10 secondes par coup. ⏱️`
     console.log(`[room ${room.roomCode}] game started (${room.state.players.length} players, ${room.totalRounds} rounds)`)
     if (ack) ack({ ok: true })
-    broadcastState(room)
+    broadcastState(room); broadcastAdminRoomList()
   })
 
   // ---- place-pawn ----
-  socket.on('place-pawn', (payload: { row: number; col: number }) => {
+  socket.on('place-pawn', (payload: { row: number; col: number }, ack?: (res: any) => void) => {
     const binding = socketBindings.get(socket.id)
-    if (!binding) return
+    if (!binding) {
+      if (ack) ack({ error: "Vous n'êtes pas dans un salon" })
+      return
+    }
     const room = findRoom(binding.roomCode)
-    if (!room) return
+    if (!room) {
+      if (ack) ack({ error: "Le salon n'existe plus" })
+      return
+    }
     const s = room.state
     if (s.phase !== 'playing') {
-      socket.emit('error', { message: "La partie n'est pas en cours" })
+      if (ack) ack({ error: "La partie n'est pas en cours" })
       return
     }
     if (s.resolving) {
-      socket.emit('error', { message: 'Attendez la fin de la célébration' })
+      if (ack) ack({ error: "Attendez la fin de la célébration" })
       return
     }
     if (s.isPaused) {
-      socket.emit('error', { message: 'La partie est en pause' })
+      if (ack) ack({ error: "La partie est en pause" })
       return
     }
     const row = payload?.row
     const col = payload?.col
     if (typeof row !== 'number' || typeof col !== 'number' || !inBounds(row, col)) {
-      socket.emit('error', { message: 'Case invalide' })
+      if (ack) ack({ error: "Case invalide" })
       return
     }
     const cur = s.players[s.currentPlayerIndex]
-    if (!cur) return
+    if (!cur) {
+      if (ack) ack({ error: "Aucun joueur actif" })
+      return
+    }
     // Allow the host to play on behalf of AI players
     if (cur.id !== binding.playerId) {
       if (cur.isAI && room.hostId === binding.playerId) {
         // Host is playing for an AI — OK
       } else {
-        socket.emit('error', { message: "Ce n'est pas votre tour" })
+        if (ack) ack({ error: "Ce n'est pas votre tour" })
         return
       }
     }
     if (s.grid[row][col] !== null) {
-      socket.emit('error', { message: 'Case déjà occupée' })
+      if (ack) ack({ error: "Case déjà occupée" })
       return
     }
 
-    // Place pawn (clone grid for safety)
-    const grid = s.grid.map((r) => [...r])
-    grid[row][col] = cur.id
-    const square = checkSquare(grid, row, col, cur.id)
+    // Acknowledge success immediately — the client knows the move was accepted
+    if (ack) ack({ ok: true })
+
+    // Place pawn directly on the grid (no clone — single-threaded, safe)
+    s.grid[row][col] = cur.id
+    const square = checkSquare(s.grid, row, col, cur.id)
 
     if (square) {
       // Square formed: +1 score, currentRound++, brief resolve, then either gameover or next player.
-      const players = s.players.map((p) =>
-        p.id === cur.id ? { ...p, score: p.score + 1, alignments: p.alignments + 1 } : p
-      )
-      s.players = players
-      s.grid = grid
+      const playerIdx = s.players.findIndex((p) => p.id === cur.id)
+      if (playerIdx >= 0) {
+        s.players[playerIdx].score += 1
+        s.players[playerIdx].alignments += 1
+      }
       s.lastSquareCells = square
       s.lastSquareerId = cur.id
-      s.formedSquares = [...s.formedSquares, { cells: square, playerId: cur.id }]
+      s.formedSquares.push({ cells: square, playerId: cur.id })
       s.resolving = true
       s.lastDelta = { playerId: cur.id, delta: 1 }
-      s.currentRound = s.currentRound + 1
+      s.currentRound += 1
       s.statusMessage = `🟦 ${cur.name} forme un carré ! +1 point (Carré ${s.currentRound}/${s.totalRounds})`
       console.log(`[room ${room.roomCode}] SQUARE by ${cur.name} at (${row},${col}) — carré ${s.currentRound}/${s.totalRounds}`)
-      broadcastState(room)
+      broadcastState(room); broadcastAdminRoomList()
 
       setTimeout(() => {
         const r2 = findRoom(binding.roomCode)
         if (!r2) return
         const st = r2.state
         if (st.phase !== 'playing') return
+        st.resolving = false
+        st.lastSquareCells = null
         if (st.currentRound >= st.totalRounds) {
           const winnerId = computeWinner(st.players)
           st.phase = 'gameover'
           st.winnerId = winnerId
-          st.resolving = false
-          st.lastSquareCells = null
           st.statusMessage = `Match terminé après ${st.totalRounds} carrés ! 🏆`
           console.log(`[room ${r2.roomCode}] GAME OVER (rounds reached) winner=${winnerId}`)
           broadcastState(r2)
@@ -715,8 +912,6 @@ io.on('connection', (socket) => {
         }
         const nextIndex = nextPlayerIndex(r2)
         const next = st.players[nextIndex]
-        st.resolving = false
-        st.lastSquareCells = null
         st.currentPlayerIndex = nextIndex
         st.turnTimeLeft = TURN_SECONDS
         st.statusMessage = `Carré ${st.currentRound}/${st.totalRounds} — à ${next?.name ?? '?'} ! ⏱️`
@@ -726,12 +921,11 @@ io.on('connection', (socket) => {
     }
 
     // No square: check board full
-    if (isBoardFull(grid)) {
-      s.grid = grid
+    if (isBoardFull(s.grid)) {
       s.resolving = true
       const winnerId = computeWinner(s.players)
       s.statusMessage = 'Plateau plein ! Fin du match.'
-      broadcastState(room)
+      broadcastState(room); broadcastAdminRoomList()
       setTimeout(() => {
         const r2 = findRoom(binding.roomCode)
         if (!r2) return
@@ -749,13 +943,12 @@ io.on('connection', (socket) => {
     }
 
     // No square, board not full: next player
-    s.grid = grid
     const nextIndex = nextPlayerIndex(room)
     const next = s.players[nextIndex]
     s.currentPlayerIndex = nextIndex
     s.turnTimeLeft = TURN_SECONDS
     s.statusMessage = `À ${next?.name ?? '?'} de jouer. ⏱️`
-    broadcastState(room)
+    broadcastState(room); broadcastAdminRoomList()
   })
 
   // ---- toggle-pause (host only) ----
@@ -775,7 +968,7 @@ io.on('connection', (socket) => {
     s.statusMessage = next
       ? '⏸️ Partie en pause.'
       : `${s.players[s.currentPlayerIndex]?.name ?? ''} reprend. ⏱️`
-    broadcastState(room)
+    broadcastState(room); broadcastAdminRoomList()
   })
 
   // ---- end-game (host only) ----
@@ -795,7 +988,7 @@ io.on('connection', (socket) => {
     s.isPaused = false
     s.statusMessage = 'Partie terminée !'
     console.log(`[room ${room.roomCode}] game ended by host, winner=${s.winnerId}`)
-    broadcastState(room)
+    broadcastState(room); broadcastAdminRoomList()
   })
 
   // ---- restart (host only) ----
@@ -819,7 +1012,7 @@ io.on('connection', (socket) => {
     room.state.totalRounds = room.totalRounds
     room.state.statusMessage = 'Retour au salon. L’hôte peut relancer la partie.'
     console.log(`[room ${room.roomCode}] restarted to lobby (${keptPlayers.length} players kept)`)
-    broadcastState(room)
+    broadcastState(room); broadcastAdminRoomList()
   })
 
   // ---- rematch-tied (host only) ----
@@ -864,7 +1057,7 @@ io.on('connection', (socket) => {
     const first = keptTied[0]
     room.state.statusMessage = `Challenge décisif ! À ${first?.name ?? '?'} de jouer. ⏱️`
     console.log(`[room ${room.roomCode}] TIEBREAKER: ${keptTied.length} tied players (${keptTied.map((p) => p.name).join(', ')})`)
-    broadcastState(room)
+    broadcastState(room); broadcastAdminRoomList()
   })
 
   // ---- leave-room ----
@@ -920,7 +1113,7 @@ function handleLeave(socket: any, binding: SocketBinding): void {
           room.state.statusMessage = `${player.name} a quitté la partie. Fin du match.`
           console.log(`[room ${code}] GAME OVER — ${player.name} left, ${connectedPlayers.length} connected player(s) remaining`)
           socket.to(code).emit('player-left', { playerId, playerName: player.name, gameOver: true })
-          broadcastState(room)
+          broadcastState(room); broadcastAdminRoomList()
           return
         } else {
           // 2+ players still connected → game continues
@@ -941,13 +1134,13 @@ function handleLeave(socket: any, binding: SocketBinding): void {
             room.state.statusMessage = `${player.name} a quitté la partie. Le jeu continue.`
           }
           socket.to(code).emit('player-left', { playerId, playerName: player.name, gameOver: false })
-          broadcastState(room)
+          broadcastState(room); broadcastAdminRoomList()
           return
         }
       }
       // gameover phase: just mark disconnected, broadcast
       socket.to(code).emit('player-left', { playerId, playerName: player.name })
-      broadcastState(room)
+      broadcastState(room); broadcastAdminRoomList()
       return
     }
   }
@@ -963,10 +1156,10 @@ function handleLeave(socket: any, binding: SocketBinding): void {
     console.log(`[room ${code}] deleted (empty)`)
     return
   }
-  broadcastState(room)
+  broadcastState(room); broadcastAdminRoomList()
 }
 
-// ====== Server-side timer (every 100ms) ======
+// ====== Server-side timer (optimized: only broadcast on second change) ======
 setInterval(() => {
   for (const room of rooms.values()) {
     const s = room.state
@@ -984,10 +1177,15 @@ setInterval(() => {
       s.turnTimeLeft = TURN_SECONDS
       s.currentPlayerIndex = nextIdx
       s.statusMessage = `Temps écoulé ! À ${next?.name ?? '?'} de jouer. ⏱️`
-      broadcastState(room)
+      broadcastState(room); broadcastAdminRoomList()
     } else {
       s.turnTimeLeft = tl
-      broadcastState(room)
+      // Only broadcast when the integer second changes (reduces traffic by 50%)
+      const oldSec = Math.ceil(tl + TICK_DT)
+      const newSec = Math.ceil(tl)
+      if (oldSec !== newSec || tl <= 0.5) {
+        broadcastState(room); broadcastAdminRoomList()
+      }
     }
   }
 }, TICK_MS)
@@ -1009,3 +1207,31 @@ function shutdown(signal: string) {
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT', () => shutdown('SIGINT'))
+
+// ====== Memory cleanup: remove empty/stale rooms every 5 minutes ======
+const CLEANUP_INTERVAL = 5 * 60 * 1000 // 5 minutes
+const STALE_ROOM_MS = 30 * 60 * 1000 // 30 minutes of inactivity = stale
+setInterval(() => {
+  let cleaned = 0
+  for (const [code, room] of rooms.entries()) {
+    // Delete empty rooms
+    if (room.state.players.length === 0) {
+      rooms.delete(code)
+      cleaned++
+      continue
+    }
+    // Delete stale rooms (no active game, created > 30 min ago)
+    // We use the last status change as a proxy — if phase is lobby and older than 30 min, clean
+    if (room.state.phase === 'lobby') {
+      // Check if any player is still connected
+      const hasConnected = room.state.players.some((p) => p.connected !== false)
+      if (!hasConnected) {
+        rooms.delete(code)
+        cleaned++
+      }
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`[cleanup] Removed ${cleaned} stale room(s). Active rooms: ${rooms.size}`)
+  }
+}, CLEANUP_INTERVAL)

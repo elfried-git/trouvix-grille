@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+// Benchou Ferrari PIN
 const BENCHOU_PIN = process.env.BENCHOU_PIN || "331991";
 
 function validatePin(req: NextRequest): boolean {
@@ -10,6 +11,7 @@ function validatePin(req: NextRequest): boolean {
   return !!pin && pin === BENCHOU_PIN;
 }
 
+// ===== POST /api/reviews/[id]/reject — admin only =====
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,13 +22,21 @@ export async function POST(
     }
 
     const { id } = await params;
-    let adminNote: string | undefined;
+
+    // Optional adminNote (max 300 chars)
+    let adminNote: string | null = null;
     try {
       const body = await req.json();
-      if (typeof body?.adminNote === "string") {
-        adminNote = body.adminNote.trim().slice(0, 300) || undefined;
+      if (body && typeof body === "object" && "adminNote" in body) {
+        const note = (body as { adminNote?: unknown }).adminNote;
+        if (typeof note === "string") {
+          const trimmed = note.trim().slice(0, 300);
+          adminNote = trimmed.length > 0 ? trimmed : null;
+        }
       }
-    } catch {}
+    } catch {
+      // Body may be empty — that's fine
+    }
 
     const review = await db.review.findUnique({
       where: { id },
@@ -39,8 +49,21 @@ export async function POST(
 
     const updated = await db.review.update({
       where: { id },
-      data: { status: "rejected", adminNote: adminNote || null, validatedAt: new Date() },
-      select: { id: true, name: true, rating: true, comment: true, status: true, createdAt: true, validatedAt: true },
+      data: {
+        status: "rejected",
+        adminNote,
+        validatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        rating: true,
+        comment: true,
+        status: true,
+        adminNote: true,
+        createdAt: true,
+        validatedAt: true,
+      },
     });
 
     return NextResponse.json({ ok: true, review: updated });

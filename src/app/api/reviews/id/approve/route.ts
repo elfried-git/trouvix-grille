@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+// Benchou Ferrari PIN
 const BENCHOU_PIN = process.env.BENCHOU_PIN || "331991";
 
 function validatePin(req: NextRequest): boolean {
@@ -10,6 +11,7 @@ function validatePin(req: NextRequest): boolean {
   return !!pin && pin === BENCHOU_PIN;
 }
 
+// ===== POST /api/reviews/[id]/approve — admin only =====
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
