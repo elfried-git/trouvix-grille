@@ -122,7 +122,7 @@ export function HomeScreen() {
           <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 8 joueurs</span>
         </div>
 
-        {/* Rubrique avis / suggestions */}
+        {/* Rubrique avis / suggestions
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,7 +137,7 @@ export function HomeScreen() {
           >
             <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
           </Button>
-        </motion.div>
+        </motion.div> */}
       </motion.div>
     </div>
   );
