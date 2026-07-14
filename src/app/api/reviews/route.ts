@@ -23,29 +23,6 @@ function containsProfanity(text: string): boolean {
   return false;
 }
 
-// ===== In-memory rate limiter (assoupli) =====
-const rateLimitMap = new Map<string, { count: number; firstAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-const RATE_LIMIT_MAX = 10; // 10 avis par 10 minutes (assoupli)
-
-function getClientIp(req: NextRequest): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return (req as unknown as { ip?: string }).ip || "unknown";
-}
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now - entry.firstAt > RATE_LIMIT_WINDOW_MS) {
-    rateLimitMap.set(ip, { count: 1, firstAt: now });
-    return true;
-  }
-  if (entry.count >= RATE_LIMIT_MAX) return false;
-  entry.count += 1;
-  return true;
-}
-
 // ===== POST /api/reviews — submit a new review =====
 export async function POST(req: NextRequest) {
   try {
@@ -81,25 +58,6 @@ export async function POST(req: NextRequest) {
 
     if (containsProfanity(trimmedName) || containsProfanity(trimmedComment)) {
       return NextResponse.json({ error: "Votre avis contient des mots inappropriés. Merci de le reformuler." }, { status: 400 });
-    }
-
-    const ip = getClientIp(req);
-    if (!checkRateLimit(ip)) {
-      return NextResponse.json({ error: "Trop d'avis envoyés. Réessayez dans quelques minutes." }, { status: 429 });
-    }
-
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recent = await db.review.findMany({
-      where: { createdAt: { gte: oneHourAgo } },
-      select: { name: true, comment: true },
-    });
-    const lowerName = trimmedName.toLowerCase();
-    const lowerComment = trimmedComment.toLowerCase();
-    const existing = recent.find(
-      (r) => r.name.toLowerCase() === lowerName && r.comment.toLowerCase() === lowerComment
-    );
-    if (existing) {
-      return NextResponse.json({ error: "Vous avez déjà envoyé cet avis." }, { status: 400 });
     }
 
     const review = await db.review.create({
