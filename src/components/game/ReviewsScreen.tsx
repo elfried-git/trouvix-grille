@@ -1,519 +1,389 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ReviewForm } from "./ReviewForm";
-import { StarRating } from "./StarRating";
 import { useGameStore } from "@/store/game-store";
-import { useOnlineStore } from "@/store/online-store";
-import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft,
-  MessageSquareQuote,
-  ShieldCheck,
-  Check,
-  X,
+  Star,
+  MessageSquare,
+  Send,
+  Home,
   Loader2,
-  Inbox,
+  Check,
+  Trash2,
 } from "lucide-react";
 
-// ===== Types =====
 interface Review {
   id: string;
-  name: string;
+  authorName: string;
   rating: number;
   comment: string;
   createdAt: string;
 }
 
-interface ReviewsData {
-  reviews: Review[];
-  average: number;
-  total: number;
-  distribution: Record<number, number>;
-  page: number;
-  limit: number;
-}
-
-// ===== Helpers =====
-function formatRelativeDate(iso: string): string {
-  const date = new Date(iso);
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffH = Math.floor(diffMin / 60);
-  const diffD = Math.floor(diffH / 24);
-
-  if (diffMin < 1) return "à l'instant";
-  if (diffMin < 60) return `il y a ${diffMin} min`;
-  if (diffH < 24) return `il y a ${diffH} h${diffH > 1 ? "" : ""}`;
-  if (diffD < 7) return `il y a ${diffD} jour${diffD > 1 ? "s" : ""}`;
-
-  // Older than a week — full French date
-  try {
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date);
-  } catch {
-    return date.toLocaleDateString();
-  }
-}
-
-// Stable color palette for avatars
-const AVATAR_COLORS = [
-  "from-rose-500 to-rose-700",
-  "from-amber-400 to-amber-600",
-  "from-emerald-400 to-emerald-600",
-  "from-violet-400 to-violet-600",
-  "from-fuchsia-400 to-fuchsia-600",
-  "from-cyan-400 to-cyan-600",
-  "from-orange-400 to-orange-600",
-  "from-lime-400 to-lime-600",
-  "from-pink-400 to-pink-600",
-  "from-teal-400 to-teal-600",
-];
-
-function hashName(name: string): number {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash << 5) - hash + name.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function avatarColor(name: string): string {
-  return AVATAR_COLORS[hashName(name) % AVATAR_COLORS.length];
-}
-
-// ===== Main Component =====
 export function ReviewsScreen() {
   const backHome = useGameStore((s) => s.backHome);
-  const { toast } = useToast();
 
-  const benchouPin = useOnlineStore((s) => s.benchouPin);
-
-  const [data, setData] = useState<ReviewsData | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  // ReviewForm dialog
-  const [formOpen, setFormOpen] = useState(false);
+  // Formulaire
+  const [authorName, setAuthorName] = useState("");
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState("");
 
-  // Pending reviews (admin only, shown when isBenchou is true)
-  const [pendingReviews, setPendingReviews] = useState<Review[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
-
-  // Per-pending-review admin note inputs (keyed by review id)
-  const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
-  // Per-pending-review action loading
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
-
-  const fetchApproved = useCallback(async () => {
-    setLoading(true);
+  const loadReviews = useCallback(async () => {
     try {
-      const res = await fetch("/api/reviews?page=1&limit=50", {
-        cache: "no-store",
-      });
-      const json = (await res.json().catch(() => ({}))) as ReviewsData;
-      if (res.ok && Array.isArray(json.reviews)) {
-        setData(json);
-      } else {
-        setData({
-          reviews: [],
-          average: 0,
-          total: 0,
-          distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-          page: 1,
-          limit: 20,
-        });
-      }
+      setLoading(true);
+      const res = await fetch("/api/reviews", { cache: "no-store" });
+      if (!res.ok) throw new Error("Erreur");
+      const data = await res.json();
+      setReviews(data.reviews ?? []);
     } catch {
-      setData({
-        reviews: [],
-        average: 0,
-        total: 0,
-        distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-        page: 1,
-        limit: 20,
-      });
+      setError("Impossible de charger les avis.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const fetchPending = useCallback(
-    async (pin: string) => {
-      setPendingLoading(true);
-      try {
-        const res = await fetch("/api/reviews/pending", {
-          headers: { "x-benchou-pin": pin },
-          cache: "no-store",
-        });
-        if (res.status === 401) {
-          // PIN is wrong / session expired — clear the pending list
-          setPendingReviews([]);
-          toast({
-            title: "Session expirée",
-            description: "Reconnecte-toi sur la page « Jouer en ligne ».",
-            variant: "destructive",
-          });
-          return;
-        }
-        const json = (await res.json().catch(() => ({}))) as {
-          reviews?: Review[];
-        };
-        setPendingReviews(json.reviews ?? []);
-      } catch {
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les avis en attente.",
-          variant: "destructive",
-        });
-      } finally {
-        setPendingLoading(false);
-      }
-    },
-    [toast]
-  );
-
   useEffect(() => {
-    fetchApproved();
-  }, [fetchApproved]);
+    loadReviews();
+  }, [loadReviews]);
 
-  // When a Benchou PIN is available (from sessionStorage or a fresh login),
-  // automatically load the pending reviews.
-  useEffect(() => {
-    if (benchouPin) {
-      fetchPending(benchouPin);
-    } else {
-      setPendingReviews([]);
-      setAdminNotes({});
-      setActionLoading({});
+  const handleSubmit = async () => {
+    setError(null);
+    setSuccess(false);
+
+    if (rating < 1 || rating > 5) {
+      setError("Sélectionne une note entre 1 et 5 étoiles.");
+      return;
     }
-  }, [benchouPin, fetchPending]);
+    if (!comment.trim()) {
+      setError("Écris ton commentaire.");
+      return;
+    }
 
-  const handleApprove = async (reviewId: string) => {
-    if (!benchouPin) return;
-    setActionLoading((s) => ({ ...s, [reviewId]: true }));
+    setSubmitting(true);
     try {
-      const res = await fetch(`/api/reviews/${reviewId}/approve`, {
+      const res = await fetch("/api/reviews", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-benchou-pin": benchouPin,
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authorName: authorName.trim() || "Anonyme",
+          rating,
+          comment: comment.trim(),
+        }),
       });
-      if (res.status === 401) {
-        toast({
-          title: "Session expirée",
-          description: "Reconnecte-toi sur la page « Jouer en ligne ».",
-          variant: "destructive",
-        });
-        return;
-      }
       if (!res.ok) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de valider cet avis.",
-          variant: "destructive",
-        });
-        return;
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Erreur");
       }
-      toast({
-        title: "Avis validé ✓",
-        description: "L'avis est maintenant public.",
-      });
-      // Refresh both lists
-      await Promise.all([fetchApproved(), fetchPending(benchouPin)]);
-    } catch {
-      toast({
-        title: "Erreur",
-        description: "Réseau indisponible.",
-        variant: "destructive",
-      });
+      // Réinitialise le formulaire
+      setAuthorName("");
+      setRating(0);
+      setComment("");
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+      // Recharge la liste
+      await loadReviews();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur inconnue.");
     } finally {
-      setActionLoading((s) => ({ ...s, [reviewId]: false }));
+      setSubmitting(false);
     }
   };
 
-  const handleReject = async (reviewId: string) => {
-    if (!benchouPin) return;
-    const note = (adminNotes[reviewId] || "").trim().slice(0, 300);
-    setActionLoading((s) => ({ ...s, [reviewId]: true }));
-    try {
-      const res = await fetch(`/api/reviews/${reviewId}/reject`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-benchou-pin": benchouPin,
-        },
-        body: JSON.stringify({ adminNote: note || undefined }),
-      });
-      if (res.status === 401) {
-        toast({
-          title: "Session expirée",
-          description: "Reconnecte-toi sur la page « Jouer en ligne ».",
-          variant: "destructive",
-        });
-        return;
-      }
-      if (!res.ok) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de rejeter cet avis.",
-          variant: "destructive",
-        });
-        return;
-      }
-      toast({
-        title: "Avis rejeté",
-        description: note ? "Note enregistrée." : "L'avis a été rejeté.",
-      });
-      // Refresh both lists
-      await Promise.all([fetchApproved(), fetchPending(benchouPin)]);
-    } catch {
-      toast({
-        title: "Erreur",
-        description: "Réseau indisponible.",
-        variant: "destructive",
-      });
-    } finally {
-      setActionLoading((s) => ({ ...s, [reviewId]: false }));
-    }
-  };
-
-  const reviews = data?.reviews ?? [];
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+      : 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={backHome}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Retour
-        </Button>
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2 text-center"
-        >
-          <MessageSquareQuote className="h-6 w-6 text-amber-300" />
-          <h1 className="font-display text-2xl font-black text-gold-gradient sm:text-3xl">
-            Avis des joueurs
-          </h1>
-        </motion.div>
-        <div className="w-[80px]" />
-      </div>
+    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-8 sm:py-10">
+      {/* Titre */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8 text-center"
+      >
+        <div className="mb-3 flex justify-center">
+          <img
+            src="/trouvix-logo.svg"
+            alt="Logo Trouvix Grille"
+            width={96}
+            height={96}
+            className="h-24 w-24 drop-shadow-[0_8px_24px_-6px_oklch(0.60_0.215_25/0.5)] sm:h-[88px] sm:w-[88px]"
+          />
+        </div>
+        <h1 className="font-display text-4xl font-black text-gold-gradient sm:text-5xl">
+          VOS AVIS
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+          Partage ton expérience et aide-nous à améliorer Trouvix Grille. ⭐
+        </p>
+      </motion.div>
 
-      {/* "Laisser un avis" button */}
-      <div className="mb-6 flex justify-center">
-        <Button
-          onClick={() => setFormOpen(true)}
-          size="lg"
-          className="h-12 rounded-full bg-gradient-to-r from-rose-600 to-amber-500 px-8 text-base font-semibold text-white shadow-[0_8px_30px_-6px_oklch(0.60_0.215_25/0.6)] hover:from-rose-500 hover:to-amber-400"
-        >
-          Laisser un avis
-        </Button>
-      </div>
-
-      {/* Admin pending section — shown automatically when a Benchou PIN is
-          available (set via the "Je suis Benchou Ferrari" PIN login on the
-          "Jouer en ligne" page, persisted in sessionStorage) */}
-      {benchouPin && (
+      {/* Stats globales */}
+      {reviews.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 rounded-2xl border border-violet-400/40 bg-violet-500/10 p-5"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-8 flex items-center justify-center gap-6 rounded-2xl border border-amber-400/20 bg-amber-500/5 p-4"
         >
-          <div className="mb-4 flex items-center gap-3">
-            <h2 className="flex items-center gap-2 font-display text-lg font-bold text-violet-200">
-              <ShieldCheck className="h-5 w-5" />
-              Avis en attente de validation ({pendingReviews.length})
-            </h2>
+          <div className="text-center">
+            <p className="font-display text-3xl font-black text-amber-200">
+              {avgRating.toFixed(1)}
+            </p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              Moyenne
+            </p>
           </div>
+          <div className="h-10 w-px bg-border/40" />
+          <div className="text-center">
+            <p className="font-display text-3xl font-black text-amber-200">
+              {reviews.length}
+            </p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              {reviews.length > 1 ? "Avis" : "Avis"}
+            </p>
+          </div>
+        </motion.div>
+      )}
 
-          {pendingLoading ? (
-            <div className="space-y-2">
-              {[0, 1].map((i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-xl bg-violet-500/15" />
-              ))}
-            </div>
-          ) : pendingReviews.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/5 p-6 text-center text-sm text-violet-100/70">
-              <Inbox className="h-8 w-8 text-violet-300/70" />
-              Aucun avis en attente. Tout est à jour ✨
-            </div>
+      {/* Formulaire de soumission */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="mb-10 rounded-3xl border border-amber-400/20 bg-gradient-to-br from-card/60 to-card/20 p-6 shadow-xl sm:p-7"
+      >
+        <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-amber-100">
+          <Send className="h-4 w-4 text-amber-300" />
+          Laisse ton avis
+        </h2>
+
+        {/* Nom (optionnel) */}
+        <div className="mb-4">
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            Ton prénom <span className="text-muted-foreground/60">(optionnel)</span>
+          </label>
+          <input
+            type="text"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            maxLength={40}
+            placeholder="Anonyme"
+            className="w-full rounded-xl border border-border/50 bg-background/60 px-4 py-2.5 text-sm text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
+          />
+        </div>
+
+        {/* Étoiles */}
+        <div className="mb-4">
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            Ta note <span className="text-rose-300">*</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const active = (hoverRating || rating) >= star;
+              return (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  className="transition-transform hover:scale-110 active:scale-95"
+                  aria-label={`${star} étoile${star > 1 ? "s" : ""}`}
+                >
+                  <Star
+                    className={`h-9 w-9 transition-colors ${
+                      active
+                        ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_oklch(0.80_0.14_84/0.5)]"
+                        : "fill-transparent text-muted-foreground/40"
+                    }`}
+                  />
+                </button>
+              );
+            })}
+            {rating > 0 && (
+              <span className="ml-2 text-sm font-semibold text-amber-200">
+                {rating}/5
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Commentaire */}
+        <div className="mb-4">
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            Ton commentaire <span className="text-rose-300">*</span>
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={50}
+            rows={3}
+            placeholder="Dis-nous ce que tu as aimé..."
+            className="w-full resize-none rounded-xl border border-border/50 bg-background/60 px-4 py-3 text-sm text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
+          />
+          <p className="mt-1 text-right text-[10px] text-muted-foreground/60">
+            {comment.length}/50
+          </p>
+        </div>
+
+        {/* Erreur / Succès */}
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
+            >
+              ⚠️ {error}
+            </motion.p>
+          )}
+          {success && (
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-3 flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
+            >
+              <Check className="h-3.5 w-3.5" /> Merci ! Ton avis a été publié.
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {/* Bouton publier */}
+        <Button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 sm:w-auto"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publication...
+            </>
           ) : (
-            <div className="max-h-[40vh] space-y-3 overflow-y-auto scroll-romantic pr-1">
-              {pendingReviews.map((r, i) => (
+            <>
+              <Send className="mr-2 h-4 w-4" /> Publier mon avis
+            </>
+          )}
+        </Button>
+      </motion.div>
+
+      {/* Liste des avis */}
+      <div>
+        <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-amber-100">
+          <MessageSquare className="h-4 w-4 text-amber-300" />
+          Avis
+          {reviews.length > 0 && (
+            <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-200">
+              {reviews.length}
+            </span>
+          )}
+        </h2>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-amber-300" />
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border/40 bg-card/20 p-10 text-center">
+            <p className="text-3xl">💭</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Aucun avis pour l&apos;instant. Sois le premier à partager le tien !
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <AnimatePresence mode="popLayout">
+              {reviews.map((r, i) => (
                 <motion.div
                   key={r.id}
-                  initial={{ opacity: 0, y: 8 }}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-xl border border-violet-400/30 bg-violet-500/5 p-4"
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="relative overflow-hidden rounded-2xl border border-border/40 bg-card/40 p-4 transition hover:border-amber-400/30 hover:bg-card/60"
                 >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(
-                        r.name
-                      )} font-display text-base font-bold text-white shadow-lg`}
-                    >
-                      {r.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-semibold text-violet-100">
-                          {r.name}
-                        </span>
-                        <StarRating value={r.rating} readOnly size={14} />
-                        <span className="text-xs text-violet-200/60">
-                          {formatRelativeDate(r.createdAt)}
-                        </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="flex h-9 w-9 items-center justify-center rounded-full font-display text-sm font-bold text-white"
+                        style={{
+                          background: `linear-gradient(135deg, hsl(${
+                            (r.authorName.charCodeAt(0) * 7) % 360
+                          }, 70%, 55%), hsl(${
+                            (r.authorName.charCodeAt(0) * 7 + 40) % 360
+                          }, 70%, 45%))`,
+                        }}
+                      >
+                        {r.authorName.charAt(0).toUpperCase()}
                       </div>
-                      <p className="mt-1 text-sm text-violet-100/80">
-                        {r.comment}
-                      </p>
-                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <Input
-                          value={adminNotes[r.id] || ""}
-                          onChange={(e) =>
-                            setAdminNotes((s) => ({
-                              ...s,
-                              [r.id]: e.target.value,
-                            }))
-                          }
-                          placeholder="Note interne (optionnel)"
-                          maxLength={300}
-                          className="h-8 flex-1 border-violet-400/30 bg-background/60 text-sm"
+                      <div>
+                        <p className="font-display text-sm font-semibold text-foreground">
+                          {r.authorName}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDate(r.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`h-3.5 w-3.5 ${
+                            s <= r.rating
+                              ? "fill-amber-400 text-amber-400"
+                              : "fill-transparent text-muted-foreground/30"
+                          }`}
                         />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleApprove(r.id)}
-                            disabled={actionLoading[r.id]}
-                            className="bg-emerald-600 text-white hover:bg-emerald-500"
-                          >
-                            {actionLoading[r.id] ? (
-                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Check className="mr-1 h-3.5 w-3.5" />
-                            )}
-                            Valider
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleReject(r.id)}
-                            disabled={actionLoading[r.id]}
-                            className="bg-rose-600 text-white hover:bg-rose-500"
-                          >
-                            {actionLoading[r.id] ? (
-                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <X className="mr-1 h-3.5 w-3.5" />
-                            )}
-                            Rejeter
-                          </Button>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Reviews list */}
-      {loading ? (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="glass-card rounded-2xl p-5">
-              <div className="flex items-start gap-3">
-                <Skeleton className="h-11 w-11 shrink-0 rounded-full bg-amber-400/10" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-1/3 bg-amber-400/10" />
-                  <Skeleton className="h-3 w-1/4 bg-amber-400/10" />
-                  <Skeleton className="h-3 w-full bg-amber-400/10" />
-                  <Skeleton className="h-3 w-4/5 bg-amber-400/10" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : reviews.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card flex flex-col items-center gap-4 rounded-2xl p-10 text-center"
-        >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
-            <MessageSquareQuote className="h-8 w-8 text-amber-300" />
-          </div>
-          <div>
-            <p className="font-display text-lg font-bold text-amber-100">
-              Aucun avis pour le moment.
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Soyez le premier à donner votre avis !
-            </p>
-          </div>
-        </motion.div>
-      ) : (
-        <div className="max-h-[60vh] space-y-3 overflow-y-auto scroll-romantic pr-1">
-          {reviews.map((r, i) => (
-            <motion.div
-              key={r.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.3 }}
-              className="glass-card rounded-2xl p-5"
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarColor(
-                    r.name
-                  )} font-display text-lg font-bold text-white shadow-lg`}
-                >
-                  {r.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-semibold text-foreground">
-                      {r.name}
-                    </span>
-                    <StarRating value={r.rating} readOnly size={14} />
-                    <span className="text-xs text-muted-foreground">
-                      {formatRelativeDate(r.createdAt)}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed text-foreground/80">
+                  <p className="mt-3 text-sm leading-relaxed text-foreground/80">
                     {r.comment}
                   </p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
 
-      {/* Review form dialog */}
-      <ReviewForm
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        onSubmitted={fetchApproved}
-      />
+      {/* Footer */}
+      <div className="mt-10 flex justify-center">
+        <Button variant="ghost" size="sm" onClick={backHome}>
+          <Home className="mr-1.5 h-4 w-4" /> Retour à l&apos;accueil
+        </Button>
+      </div>
     </div>
   );
+}
+
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
+// Icône suppression (réutilisée côté admin)
+export function TrashIcon({ className }: { className?: string }) {
+  return <Trash2 className={className} />;
 }

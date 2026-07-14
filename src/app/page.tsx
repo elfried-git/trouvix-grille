@@ -6,8 +6,7 @@ import { SetupScreen } from "@/components/game/SetupScreen";
 import { GameScreen } from "@/components/game/GameScreen";
 import { WinnerScreen } from "@/components/game/WinnerScreen";
 import { OnlineRouter } from "@/components/game/OnlineRouter";
-import { BenchouAdminScreen } from "@/components/game/BenchouAdminScreen";
-import { TournoiScreen } from "@/components/game/TournoiScreen";
+import { ReviewsScreen } from "@/components/game/ReviewsScreen";
 
 export default function Home() {
   const phase = useGameStore((s) => s.phase);
@@ -20,8 +19,7 @@ export default function Home() {
         {phase === "playing" && <GameScreen />}
         {phase === "gameover" && <WinnerScreen />}
         {(phase === "online-setup" || phase === "online-playing") && <OnlineRouter />}
-        {phase === "benchou-admin" && <BenchouAdminScreen />}
-        {phase === "tournoi" && <TournoiScreen />}
+        {phase === "reviews" && <ReviewsScreen />}
       </main>
     </div>
   );

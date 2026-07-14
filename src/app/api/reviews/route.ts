@@ -1,116 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
-
-// ===== Profanity filter (basic French + English) =====
-const PROFANITY = [
-  "putain", "merde", "connard", "connasse", "salope", "encule", "enculé",
-  "ntm", "fdp", "pute", "bitch", "fuck", "shit", "asshole", "bastard",
-  "dick", "pussy", "cunt", "crisse", "tabarnak",
-];
-
-function containsProfanity(text: string): boolean {
-  const lower = text.toLowerCase();
-  const normalized = lower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  for (const word of PROFANITY) {
-    const w = word.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const re = new RegExp(`(^|\\W)${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\W|$)`, "i");
-    if (re.test(lower) || (w.length <= 4 && normalized.includes(w))) {
-      return true;
-    }
+// GET /api/reviews — liste publique de tous les avis (auto-visibles, pas de modération)
+export async function GET() {
+  try {
+    const reviews = await db.review.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200, // limite raisonnable
+    });
+    return NextResponse.json({ reviews });
+  } catch (err) {
+    console.error("[reviews] GET error:", err);
+    return NextResponse.json(
+      { error: "Impossible de charger les avis." },
+      { status: 500 }
+    );
   }
-  return false;
 }
 
-// ===== POST /api/reviews — submit a new review =====
+// POST /api/reviews — crée un avis (auto-visible immédiatement)
 export async function POST(req: NextRequest) {
   try {
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 });
-    }
-    const { name, rating, comment } = (body || {}) as {
-      name?: unknown; rating?: unknown; comment?: unknown;
-    };
-
-    if (typeof name !== "string") {
-      return NextResponse.json({ error: "Le nom est requis" }, { status: 400 });
-    }
-    const trimmedName = name.trim();
-    if (trimmedName.length < 1 || trimmedName.length > 40) {
-      return NextResponse.json({ error: "Le nom doit contenir entre 1 et 40 caractères" }, { status: 400 });
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
     }
 
-    if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 1 || rating > 5) {
-      return NextResponse.json({ error: "La note doit être un entier entre 1 et 5" }, { status: 400 });
-    }
+    const authorName = (body.authorName ?? "").toString().trim().slice(0, 40);
+    const ratingRaw = Number(body.rating);
+    const comment = (body.comment ?? "").toString().trim().slice(0, 50);
 
-    if (typeof comment !== "string") {
-      return NextResponse.json({ error: "Le commentaire est requis" }, { status: 400 });
+    // Validation : rating entre 1 et 5, commentaire non vide
+    if (!Number.isInteger(ratingRaw) || ratingRaw < 1 || ratingRaw > 5) {
+      return NextResponse.json(
+        { error: "La note doit être entre 1 et 5 étoiles." },
+        { status: 400 }
+      );
     }
-    const trimmedComment = comment.trim();
-    if (trimmedComment.length < 3 || trimmedComment.length > 500) {
-      return NextResponse.json({ error: "Le commentaire doit contenir entre 3 et 500 caractères" }, { status: 400 });
-    }
-
-    if (containsProfanity(trimmedName) || containsProfanity(trimmedComment)) {
-      return NextResponse.json({ error: "Votre avis contient des mots inappropriés. Merci de le reformuler." }, { status: 400 });
+    if (!comment) {
+      return NextResponse.json(
+        { error: "Le commentaire est obligatoire." },
+        { status: 400 }
+      );
     }
 
     const review = await db.review.create({
-      data: { name: trimmedName, rating, comment: trimmedComment, status: "pending" },
-      select: { id: true, status: true },
+      data: {
+        authorName: authorName || "Anonyme",
+        rating: ratingRaw,
+        comment,
+      },
     });
 
-    return NextResponse.json({ ok: true, id: review.id, status: review.status }, { status: 201 });
+    return NextResponse.json({ review }, { status: 201 });
   } catch (err) {
-    console.error("[reviews POST] error:", err);
-    return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
-  }
-}
-
-// ===== GET /api/reviews — list approved reviews with stats =====
-export async function GET(req: NextRequest) {
-  try {
-    const url = req.nextUrl;
-    const pageParam = url.searchParams.get("page");
-    const limitParam = url.searchParams.get("limit");
-    let page = Number.parseInt(pageParam || "1", 10);
-    let limit = Number.parseInt(limitParam || "20", 10);
-    if (!Number.isFinite(page) || page < 1) page = 1;
-    if (!Number.isFinite(limit) || limit < 1) limit = 20;
-    if (limit > 50) limit = 50;
-
-    const [reviews, total, distributionRows] = await Promise.all([
-      db.review.findMany({
-        where: { status: "approved" },
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-        select: { id: true, name: true, rating: true, comment: true, createdAt: true },
-      }),
-      db.review.count({ where: { status: "approved" } }),
-      db.review.groupBy({
-        by: ["rating"],
-        _count: { _all: true },
-        where: { status: "approved" },
-      }),
-    ]);
-
-    const distribution: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    let sum = 0;
-    for (const row of distributionRows) {
-      distribution[row.rating] = row._count._all;
-      sum += row.rating * row._count._all;
-    }
-    const average = total > 0 ? Math.round((sum / total) * 10) / 10 : 0;
-
-    return NextResponse.json({ reviews, average, total, distribution, page, limit });
-  } catch (err) {
-    console.error("[reviews GET] error:", err);
-    return NextResponse.json({ error: "Erreur interne" }, { status: 500 });
+    console.error("[reviews] POST error:", err);
+    return NextResponse.json(
+      { error: "Impossible d'enregistrer l'avis." },
+      { status: 500 }
+    );
   }
 }

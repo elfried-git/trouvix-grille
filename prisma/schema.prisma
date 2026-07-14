@@ -6,17 +6,16 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
 }
 
 model Card {
   id        String   @id @default(cuid())
-  category  String   // "couple" | "culture" | "defi" | "souvenir" | "surprise"
-  prompt    String   // The question / challenge text
-  answer    String?  // Optional answer (for culture trivia)
-  points    Int      // Points awarded on success
+  category  String
+  prompt    String
+  answer    String?
+  points    Int
   createdAt DateTime @default(now())
 
   @@index([category])
@@ -26,21 +25,17 @@ model GameResult {
   id        String   @id @default(cuid())
   winnerName String
   winnerScore Int
-  players   String   // JSON string of players summary
+  players   String
   durationMin Int
   createdAt DateTime @default(now())
 }
 
 model Review {
-  id          String    @id @default(cuid())
-  name        String    // reviewer's display name
-  rating      Int       // 1-5 stars
-  comment     String    // text comment
-  status      String    @default("pending") // "pending" | "approved" | "rejected"
-  adminNote   String?   // optional note from Benchou when rejecting
-  createdAt   DateTime  @default(now())
-  validatedAt DateTime?
+  id        String   @id @default(cuid())
+  authorName String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
 
-  @@index([status])
   @@index([createdAt])
 }

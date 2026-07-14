@@ -3,14 +3,14 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, Dices, Sparkles, Pause, Globe, Gamepad2, Medal } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, Dices, Pause, Globe, Star } from "lucide-react";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
   { icon: Grid3x3, label: "Placement libre", desc: "Pose où tu veux", color: "text-amber-300" },
   { icon: Timer, label: "10 s / coup", desc: "Joue vite ou perds la main", color: "text-emerald-300" },
   { icon: Pause, label: "Pause à tout moment", desc: "Chrono gelé", color: "text-fuchsia-300" },
-  { icon: Users, label: "2 à 6 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
+  { icon: Users, label: "2 à 8 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
   { icon: Trophy, label: "Champion Ultime", desc: "Meilleur score gagne", color: "text-sky-300" },
 ];
 
@@ -19,7 +19,7 @@ const FLOAT_ICONS = ["🟥", "🟨", "🟦", "⏱️", "🎯", "🏆", "⬜", "�
 export function HomeScreen() {
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
-  const goToTournoi = useGameStore((s) => s.goToTournoi);
+  const goToReviews = useGameStore((s) => s.goToReviews);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-10">
@@ -61,11 +61,6 @@ export function HomeScreen() {
           />
         </motion.div>
 
-        <div className="mb-4 flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/5 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-amber-200/80">
-          <Sparkles className="h-3 w-3" />
-          Le Jeu du Carré
-        </div>
-
         <h1 className="font-display text-6xl font-black tracking-tight sm:text-7xl md:text-8xl">
           <span className="text-red-gradient">Trouv</span>
           <span className="text-gold-gradient">ix</span>
@@ -75,7 +70,7 @@ export function HomeScreen() {
           Place tes pions <span className="font-semibold text-amber-200">où tu veux</span> dans la
           grille et forme un <span className="font-semibold text-rose-200">carré de 4 pions</span>{" "}
           (2×2) pour marquer. <span className="font-semibold text-amber-200">10 secondes</span> par
-          coup, pause à tout moment. De 2 à 6 joueurs. 🏆
+          coup, pause à tout moment. De 2 à 8 joueurs. 🏆
         </p>
 
         <motion.div
@@ -89,8 +84,8 @@ export function HomeScreen() {
             size="lg"
             className="h-14 w-full rounded-full bg-gradient-to-r from-rose-600 to-rose-500 px-8 text-base font-semibold text-white shadow-[0_8px_30px_-6px_oklch(0.60_0.215_25/0.6)] transition hover:from-rose-500 hover:to-rose-400 hover:shadow-[0_8px_36px_-4px_oklch(0.60_0.215_25/0.8)] sm:w-auto"
           >
-            <Gamepad2 className="mr-2 h-5 w-5" />
-            S'entraîner
+            <Dices className="mr-2 h-5 w-5" />
+            Jouer en local
           </Button>
           <Button
             onClick={goToOnlineSetup}
@@ -100,15 +95,6 @@ export function HomeScreen() {
           >
             <Globe className="mr-2 h-5 w-5" />
             Jouer en ligne
-          </Button>
-          <Button
-            onClick={goToTournoi}
-            size="lg"
-            variant="outline"
-            className="h-14 w-full rounded-full border-amber-400/40 bg-gradient-to-r from-amber-500/10 to-rose-500/10 px-8 text-base font-semibold text-amber-100 transition hover:from-amber-500/20 hover:to-rose-500/20 sm:w-auto"
-          >
-            <Medal className="mr-2 h-5 w-5" />
-            Tournoi
           </Button>
         </motion.div>
 
@@ -133,8 +119,25 @@ export function HomeScreen() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-2"><Grid3x3 className="h-4 w-4 text-rose-300" /> Grille 10×10</span>
           <span className="flex items-center gap-2"><Timer className="h-4 w-4 text-amber-300" /> 10s par coup</span>
-          <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 6 joueurs</span>
+          <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 8 joueurs</span>
         </div>
+
+        {/* Rubrique avis / suggestions */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8 flex flex-wrap items-center justify-center gap-3"
+        >
+          <Button
+            onClick={goToReviews}
+            variant="outline"
+            size="sm"
+            className="gap-1.5 rounded-full border-amber-400/30 bg-amber-500/5 text-amber-200 hover:bg-amber-500/15"
+          >
+            <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
+          </Button>
+        </motion.div>
       </motion.div>
     </div>
   );

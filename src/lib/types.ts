@@ -1,4 +1,5 @@
-export type Phase = "home" | "setup" | "playing" | "gameover" | "online-setup" | "online-playing" | "benchou-admin" | "tournoi";
+export type Phase = "home" | "setup" | "playing" | "gameover" | "online-setup" | "online-playing" | "reviews";
+
 export interface Player {
   id: string;
   name: string;

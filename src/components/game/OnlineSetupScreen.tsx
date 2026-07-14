@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
+import { ReviewsBoard } from "./ReviewsBoard";
 import { isPhotoAvatar } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Camera,
@@ -24,8 +24,11 @@ import {
   WifiOff,
   AlertCircle,
   Bot,
-  LayoutDashboard,
+  Bell,
+  ShieldCheck,
 } from "lucide-react";
+import { toast } from "sonner";
+
 // 16 elegant distinct colors (matches SetupScreen palette)
 const COLOR_PALETTE = [
   "#9f1239", "#b8860b", "#0f766e", "#a16207",
@@ -39,8 +42,6 @@ type Tab = "menu" | "create" | "join" | "benchou" | "lobby";
 
 export function OnlineSetupScreen() {
   const backHome = useGameStore((s) => s.backHome);
-  const goToBenchouAdmin = useGameStore((s) => s.goToBenchouAdmin);
-  const { toast } = useToast();
   // Use precise selectors to avoid re-rendering on every state-update (timer ticks at 10Hz)
   const onlineConnected = useOnlineStore((s) => s.connected);
   const onlineRoomCode = useOnlineStore((s) => s.roomCode);
@@ -50,12 +51,13 @@ export function OnlineSetupScreen() {
   const onlinePending = useOnlineStore((s) => s.pendingAction);
   const onlineChallenges = useOnlineStore((s) => s.challenges);
   const onlineIsBenchou = useOnlineStore((s) => s.isBenchou);
-  const onlineBenchouPin = useOnlineStore((s) => s.benchouPin);
   const onlineChallengeDeclined = useOnlineStore((s) => s.challengeDeclined);
   const onlineCreateRoom = useOnlineStore((s) => s.createRoom);
   const onlineJoinRoom = useOnlineStore((s) => s.joinRoom);
   const onlineChallengeBenchou = useOnlineStore((s) => s.challengeBenchou);
   const onlineRegisterAsBenchou = useOnlineStore((s) => s.registerAsBenchou);
+  const onlineAcceptChallenge = useOnlineStore((s) => s.acceptChallenge);
+  const onlineDeclineChallenge = useOnlineStore((s) => s.declineChallenge);
   const onlineStartGame = useOnlineStore((s) => s.startGame);
   const onlineLeaveRoom = useOnlineStore((s) => s.leaveRoom);
   const onlineTeardown = useOnlineStore((s) => s.teardown);
@@ -111,10 +113,7 @@ export function OnlineSetupScreen() {
     if (onlineRoomCode) {
       navigator.clipboard?.writeText(onlineRoomCode);
       setCopied(true);
-      toast({
-        title: "Code copié !",
-        description: "Partage-le avec tes amis."
-      });
+      toast.success("Code copié !");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -137,12 +136,15 @@ export function OnlineSetupScreen() {
             size="sm"
             onClick={() => {
               if (activeTab === "lobby") {
+                // In the lobby: leave the room and go home
                 onlineLeaveRoom();
                 backHome();
               } else if (activeTab === "menu") {
+                // On the online menu: go back to the home screen
                 onlineTeardown();
                 backHome();
               } else {
+                // On create/join form: go back to the online menu
                 setTab("menu");
               }
             }}
@@ -238,9 +240,19 @@ export function OnlineSetupScreen() {
               {!showPinForm && !onlineIsBenchou && (
                 <button
                   onClick={() => setShowPinForm(true)}
-                  className="text-xs text-muted-foreground/60 underline-offset-2 transition hover:text-amber-200/80 hover:underline"
+                  className="group inline-flex items-center gap-2.5 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500/5 to-rose-500/5 px-4 py-2 text-xs font-medium text-amber-100/70 transition-all hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-100 hover:shadow-[0_4px_20px_-4px_oklch(0.60_0.215_25/0.4)]"
                 >
-                  Je suis Benchou Ferrari
+                  <img
+                    src="/benchou-ferrari-small.jpg"
+                    alt="Benchou Ferrari"
+                    width={20}
+                    height={20}
+                    loading="eager"
+                    fetchPriority="high"
+                    className="h-5 w-5 rounded-full object-cover ring-1 ring-amber-400/40 transition group-hover:ring-amber-400/70"
+                  />
+                  <ShieldCheck className="h-3.5 w-3.5 text-amber-300/80 transition group-hover:text-amber-300" />
+                  <span className="tracking-wide">Je suis Benchou Ferrari</span>
                 </button>
               )}
               {showPinForm && !onlineIsBenchou && (
@@ -256,6 +268,7 @@ export function OnlineSetupScreen() {
                     maxLength={6}
                     className="bg-background/60 text-center text-lg tracking-[0.3em]"
                   />
+                  {/* Error message displayed right here, next to the input — not at the top */}
                   {onlineError && showPinForm && (
                     <p className="text-center text-xs font-medium text-rose-300">
                       ⚠️ {onlineError}
@@ -274,7 +287,7 @@ export function OnlineSetupScreen() {
                       size="sm"
                       onClick={async () => {
                         await onlineRegisterAsBenchou(benchouPin);
-                        if (useOnlineStore.getState().isBenchou) {
+                        if (onlineIsBenchou) {
                           setShowPinForm(false);
                           setBenchouPin("");
                           onlineClearError();
@@ -288,32 +301,62 @@ export function OnlineSetupScreen() {
                   </div>
                 </div>
               )}
-              {(onlineIsBenchou || onlineBenchouPin) && (
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${onlineIsBenchou ? "bg-emerald-400" : "bg-amber-400"}`} />
-                    <span className="text-xs font-medium text-emerald-200">
-                      {onlineIsBenchou
-                        ? "Connecté en tant que Benchou Ferrari"
-                        : "Session Benchou active"}
-                    </span>
-                    {onlineChallenges.length > 0 && (
-                      <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-500 px-1.5 text-xs font-bold text-white">
-                        {onlineChallenges.length}
-                      </span>
-                    )}
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={goToBenchouAdmin}
-                    className="shrink-0 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400"
-                  >
-                    <LayoutDashboard className="mr-1.5 h-4 w-4" />
-                    Tableau de bord
-                  </Button>
-                </div>
+              {onlineIsBenchou && (
+                <p className="text-xs text-emerald-300">
+                  ✓ Connecté en tant que Benchou Ferrari
+                </p>
               )}
             </div>
+
+            {/* Challenge notifications panel (visible when registered as Benchou) */}
+            {onlineIsBenchou && onlineChallenges.length > 0 && (
+              <div className="mt-4 rounded-xl border border-violet-400/40 bg-violet-500/10 p-4">
+                <p className="mb-3 flex items-center gap-1.5 font-display text-sm font-bold text-violet-200">
+                  <Bell className="h-4 w-4" />
+                  Défis reçus ({onlineChallenges.length})
+                </p>
+                <div className="flex flex-col gap-2">
+                  {onlineChallenges.map((ch) => (
+                    <div
+                      key={ch.id}
+                      className="flex items-center gap-3 rounded-lg border border-violet-400/30 bg-card/40 p-3"
+                    >
+                      <Avatar avatar={ch.challengerEmoji} color={ch.challengerColor} size={36} emojiSize="text-lg" />
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-foreground">{ch.challengerName}</p>
+                        <p className="text-xs text-muted-foreground">Match en {ch.totalRounds} rounds</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onlineDeclineChallenge(ch.id)}
+                          disabled={onlinePending}
+                          className="border-rose-400/40 text-rose-200 hover:bg-rose-500/10"
+                        >
+                          Refuser
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => onlineAcceptChallenge(ch.id)}
+                          disabled={onlinePending}
+                          className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400"
+                        >
+                          Accepter
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Reviews board — visible only for Benchou Ferrari (admin) */}
+            {onlineIsBenchou && (
+              <div className="mt-4">
+                <ReviewsBoard />
+              </div>
+            )}
           </div>
         )}
 
@@ -328,6 +371,7 @@ export function OnlineSetupScreen() {
                   : "Rejoindre un salon"}
             </h2>
 
+            {/* Benchou Ferrari preview */}
             {activeTab === "benchou" && (
               <div className="mt-4 flex items-center gap-3 rounded-xl border border-violet-400/30 bg-violet-500/5 p-3">
                 <img
@@ -346,6 +390,7 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
+            {/* Profile */}
             <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-4 sm:p-3">
               <Label className="flex items-center gap-1 text-xs text-muted-foreground">
                 Ton profil <span className="text-rose-400">*</span>
@@ -388,6 +433,7 @@ export function OnlineSetupScreen() {
                   </button>
                 )}
               </div>
+              {/* Color picker */}
               <div className="mt-2 flex flex-wrap gap-2 sm:gap-1.5">
                 {COLOR_PALETTE.map((c) => {
                   const taken =
@@ -417,6 +463,7 @@ export function OnlineSetupScreen() {
               </div>
             </div>
 
+            {/* Round choice (create only) */}
             {(activeTab === "create" || activeTab === "benchou") && (
               <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
@@ -443,6 +490,7 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
+            {/* Join code input (join only) */}
             {activeTab === "join" && (
               <div className="mt-4 rounded-xl border border-border/60 bg-card/40 p-4">
                 <Label className="text-xs text-muted-foreground">Code du salon</Label>
@@ -510,17 +558,10 @@ export function OnlineSetupScreen() {
 
             {/* Players */}
             <div className="mb-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
-                  <Users className="h-3.5 w-3.5" />
-                  Joueurs ({players.length}/6)
-                </p>
-                {players.length >= 6 && (
-                  <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-300">
-                    Salon complet
-                  </span>
-                )}
-              </div>
+              <p className="mb-2 flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
+                <Users className="h-3.5 w-3.5" />
+                Joueurs ({players.length}/8)
+              </p>
               <div className="flex flex-col gap-2">
                 {players.map((p) => (
                   <div
@@ -535,6 +576,7 @@ export function OnlineSetupScreen() {
                     <div className="flex flex-1 flex-col gap-0.5">
                       <span className="flex items-center gap-1.5 font-medium">
                         {p.name}
+                        {/* Online status indicator */}
                         {p.connected !== false ? (
                           <span className="flex items-center gap-0.5 text-[10px] font-bold uppercase text-emerald-300">
                             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -606,8 +648,10 @@ export function OnlineSetupScreen() {
               variant="ghost"
               size="sm"
               onClick={() => {
+                // Leave room but keep socket alive for quick rejoin
                 onlineLeaveRoom();
                 setTab("menu");
+                // Don't clear name/emoji — user might just want to modify, not re-enter everything
               }}
               className="mt-3 w-full text-muted-foreground hover:text-foreground"
             >
