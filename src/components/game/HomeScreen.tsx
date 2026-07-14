@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, Dices, Sparkles, Pause, Globe } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, Dices, Sparkles, Pause, Globe, Gamepad2, MessageSquareQuote } from "lucide-react";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
@@ -19,6 +19,7 @@ const FLOAT_ICONS = ["🟥", "🟨", "🟦", "⏱️", "🎯", "🏆", "⬜", "�
 export function HomeScreen() {
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
+  const goToReviews = useGameStore((s) => s.goToReviews);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-10">
@@ -88,8 +89,8 @@ export function HomeScreen() {
             size="lg"
             className="h-14 w-full rounded-full bg-gradient-to-r from-rose-600 to-rose-500 px-8 text-base font-semibold text-white shadow-[0_8px_30px_-6px_oklch(0.60_0.215_25/0.6)] transition hover:from-rose-500 hover:to-rose-400 hover:shadow-[0_8px_36px_-4px_oklch(0.60_0.215_25/0.8)] sm:w-auto"
           >
-            <Dices className="mr-2 h-5 w-5" />
-            Jouer en local
+            <Gamepad2 className="mr-2 h-5 w-5" />
+            S'entraîner
           </Button>
           <Button
             onClick={goToOnlineSetup}
@@ -99,6 +100,15 @@ export function HomeScreen() {
           >
             <Globe className="mr-2 h-5 w-5" />
             Jouer en ligne
+          </Button>
+          <Button
+            onClick={goToReviews}
+            size="lg"
+            variant="outline"
+            className="h-14 w-full rounded-full border-amber-400/40 bg-amber-500/5 px-8 text-base font-semibold text-amber-100/90 transition hover:border-amber-400/70 hover:bg-amber-500/15 sm:w-auto"
+          >
+            <MessageSquareQuote className="mr-2 h-5 w-5" />
+            Avis
           </Button>
         </motion.div>
 

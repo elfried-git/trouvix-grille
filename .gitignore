@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Bun
+bun.lock
+mini-services/**/bun.lock
+
+# Env files
+.env
+.env.*
+
+# Next.js
+.next/
+out/
+
+# Prisma
+prisma/generated/
+prisma/migrations/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VCS
+.git/
+
+# Docker / mini-services build artifacts
+mini-services/**/dist/
+mini-services/**/.next/
+mini-services/**/coverage/
+

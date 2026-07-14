@@ -29,3 +29,17 @@ model GameResult {
   durationMin Int
   createdAt DateTime @default(now())
 }
+
+model Review {
+  id          String    @id @default(cuid())
+  name        String    // reviewer's display name
+  rating      Int       // 1-5 stars
+  comment     String    // text comment
+  status      String    @default("pending") // "pending" | "approved" | "rejected"
+  adminNote   String?   // optional note from Benchou when rejecting
+  createdAt   DateTime  @default(now())
+  validatedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+}

@@ -9,13 +9,14 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 4000
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  duration?: number
 }
 
 const actionTypes = {
@@ -58,10 +59,12 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string, duration?: number) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
+
+  const delay = duration ?? TOAST_REMOVE_DELAY
 
   const timeout = setTimeout(() => {
     toastTimeouts.delete(toastId)
@@ -69,7 +72,7 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, TOAST_REMOVE_DELAY)
+  }, delay)
 
   toastTimeouts.set(toastId, timeout)
 }
@@ -93,13 +96,11 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
+          addToRemoveQueue(toast.id, toast.duration)
         })
       }
 
@@ -129,12 +130,32 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-const listeners: Array<(state: State) => void> = []
+// Store the toast state on globalThis so it's shared across all module
+// instances (Next.js may bundle this hook into multiple client chunks).
+type GlobalToastState = {
+  listeners: Array<(state: State) => void>
+  memoryState: State
+}
 
-let memoryState: State = { toasts: [] }
+const globalKey = "__trouvix_toast_state__"
+
+function getGlobal(): GlobalToastState {
+  const g = globalThis as unknown as Record<string, unknown>
+  if (!g[globalKey]) {
+    g[globalKey] = {
+      listeners: [],
+      memoryState: { toasts: [] },
+    } as GlobalToastState
+  }
+  return g[globalKey] as GlobalToastState
+}
+
+const listeners: Array<(state: State) => void> = getGlobal().listeners
+let memoryState: State = getGlobal().memoryState
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
+  getGlobal().memoryState = memoryState
   listeners.forEach((listener) => {
     listener(memoryState)
   })
@@ -164,6 +185,9 @@ function toast({ ...props }: Toast) {
     },
   })
 
+  // Auto-dismiss after the specified duration (default 4000ms)
+  addToRemoveQueue(id, props.duration)
+
   return {
     id: id,
     dismiss,
@@ -172,17 +196,19 @@ function toast({ ...props }: Toast) {
 }
 
 function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
-
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
+  const state = React.useSyncExternalStore(
+    (callback) => {
+      listeners.push(callback)
+      return () => {
+        const index = listeners.indexOf(callback)
+        if (index > -1) {
+          listeners.splice(index, 1)
+        }
       }
-    }
-  }, [state])
+    },
+    () => memoryState,
+    () => memoryState
+  )
 
   return {
     ...state,

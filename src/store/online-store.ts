@@ -4,6 +4,34 @@ import { create } from "zustand";
 import { getSocket, disconnectSocket } from "@/lib/socket";
 import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
 
+// ===== Benchou session persistence (sessionStorage) =====
+const BENCHOU_PIN_KEY = "trouvix_benchou_pin";
+
+function saveBenchouPin(pin: string) {
+  try {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(BENCHOU_PIN_KEY, pin);
+    }
+  } catch {}
+}
+
+function loadBenchouPin(): string | null {
+  try {
+    if (typeof window !== "undefined") {
+      return window.sessionStorage.getItem(BENCHOU_PIN_KEY);
+    }
+  } catch {}
+  return null;
+}
+
+function clearBenchouPin() {
+  try {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(BENCHOU_PIN_KEY);
+    }
+  } catch {}
+}
+
 export interface Challenge {
   id: string;
   roomCode: string;
@@ -24,6 +52,7 @@ interface OnlineStore {
   pendingAction: boolean;
   challenges: Challenge[];
   isBenchou: boolean;
+  benchouPin: string | null;
   challengeDeclined: boolean;
 
   init: () => void;
@@ -55,6 +84,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   pendingAction: false,
   challenges: [],
   isBenchou: false,
+  benchouPin: typeof window !== "undefined" ? loadBenchouPin() : null,
   challengeDeclined: false,
 
   init: () => {
@@ -63,7 +93,36 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     (socket as any).__trouvixListeners = true;
 
     if (socket.connected) set({ connected: true });
-    socket.on("connect", () => set({ connected: true }));
+
+    const onSocketReady = () => {
+      set({ connected: true });
+      const { benchouPin } = get();
+      if (benchouPin) {
+        socket.emit(
+          "register-as-benchou",
+          { pin: benchouPin },
+          (res: { ok?: boolean; pendingChallenges?: Challenge[] }) => {
+            if (res?.ok) {
+              set({
+                isBenchou: true,
+                challenges: res.pendingChallenges ?? get().challenges,
+              });
+            }
+          }
+        );
+      }
+      try {
+        const savedRoom = localStorage.getItem("trouvix_room");
+        const savedPlayer = localStorage.getItem("trouvix_player");
+        if (savedRoom && savedPlayer) {
+          socket.emit("rejoin-room", { roomCode: savedRoom, playerId: savedPlayer });
+        }
+      } catch {}
+    };
+
+    socket.on("connect", onSocketReady);
+    if (socket.connected) onSocketReady();
+
     socket.on("disconnect", () => set({ connected: false }));
     socket.on("state-update", (payload: { state: OnlineGameState }) => {
       set({
@@ -114,6 +173,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       delete (socket as any).__trouvixListeners;
     } catch {}
     disconnectSocket();
+    clearBenchouPin();
     set({
       connected: false,
       myPlayerId: null,
@@ -123,6 +183,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       pendingAction: false,
       challenges: [],
       isBenchou: false,
+      benchouPin: null,
       challengeDeclined: false,
     });
   },
@@ -172,12 +233,17 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     const upperCode = roomCode.toUpperCase();
     set({ errorMessage: null, pendingAction: true, roomCode: upperCode });
 
-    if (!socket.connected) {
-      await new Promise<void>((resolve) => {
-        const t = setTimeout(() => resolve(), 5000);
-        socket.once("connect", () => { clearTimeout(t); resolve(); });
+    const ensureConnected = (): Promise<void> => {
+      return new Promise((resolve) => {
+        if (socket.connected) return resolve();
+        const timeout = setTimeout(() => resolve(), 5000);
+        socket.once("connect", () => {
+          clearTimeout(timeout);
+          resolve();
+        });
       });
-    }
+    };
+    await ensureConnected();
 
     return new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
@@ -245,7 +311,8 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         if (res?.error) {
           set({ errorMessage: res.error });
         } else if (res?.ok) {
-          set({ isBenchou: true, challenges: res.pendingChallenges ?? [] });
+          saveBenchouPin(pin);
+          set({ isBenchou: true, benchouPin: pin, challenges: res.pendingChallenges ?? [] });
         }
         resolve();
       });
@@ -354,7 +421,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       state: null,
       errorMessage: null,
       challenges: [],
-      isBenchou: false,
       challengeDeclined: false,
     });
   },
