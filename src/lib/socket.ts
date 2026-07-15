@@ -69,6 +69,7 @@ export interface OnlineGameState {
   roomCode: string;
   hostId: string;
   totalRounds: number;
+  maxPlayers: number;
   phase: "lobby" | "playing" | "gameover";
   players: OnlinePlayer[];
   currentPlayerIndex: number;
@@ -84,6 +85,7 @@ export interface OnlineGameState {
   isPaused: boolean;
   currentRound: number;
   lastDelta: { playerId: string; delta: number } | null;
+  endReason: string | null;
 }
 
 export interface SetupPlayer {

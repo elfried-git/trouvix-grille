@@ -41,12 +41,11 @@ interface GameState {
   totalRounds: number; // chosen match length (5, 10, 15)
   currentRound: number; // rounds elapsed so far (squares formed by anyone)
   lastDelta: { playerId: string; delta: number } | null;
+  endReason: string | null; // 'rounds' | 'board-full' | 'stalemate' | null
 
   goToSetup: () => void;
   goToOnlineSetup: () => void;
-  goToBenchouAdmin: () => void;
   goToReviews: () => void;
-  goToTournoi: () => void;
   startGame: (players: SetupPlayer[], rounds: number) => void;
   backHome: () => void;
   placePawn: (row: number, col: number) => void; // free placement
@@ -106,6 +105,32 @@ function isBoardFull(grid: GridCell[][]): boolean {
   return grid.every((row) => row.every((c) => c !== null));
 }
 
+// Check if ANY 2×2 block on the grid can still be completed by a single player.
+// A block is "still possible" if all its filled cells belong to the SAME player
+// (and at least one cell is empty). If a block has cells from 2+ different players,
+// it can NEVER be completed — it's blocked.
+function canAnyPlayerFormSquare(grid: GridCell[][], players: Player[]): boolean {
+  if (players.length === 0) return false;
+  for (let r0 = 0; r0 <= ROWS - 2; r0++) {
+    for (let c0 = 0; c0 <= COLS - 2; c0++) {
+      const cells = [
+        grid[r0][c0],
+        grid[r0][c0 + 1],
+        grid[r0 + 1][c0],
+        grid[r0 + 1][c0 + 1],
+      ];
+      const filled = cells.filter((c) => c !== null);
+      if (filled.length === 0) return true;
+      if (filled.length === 4) continue;
+      const owner = filled[0];
+      if (filled.every((c) => c === owner)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function computeWinner(players: Player[]): string | null {
   if (players.length === 0) return null;
   let best = players[0];
@@ -130,12 +155,11 @@ export const useGameStore = create<GameState>((set, get) => {
     totalRounds: 10,
     currentRound: 0,
     lastDelta: null,
+    endReason: null,
 
     goToSetup: () => set({ phase: "setup" }),
-    goToReviews: () => set({ phase: "reviews" }),
     goToOnlineSetup: () => set({ phase: "online-setup" }),
-    goToBenchouAdmin: () => set({ phase: "benchou-admin" }),
-    goToTournoi: () => set({ phase: "tournoi" }),
+    goToReviews: () => set({ phase: "reviews" }),
 
     backHome: () =>
       set({
@@ -153,6 +177,7 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
+    endReason: null,
       }),
 
     startGame: (setupPlayers, rounds) => {
@@ -182,6 +207,7 @@ export const useGameStore = create<GameState>((set, get) => {
         totalRounds: rounds,
         currentRound: 0,
         lastDelta: null,
+    endReason: null,
       });
     },
 
@@ -243,9 +269,23 @@ export const useGameStore = create<GameState>((set, get) => {
             set({
               phase: "gameover",
               winnerId,
+              endReason: "rounds",
               resolving: false,
               lastSquareCells: null,
               statusMessage: `Match terminé après ${s.totalRounds} carrés ! 🏆`,
+            });
+            return;
+          }
+          // Stalemate: no player can form a square anymore
+          if (!canAnyPlayerFormSquare(s.grid, s.players)) {
+            const winnerId = computeWinner(s.players);
+            set({
+              phase: "gameover",
+              winnerId,
+              endReason: "stalemate",
+              resolving: false,
+              lastSquareCells: null,
+              statusMessage: "Plus aucun carré possible ! Fin du match.",
             });
             return;
           }
@@ -268,6 +308,7 @@ export const useGameStore = create<GameState>((set, get) => {
         set({
           grid,
           resolving: true,
+          endReason: "board-full",
           statusMessage: "Plateau plein ! Fin du match.",
         });
         setTimeout(() => {
@@ -276,9 +317,34 @@ export const useGameStore = create<GameState>((set, get) => {
           set({
             phase: "gameover",
             winnerId,
+            endReason: "board-full",
             resolving: false,
             lastSquareCells: null,
             statusMessage: "Plateau plein — match terminé ! 🏆",
+          });
+        }, 1200);
+        return;
+      }
+
+      // Stalemate: no player can form a square anymore (even if board not full)
+      if (!canAnyPlayerFormSquare(grid, state.players)) {
+        const winnerId = computeWinner(state.players);
+        set({
+          grid,
+          resolving: true,
+          endReason: "stalemate",
+          statusMessage: "Plus aucun carré possible ! Fin du match.",
+        });
+        setTimeout(() => {
+          const s = get();
+          if (s.phase !== "playing") return;
+          set({
+            phase: "gameover",
+            winnerId,
+            endReason: "stalemate",
+            resolving: false,
+            lastSquareCells: null,
+            statusMessage: "Plus aucun carré possible — match terminé ! 🏆",
           });
         }, 1200);
         return;
@@ -339,6 +405,7 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
+    endReason: null,
       }),
 
     rematchTied: () => {
@@ -370,6 +437,7 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
+    endReason: null,
       });
     },
   };

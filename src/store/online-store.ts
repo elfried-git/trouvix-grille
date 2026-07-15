@@ -2,35 +2,7 @@
 
 import { create } from "zustand";
 import { getSocket, disconnectSocket } from "@/lib/socket";
-import type { OnlineGameState, SetupPlayer, Reaction } from "@/lib/socket";
-
-// ===== Benchou session persistence (sessionStorage) =====
-const BENCHOU_PIN_KEY = "trouvix_benchou_pin";
-
-function saveBenchouPin(pin: string) {
-  try {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(BENCHOU_PIN_KEY, pin);
-    }
-  } catch {}
-}
-
-function loadBenchouPin(): string | null {
-  try {
-    if (typeof window !== "undefined") {
-      return window.sessionStorage.getItem(BENCHOU_PIN_KEY);
-    }
-  } catch {}
-  return null;
-}
-
-function clearBenchouPin() {
-  try {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(BENCHOU_PIN_KEY);
-    }
-  } catch {}
-}
+import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
 
 export interface Challenge {
   id: string;
@@ -43,6 +15,43 @@ export interface Challenge {
   status: "pending" | "accepted" | "expired";
 }
 
+export interface PublicRoom {
+  roomCode: string;
+  hostName: string;
+  hostEmoji: string;
+  hostColor: string;
+  playerCount: number;
+  maxPlayers: number;
+  isFull: boolean;
+  totalRounds: number;
+  createdAt: number;
+}
+
+export interface AdminRoomPlayer {
+  id: string;
+  name: string;
+  color: string;
+  emoji: string;
+  score: number;
+  isHost: boolean;
+  isAI: boolean;
+  connected: boolean;
+}
+
+export interface AdminRoom {
+  roomCode: string;
+  hostName: string;
+  hostId: string;
+  phase: "lobby" | "playing" | "gameover";
+  playerCount: number;
+  maxPlayers: number;
+  isFull: boolean;
+  totalRounds: number;
+  currentRound: number;
+  createdAt: number;
+  players: AdminRoomPlayer[];
+}
+
 interface OnlineStore {
   connected: boolean;
   myPlayerId: string | null;
@@ -50,28 +59,25 @@ interface OnlineStore {
   state: OnlineGameState | null;
   errorMessage: string | null;
   pendingAction: boolean;
-  challenges: Challenge[];
-  isBenchou: boolean;
-  benchouPin: string | null;
-  challengeDeclined: boolean;
+  challenges: Challenge[]; // pending challenges for Benchou Ferrari
+  isBenchou: boolean; // true if this client registered as Benchou Ferrari
+  publicRooms: PublicRoom[]; // all lobby-phase rooms visible to everyone
+  adminRooms: AdminRoom[]; // all rooms with full details (Benchou only)
+  kicked: boolean; // true when this player was kicked by host/admin
+  reactions: { id: string; emoji: string; timestamp: number }[]; // floating emoji reactions
 
-  // ===== Reactions (emoji reactions during the game) =====
-  reactions: Reaction[];
-  sendReaction: (emoji: string) => void;
-
-  // ===== Replay =====
-  replayGame: () => void;
-  requestBenchouReplay: () => void;
-
+  // lifecycle
   init: () => void;
   teardown: () => void;
 
-  createRoom: (player: SetupPlayer, totalRounds: number) => Promise<void>;
+  // actions
+  createRoom: (player: SetupPlayer, totalRounds: number, maxPlayers?: number) => Promise<void>;
   joinRoom: (roomCode: string, player: SetupPlayer) => Promise<void>;
   challengeBenchou: (player: SetupPlayer, totalRounds: number) => Promise<void>;
   registerAsBenchou: (pin: string) => Promise<void>;
   acceptChallenge: (challengeId: string) => Promise<void>;
   declineChallenge: (challengeId: string) => Promise<void>;
+  challengeDeclined: boolean; // true when Benchou declined the current challenge
   startGame: () => void;
   placePawn: (row: number, col: number) => void;
   togglePause: () => void;
@@ -81,6 +87,14 @@ interface OnlineStore {
   leaveRoom: () => void;
   tryReconnect: () => boolean;
   clearError: () => void;
+  // room management
+  listPublicRooms: () => void;
+  kickPlayer: (playerId: string) => Promise<void>;
+  adminListRooms: () => void;
+  adminKickPlayer: (roomCode: string, playerId: string) => Promise<void>;
+  adminDeleteRoom: (roomCode: string) => Promise<void>;
+  clearKicked: () => void;
+  sendReaction: (emoji: string) => void;
 }
 
 export const useOnlineStore = create<OnlineStore>((set, get) => ({
@@ -92,48 +106,36 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   pendingAction: false,
   challenges: [],
   isBenchou: false,
-  benchouPin: typeof window !== "undefined" ? loadBenchouPin() : null,
   challengeDeclined: false,
+  publicRooms: [],
+  adminRooms: [],
+  kicked: false,
   reactions: [],
 
   init: () => {
     const socket = getSocket();
+    // Guard: don't re-attach listeners if THIS socket instance already has them
     if ((socket as any).__trouvixListeners) return;
     (socket as any).__trouvixListeners = true;
 
     if (socket.connected) set({ connected: true });
-
-    const onSocketReady = () => {
+    socket.on("connect", () => {
       set({ connected: true });
-      const { benchouPin } = get();
-      if (benchouPin) {
-        socket.emit(
-          "register-as-benchou",
-          { pin: benchouPin },
-          (res: { ok?: boolean; pendingChallenges?: Challenge[] }) => {
-            if (res?.ok) {
-              set({
-                isBenchou: true,
-                challenges: res.pendingChallenges ?? get().challenges,
-              });
-            }
-          }
-        );
+      // Auto-fetch public rooms immediately on connect (reactivity)
+      socket.emit("list-public-rooms", {}, (res: { rooms?: PublicRoom[] }) => {
+        if (res?.rooms) set({ publicRooms: res.rooms });
+      });
+      // If this client is Benchou, also fetch admin rooms
+      if (get().isBenchou) {
+        socket.emit("admin-list-rooms", {}, (res: { rooms?: AdminRoom[] }) => {
+          if (res?.rooms) set({ adminRooms: res.rooms });
+        });
       }
-      try {
-        const savedRoom = localStorage.getItem("trouvix_room");
-        const savedPlayer = localStorage.getItem("trouvix_player");
-        if (savedRoom && savedPlayer) {
-          socket.emit("rejoin-room", { roomCode: savedRoom, playerId: savedPlayer });
-        }
-      } catch {}
-    };
-
-    socket.on("connect", onSocketReady);
-    if (socket.connected) onSocketReady();
-
+    });
     socket.on("disconnect", () => set({ connected: false }));
     socket.on("state-update", (payload: { state: OnlineGameState }) => {
+      // Always set a NEW object reference so Zustand detects the change
+      // (socket.io may reuse the same parsed object in some edge cases)
       set({
         state: { ...payload.state },
         roomCode: payload.state.roomCode,
@@ -142,6 +144,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     socket.on("error", (payload: { message: string }) => {
       set({ errorMessage: payload.message });
     });
+    // Receive challenge notifications (for Benchou Ferrari)
     socket.on("benchou-challenge", (payload: { challenge: Challenge }) => {
       const challenge = payload.challenge;
       set((s) => ({
@@ -149,7 +152,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           ? s.challenges
           : [...s.challenges, challenge],
       }));
+      // Play a notification sound + browser notification
       if (typeof window !== "undefined") {
+        // Browser notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("🎮 Défi Trouvix Grille", {
             body: `${challenge.challengerName} vous sollicite pour une partie ! Cliquez pour rejoindre.`,
@@ -157,6 +162,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
             tag: challenge.id,
           });
         }
+        // Sound (simple beep via Web Audio API)
         try {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
           const osc = ctx.createOscillator();
@@ -171,29 +177,58 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         } catch {}
       }
     });
+    // Challenge declined by Benchou Ferrari (received by the challenger)
     socket.on("challenge-declined", (payload: { challengeId: string }) => {
       set({ challengeDeclined: true });
     });
-    // ===== Reactions (emoji reactions during the game) =====
-    socket.on("reaction-received", (payload: Omit<Reaction, "id">) => {
-      const reaction: Reaction = {
-        ...payload,
-        id: `${payload.playerId}-${payload.timestamp}-${Math.random()}`,
+    // Public room list (broadcast to everyone when rooms change)
+    socket.on("public-rooms", (payload: { rooms: PublicRoom[] }) => {
+      set({ publicRooms: payload.rooms ?? [] });
+    });
+    // Admin room list (sent only to Benchou Ferrari)
+    socket.on("admin-rooms", (payload: { rooms: AdminRoom[] }) => {
+      set({ adminRooms: payload.rooms ?? [] });
+    });
+    // Kicked by host or admin
+    socket.on("kicked", (payload: { reason: string }) => {
+      set({
+        kicked: true,
+        myPlayerId: null,
+        roomCode: null,
+        state: null,
+        errorMessage: payload?.reason === "removed-by-admin" ? "Tu as été retiré par l'administrateur." : "Tu as été retiré du salon par l'hôte.",
+      });
+      try {
+        localStorage.removeItem("trouvix_room");
+        localStorage.removeItem("trouvix_player");
+      } catch {}
+    });
+    // Floating emoji reactions (broadcast to the room)
+    socket.on("reaction-received", (payload: { playerId: string; emoji: string; timestamp: number }) => {
+      if (!payload?.emoji) return;
+      const reaction = {
+        id: `${payload.playerId}-${payload.timestamp}-${Math.random().toString(36).slice(2, 6)}`,
+        emoji: payload.emoji,
+        timestamp: payload.timestamp,
       };
       set((s) => ({ reactions: [...s.reactions, reaction] }));
+      // Auto-remove after 3s (matches the animation duration)
       setTimeout(() => {
         set((s) => ({ reactions: s.reactions.filter((r) => r.id !== reaction.id) }));
       }, 3000);
     });
-    // Room destroyed (host left) — clear all state and go home silently
+    // Room destroyed by host leaving or admin deleting — everyone goes home
     socket.on("room-destroyed", (payload: { reason: string }) => {
+      const reason = payload?.reason;
       set({
         myPlayerId: null,
         roomCode: null,
         state: null,
-        errorMessage: null,
-        challenges: [],
-        reactions: [],
+        kicked: true,
+        errorMessage:
+          reason === "admin-deleted"
+            ? "Le salon a été supprimé par l'administrateur."
+            : "L'hôte a quitté le salon. La partie est terminée.",
       });
       try {
         localStorage.removeItem("trouvix_room");
@@ -203,12 +238,12 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   },
 
   teardown: () => {
+    // Clean up the listeners flag so init() can re-attach on a new socket
     try {
       const socket = getSocket();
       delete (socket as any).__trouvixListeners;
     } catch {}
     disconnectSocket();
-    clearBenchouPin();
     set({
       connected: false,
       myPlayerId: null,
@@ -218,16 +253,20 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       pendingAction: false,
       challenges: [],
       isBenchou: false,
-      benchouPin: null,
       challengeDeclined: false,
+      publicRooms: [],
+      adminRooms: [],
+      kicked: false,
+      reactions: [],
     });
   },
 
-  createRoom: async (player, totalRounds) => {
+  createRoom: async (player, totalRounds, maxPlayers) => {
     const socket = getSocket();
     get().init();
     set({ errorMessage: null, pendingAction: true });
 
+    // Wait for socket connection before emitting
     if (!socket.connected) {
       await new Promise<void>((resolve) => {
         const t = setTimeout(() => resolve(), 5000);
@@ -243,7 +282,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
       socket.emit(
         "create-room",
-        { player, totalRounds },
+        { player, totalRounds, maxPlayers },
         (res: { roomCode?: string; playerId?: string; error?: string }) => {
           clearTimeout(timeout);
           set({ pendingAction: false });
@@ -264,10 +303,11 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   joinRoom: async (roomCode, player) => {
     const socket = getSocket();
-    get().init();
+    get().init(); // ensure listeners
     const upperCode = roomCode.toUpperCase();
     set({ errorMessage: null, pendingAction: true, roomCode: upperCode });
 
+    // Wait for socket to be connected before emitting (max 5s)
     const ensureConnected = (): Promise<void> => {
       return new Promise((resolve) => {
         if (socket.connected) return resolve();
@@ -281,6 +321,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     await ensureConnected();
 
     return new Promise<void>((resolve) => {
+      // Timeout: if server doesn't respond in 8s, show error
       const timeout = setTimeout(() => {
         set({ pendingAction: false, errorMessage: "Le serveur ne répond pas. Réessaie." });
         resolve();
@@ -309,7 +350,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   challengeBenchou: async (player, totalRounds) => {
     const socket = getSocket();
-    get().init();
+    get().init(); // ensure listeners
     set({ errorMessage: null, pendingAction: true });
     return new Promise<void>((resolve) => {
       socket.emit(
@@ -334,8 +375,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   registerAsBenchou: async (pin) => {
     const socket = getSocket();
-    get().init();
+    get().init(); // ensure listeners
     set({ errorMessage: null });
+    // Request browser notification permission
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "default") {
         await Notification.requestPermission();
@@ -346,8 +388,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         if (res?.error) {
           set({ errorMessage: res.error });
         } else if (res?.ok) {
-          saveBenchouPin(pin);
-          set({ isBenchou: true, benchouPin: pin, challenges: res.pendingChallenges ?? [] });
+          set({ isBenchou: true, challenges: res.pendingChallenges ?? [] });
         }
         resolve();
       });
@@ -364,6 +405,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           set({ errorMessage: res.error });
         } else if (res?.ok && res?.roomCode && res?.playerId) {
           set({ myPlayerId: res.playerId, roomCode: res.roomCode });
+          // Remove accepted challenge from the list
           set((s) => ({
             challenges: s.challenges.filter((c) => c.id !== challengeId),
           }));
@@ -386,6 +428,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         if (res?.error) {
           set({ errorMessage: res.error });
         } else if (res?.ok) {
+          // Remove declined challenge from the list
           set((s) => ({
             challenges: s.challenges.filter((c) => c.id !== challengeId),
           }));
@@ -442,6 +485,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   },
 
   leaveRoom: () => {
+    // Emit leave-room but DON'T destroy the socket — keep it alive for rejoin
     const socket = getSocket();
     if (socket.connected) {
       socket.emit("leave-room");
@@ -456,10 +500,15 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       state: null,
       errorMessage: null,
       challenges: [],
+      isBenchou: false,
       challengeDeclined: false,
+      kicked: false,
+      reactions: [],
     });
   },
 
+  // Try to reconnect to a previous session (after page reload).
+  // Returns true if a rejoin was attempted.
   tryReconnect: () => {
     try {
       const savedRoom = localStorage.getItem("trouvix_room");
@@ -471,6 +520,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
             if (res?.ok) {
               set({ myPlayerId: savedPlayer, roomCode: savedRoom });
             } else {
+              // Room/player no longer exists — clear storage
               localStorage.removeItem("trouvix_room");
               localStorage.removeItem("trouvix_player");
             }
@@ -486,29 +536,74 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   clearError: () => set({ errorMessage: null }),
 
-  // ===== Reactions =====
-  sendReaction: (emoji: string) => {
+  // ====== Room management ======
+
+  listPublicRooms: () => {
+    const socket = getSocket();
+    const doFetch = () => {
+      socket.emit("list-public-rooms", {}, (res: { rooms?: PublicRoom[] }) => {
+        if (res?.rooms) set({ publicRooms: res.rooms });
+      });
+    };
+    // Wait for connection if needed (reactivity: fetch ASAP)
+    if (socket.connected) doFetch();
+    else socket.once("connect", doFetch);
+  },
+
+  kickPlayer: async (playerId) => {
+    const socket = getSocket();
+    if (!socket.connected) return;
+    set({ pendingAction: true });
+    return new Promise<void>((resolve) => {
+      socket.emit("kick-player", { playerId }, (res: { ok?: boolean; error?: string }) => {
+        set({ pendingAction: false });
+        if (res?.error) set({ errorMessage: res.error });
+        resolve();
+      });
+    });
+  },
+
+  adminListRooms: () => {
     const socket = getSocket();
     if (socket.connected) {
-      socket.emit("send-reaction", { emoji });
+      socket.emit("admin-list-rooms", {}, (res: { rooms?: AdminRoom[] }) => {
+        if (res?.rooms) set({ adminRooms: res.rooms });
+      });
     }
   },
 
-  // ===== Replay =====
-  replayGame: () => {
+  adminKickPlayer: async (roomCode, playerId) => {
     const socket = getSocket();
-    if (socket.connected) {
-      socket.emit("replay-game");
-    }
-  },
-  requestBenchouReplay: () => {
-    const socket = getSocket();
-    if (socket.connected) {
-      socket.emit("request-benchou-replay", {}, (res: { ok?: boolean; error?: string }) => {
-        if (res?.error) {
-          set({ errorMessage: res.error });
-        }
+    if (!socket.connected) return;
+    set({ pendingAction: true });
+    return new Promise<void>((resolve) => {
+      socket.emit("admin-kick-player", { roomCode, playerId }, (res: { ok?: boolean; error?: string }) => {
+        set({ pendingAction: false });
+        if (res?.error) set({ errorMessage: res.error });
+        resolve();
       });
+    });
+  },
+
+  adminDeleteRoom: async (roomCode) => {
+    const socket = getSocket();
+    if (!socket.connected) return;
+    set({ pendingAction: true });
+    return new Promise<void>((resolve) => {
+      socket.emit("admin-delete-room", { roomCode }, (res: { ok?: boolean; error?: string }) => {
+        set({ pendingAction: false });
+        if (res?.error) set({ errorMessage: res.error });
+        resolve();
+      });
+    });
+  },
+
+  clearKicked: () => set({ kicked: false, errorMessage: null }),
+
+  sendReaction: (emoji) => {
+    const socket = getSocket();
+    if (socket.connected) {
+      socket.emit("send-reaction", { emoji });
     }
   },
 }));

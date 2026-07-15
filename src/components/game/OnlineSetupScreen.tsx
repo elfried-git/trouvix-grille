@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOnlineStore } from "@/store/online-store";
+import type { PublicRoom } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { ReviewsBoard } from "./ReviewsBoard";
+import { AdminRoomsBoard } from "./AdminRoomsBoard";
 import { isPhotoAvatar } from "@/lib/types";
 import {
   ArrowLeft,
@@ -26,6 +28,8 @@ import {
   Bot,
   Bell,
   ShieldCheck,
+  UserMinus,
+  Gamepad2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,6 +67,10 @@ export function OnlineSetupScreen() {
   const onlineTeardown = useOnlineStore((s) => s.teardown);
   const onlineClearError = useOnlineStore((s) => s.clearError);
   const onlineTryReconnect = useOnlineStore((s) => s.tryReconnect);
+  const onlinePublicRooms = useOnlineStore((s) => s.publicRooms);
+  const onlineListPublicRooms = useOnlineStore((s) => s.listPublicRooms);
+  const onlineKickPlayer = useOnlineStore((s) => s.kickPlayer);
+  const onlineAdminListRooms = useOnlineStore((s) => s.adminListRooms);
 
   const [tab, setTab] = useState<Tab>("menu");
 
@@ -71,10 +79,12 @@ export function OnlineSetupScreen() {
   const [color, setColor] = useState(COLOR_PALETTE[0]);
   const [emoji, setEmoji] = useState(""); // data URL or empty
   const [rounds, setRounds] = useState(10);
+  const [maxPlayers, setMaxPlayers] = useState(6); // host defines max players (2-6)
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [benchouPin, setBenchouPin] = useState("");
   const [showPinForm, setShowPinForm] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Socket init + reconnect is handled by the parent OnlineRouter (called once)
 
@@ -86,9 +96,38 @@ export function OnlineSetupScreen() {
   const inLobby = !!onlineRoomCode && !!onlineMyPlayerId;
   const activeTab: Tab = inLobby ? "lobby" : tab;
 
+  // Request the public room list when on the menu tab (refresh every 5s)
+  useEffect(() => {
+    if (activeTab !== "menu") return;
+    onlineListPublicRooms();
+    const id = setInterval(() => onlineListPublicRooms(), 5000);
+    return () => clearInterval(id);
+  }, [activeTab, onlineListPublicRooms]);
+
+  // Request the admin room list when Benchou is connected (refresh every 5s)
+  useEffect(() => {
+    if (!onlineIsBenchou) return;
+    onlineAdminListRooms();
+    const id = setInterval(() => onlineAdminListRooms(), 5000);
+    return () => clearInterval(id);
+  }, [onlineIsBenchou, onlineAdminListRooms]);
+
+  // Join a public room directly from the list — clickable as long as not full
+  const handleJoinPublic = async (room: PublicRoom) => {
+    if (room.isFull || onlinePending) return;
+    // If no name entered yet, focus the name field and toast
+    if (!name.trim()) {
+      toast.error("Saisis ton prénom pour rejoindre un salon.");
+      nameInputRef.current?.focus();
+      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    await onlineJoinRoom(room.roomCode, { name: name.trim(), color, emoji });
+  };
+
   const handleCreate = async () => {
     if (!profileValid) return;
-    await onlineCreateRoom({ name: name.trim(), color, emoji }, rounds);
+    await onlineCreateRoom({ name: name.trim(), color, emoji }, rounds, maxPlayers);
   };
 
   const handleJoin = async () => {
@@ -181,11 +220,70 @@ export function OnlineSetupScreen() {
 
         {/* === MENU TAB === */}
         {activeTab === "menu" && (
-          <div className="text-center">
-            <h2 className="font-display text-3xl font-bold text-gold-gradient sm:text-4xl">
+          <div>
+            <h2 className="text-center font-display text-3xl font-bold text-gold-gradient sm:text-4xl">
               Jouer en ligne
             </h2>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+
+            {/* Compact profile — name + color, shared with create/benchou */}
+            <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-4 sm:p-3">
+              <Label className="flex items-center gap-1 text-xs text-muted-foreground">
+                Ton profil <span className="text-rose-400">*</span>
+              </Label>
+              <div className="mt-2 flex items-center gap-3">
+                <Avatar avatar={emoji} color={color} size={44} emojiSize="text-xl" />
+                <div className="flex-1">
+                  <Input
+                    ref={nameInputRef}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Saisis ton prénom"
+                    maxLength={18}
+                    className={`h-11 bg-background/60 sm:h-10 ${
+                      !name.trim() ? "border-rose-400/60" : "border-border/60"
+                    }`}
+                  />
+                </div>
+                <label
+                  className="flex h-11 cursor-pointer items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20 sm:h-10 sm:px-2.5"
+                  title="Téléverser une photo (optionnel)"
+                >
+                  <Camera className="h-4 w-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => uploadPhoto(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
+              {/* Compact color picker */}
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {COLOR_PALETTE.map((c) => {
+                  const selected = color === c;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setColor(c)}
+                      className={`relative h-7 w-7 rounded-full ring-2 transition ${
+                        selected
+                          ? "ring-white scale-110"
+                          : "ring-white/20 hover:ring-white/50"
+                      }`}
+                      style={{ backgroundColor: c }}
+                      title="Choisir"
+                    >
+                      {selected && (
+                        <Check className="absolute inset-0 m-auto h-3 w-3 text-white drop-shadow" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action cards */}
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <button
                 onClick={() => setTab("create")}
                 className="group rounded-2xl border border-amber-400/30 bg-amber-500/5 p-6 text-left transition hover:border-amber-400/60 hover:bg-amber-500/10"
@@ -195,24 +293,12 @@ export function OnlineSetupScreen() {
                   Créer un salon
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Choisis le nombre de rounds, invite tes amis avec le code.
-                </p>
-              </button>
-              <button
-                onClick={() => setTab("join")}
-                className="group rounded-2xl border border-rose-400/30 bg-rose-500/5 p-6 text-left transition hover:border-rose-400/60 hover:bg-rose-500/10"
-              >
-                <LogIn className="mb-3 h-8 w-8 text-rose-300" />
-                <p className="font-display text-lg font-bold text-foreground">
-                  Rejoindre un salon
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Saisis le code reçu par un ami pour le rejoindre.
+                  Choisis le nombre de rounds et de joueurs, invite tes amis.
                 </p>
               </button>
               <button
                 onClick={() => setTab("benchou")}
-                className="group rounded-2xl border border-violet-400/30 bg-violet-500/5 p-6 text-left transition hover:border-violet-400/60 hover:bg-violet-500/10 sm:col-span-2"
+                className="group rounded-2xl border border-violet-400/30 bg-violet-500/5 p-6 text-left transition hover:border-violet-400/60 hover:bg-violet-500/10"
               >
                 <div className="mb-3 flex items-center gap-3">
                   <img
@@ -357,6 +443,69 @@ export function OnlineSetupScreen() {
                 <ReviewsBoard />
               </div>
             )}
+
+            {/* Admin rooms board — visible only for Benchou Ferrari (super admin) */}
+            {onlineIsBenchou && (
+              <div className="mt-4">
+                <AdminRoomsBoard />
+              </div>
+            )}
+
+            {/* Public rooms list — visible to everyone on the menu */}
+            {onlinePublicRooms.length > 0 && (
+              <div className="mt-6">
+                <p className="mb-3 flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
+                  <Gamepad2 className="h-3.5 w-3.5" />
+                  Salons ouverts ({onlinePublicRooms.length})
+                </p>
+                <div className="flex max-h-[320px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
+                  {onlinePublicRooms.map((room) => (
+                    <div
+                      key={room.roomCode}
+                      className={`flex items-center gap-3 rounded-xl border p-3 transition ${
+                        room.isFull
+                          ? "border-muted-foreground/20 bg-muted/5 opacity-60"
+                          : "border-border/40 bg-card/40 hover:border-amber-400/40 hover:bg-amber-500/5"
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-bold tracking-wider text-amber-200">
+                            {room.roomCode}
+                          </span>
+                          {room.isFull && (
+                            <span className="rounded-full bg-muted/20 px-2 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">
+                              Complet
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          Hôte : {room.hostName} · {room.playerCount}/{room.maxPlayers} joueurs · {room.totalRounds} rounds
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={room.isFull || onlinePending}
+                        onClick={() => handleJoinPublic(room)}
+                        className={`h-8 shrink-0 gap-1 whitespace-nowrap ${
+                          room.isFull
+                            ? "cursor-not-allowed opacity-50"
+                            : "bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                        }`}
+                      >
+                        {room.isFull ? (
+                          <span className="text-xs">Complet</span>
+                        ) : (
+                          <>
+                            <LogIn className="h-3.5 w-3.5" /> Rejoindre
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -490,6 +639,33 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
+            {/* Max players choice (create only — host defines how many can join) */}
+            {activeTab === "create" && (
+              <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-amber-300" />
+                  <span className="font-medium">Nombre max de joueurs</span>
+                </div>
+                <div className="grid grid-cols-5 gap-2 sm:flex sm:gap-2">
+                  {[2, 3, 4, 5, 6].map((mp) => (
+                    <Button
+                      key={mp}
+                      variant={maxPlayers === mp ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setMaxPlayers(mp)}
+                      className={`h-11 px-3 sm:h-8 ${
+                        maxPlayers === mp
+                          ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white"
+                          : ""
+                      }`}
+                    >
+                      {mp}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Join code input (join only) */}
             {activeTab === "join" && (
               <div className="mt-4 rounded-xl border border-border/60 bg-card/40 p-4">
@@ -560,7 +736,7 @@ export function OnlineSetupScreen() {
             <div className="mb-4">
               <p className="mb-2 flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
                 <Users className="h-3.5 w-3.5" />
-                Joueurs ({players.length}/8)
+                Joueurs ({players.length}/{serverState.maxPlayers || 6})
               </p>
               <div className="flex flex-col gap-2">
                 {players.map((p) => (
@@ -599,6 +775,19 @@ export function OnlineSetupScreen() {
                       <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-200">
                         Toi
                       </span>
+                    )}
+                    {/* Host can kick other players (lobby only) */}
+                    {amHost && p.id !== onlineMyPlayerId && serverState.phase === "lobby" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 shrink-0 gap-1 px-2 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                        onClick={() => onlineKickPlayer(p.id)}
+                        disabled={onlinePending}
+                        title={`Retirer ${p.name} du salon`}
+                      >
+                        <UserMinus className="h-3.5 w-3.5" /> Retirer
+                      </Button>
                     )}
                   </div>
                 ))}

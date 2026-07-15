@@ -19,7 +19,6 @@ const FLOAT_ICONS = ["🟥", "🟨", "🟦", "⏱️", "🎯", "🏆", "⬜", "�
 export function HomeScreen() {
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
-  const goToReviews = useGameStore((s) => s.goToReviews);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-10">
@@ -122,7 +121,7 @@ export function HomeScreen() {
           <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 8 joueurs</span>
         </div>
 
-        {/* Rubrique avis / suggestions
+        {/* Rubrique avis / suggestions — temporairement désactivé */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -130,14 +129,15 @@ export function HomeScreen() {
           className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
           <Button
-            onClick={goToReviews}
+            disabled
             variant="outline"
             size="sm"
-            className="gap-1.5 rounded-full border-amber-400/30 bg-amber-500/5 text-amber-200 hover:bg-amber-500/15"
+            className="cursor-not-allowed gap-1.5 rounded-full border-border/40 bg-muted/5 text-muted-foreground/40 opacity-60"
+            title="Bientôt disponible"
           >
             <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
           </Button>
-        </motion.div> */}
+        </motion.div>
       </motion.div>
     </div>
   );
