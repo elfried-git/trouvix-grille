@@ -10,7 +10,7 @@ const FEATURES = [
   { icon: Grid3x3, label: "Placement libre", desc: "Pose où tu veux", color: "text-amber-300" },
   { icon: Timer, label: "10 s / coup", desc: "Joue vite ou perds la main", color: "text-emerald-300" },
   { icon: Pause, label: "Pause à tout moment", desc: "Chrono gelé", color: "text-fuchsia-300" },
-  { icon: Users, label: "2 à 8 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
+  { icon: Users, label: "2 à 6 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
   { icon: Trophy, label: "Champion Ultime", desc: "Meilleur score gagne", color: "text-sky-300" },
 ];
 
@@ -69,7 +69,7 @@ export function HomeScreen() {
           Place tes pions <span className="font-semibold text-amber-200">où tu veux</span> dans la
           grille et forme un <span className="font-semibold text-rose-200">carré de 4 pions</span>{" "}
           (2×2) pour marquer. <span className="font-semibold text-amber-200">10 secondes</span> par
-          coup, pause à tout moment. De 2 à 8 joueurs. 🏆
+          coup, pause à tout moment. De 2 à 6 joueurs. 🏆
         </p>
 
         <motion.div
@@ -118,7 +118,7 @@ export function HomeScreen() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-2"><Grid3x3 className="h-4 w-4 text-rose-300" /> Grille 10×10</span>
           <span className="flex items-center gap-2"><Timer className="h-4 w-4 text-amber-300" /> 10s par coup</span>
-          <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 8 joueurs</span>
+          <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 6 joueurs</span>
         </div>
 
         {/* Rubrique avis / suggestions — temporairement désactivé */}
