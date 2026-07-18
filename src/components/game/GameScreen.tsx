@@ -37,9 +37,10 @@ export function GameScreen() {
 
   // 10-second turn timer (ticks every 100ms, paused automatically via store)
   useEffect(() => {
+    if (phase !== "playing" || resolving || isPaused) return;
     const id = setInterval(() => tick(0.1), 100);
     return () => clearInterval(id);
-  }, [tick]);
+  }, [phase, resolving, isPaused, tick]);
 
   // === AI auto-play ===
   // When it's an AI's turn (and not resolving/paused), compute its move and play it.

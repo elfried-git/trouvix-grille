@@ -377,15 +377,23 @@ export const useGameStore = create<GameState>((set, get) => {
 
     tick: (dt) => {
       const state = get();
-      if (state.phase !== "playing" || state.resolving || state.isPaused) return;
-      const tl = state.turnTimeLeft - dt;
+      if (
+        state.phase !== "playing" ||
+        state.resolving ||
+        state.isPaused ||
+        state.players.length === 0
+      )
+        return;
+      const tl = Math.max(0, state.turnTimeLeft - dt);
       if (tl <= 0) {
         const nextIndex = (state.currentPlayerIndex + 1) % state.players.length;
         const next = state.players[nextIndex];
         set({
           turnTimeLeft: TURN_SECONDS,
           currentPlayerIndex: nextIndex,
-          statusMessage: `À ${next.name} de jouer. ⏱️`,
+          statusMessage: next
+            ? `À ${next.name} de jouer. ⏱️`
+            : "À ton tour. ⏱️",
         });
       } else {
         set({ turnTimeLeft: tl });
