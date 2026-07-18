@@ -39,6 +39,8 @@ const AI_NAMES = [
   "IA Trouvix KIMI",
 ];
 
+const getDefaultAIName = (index: number) => AI_NAMES[index - 1] ?? `IA Trouvix ${index + 1}`;
+
 const ROUND_OPTIONS = [5, 10, 15];
 
 export function SetupScreen() {
@@ -138,7 +140,7 @@ export function SetupScreen() {
     for (let i = 1; i < count; i++) {
       nextAI[i] = true;
       if (!nextNames[i].trim()) {
-        nextNames[i] = AI_NAMES[i] ?? `IA Trouvix ${i + 1}`;
+        nextNames[i] = getDefaultAIName(i);
       }
       if (!isPhotoAvatar(nextEmojis[i])) {
         nextEmojis[i] = "🤖";
@@ -153,7 +155,7 @@ export function SetupScreen() {
   const handleStart = () => {
     if (!playersValid) return;
     const setupPlayers = Array.from({ length: count }).map((_, i) => {
-      const aiName = AI_NAMES[i] || `IA Trouvix ${i + 1}`;
+      const aiName = getDefaultAIName(i);
       return {
         name: isAI[i] ? names[i].trim() || aiName : names[i].trim(),
         color: colors[i],
@@ -295,12 +297,17 @@ export function SetupScreen() {
                 {/* AI toggle */}
                 <button
                   onClick={() => toggleAI(i)}
+                  disabled={isAI[i]}
                   className={`flex h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition sm:h-7 sm:gap-1 sm:px-2.5 sm:text-[11px] ${
                     isAI[i]
-                      ? "border-violet-400/60 bg-violet-500/20 text-violet-200"
+                      ? "border-violet-400/60 bg-violet-500/20 text-violet-200 cursor-not-allowed"
                       : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/60"
                   }`}
-                  title={isAI[i] ? "Désactiver l'IA" : "Activer l'IA (joue automatiquement)"}
+                  title={
+                    isAI[i]
+                      ? "IA verrouillée : aucune intervention possible"
+                      : "Activer l'IA (joue automatiquement)"
+                  }
                 >
                   <Bot className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                   {isAI[i] ? "IA active" : "IA"}
@@ -343,16 +350,22 @@ export function SetupScreen() {
                     <button
                       key={color}
                       onClick={() => setColor(i, color)}
+                      disabled={isAI[i] || (usedByOther && !selected)}
                       className={`relative h-10 w-10 rounded-full ring-2 transition sm:h-7 sm:w-7 ${
                         selected
                           ? "ring-white scale-110"
                           : usedByOther
                             ? "ring-transparent opacity-30"
                             : "ring-white/30 hover:ring-white/60"
-                      }`}
+                      } ${isAI[i] ? "cursor-not-allowed opacity-50" : ""}`}
                       style={{ backgroundColor: color }}
-                      title={usedByOther && !selected ? "Couleur déjà prise" : "Choisir cette couleur"}
-                      disabled={usedByOther && !selected}
+                      title={
+                        isAI[i]
+                          ? "Couleur verrouillée pour l'IA"
+                          : usedByOther && !selected
+                            ? "Couleur déjà prise"
+                            : "Choisir cette couleur"
+                      }
                     >
                       {selected && (
                         <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow sm:h-3.5 sm:w-3.5" />

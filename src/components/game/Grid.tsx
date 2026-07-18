@@ -22,7 +22,7 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
   const cur = players.find((p) => p.id === currentPlayerId) ?? null;
   const playerColor = (id: string | null) =>
     players.find((p) => p.id === id)?.color ?? "#52525b";
-  const interactive = !!cur && !resolving && !isPaused;
+  const interactive = !!cur && !resolving && !isPaused && !cur.isAI;
 
   // Cells part of ANY formed square (persistent golden highlight)
   const inAnySquare = (r: number, c: number) =>
