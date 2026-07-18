@@ -44,10 +44,10 @@ export function ReviewsScreen() {
       setLoading(true);
       setError(null);
       const res = await fetch("/api/reviews", { cache: "no-store" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        const msg = data.error ?? "Erreur";
-        throw new Error(msg);
+         if (!res.ok) {
+           const data = await res.json().catch(() => ({}));
+           const msg = data.error ?? "Impossible de charger les avis.";
+           throw new Error(msg);
       }
       const data = await res.json();
       setReviews(data.reviews ?? []);
@@ -88,8 +88,7 @@ export function ReviewsScreen() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        // Inclut le détail de l'erreur si disponible (utile pour diagnostiquer en prod)
-        const msg = data.detail ? `${data.error} (${data.detail})` : (data.error ?? "Erreur");
+           const msg = data.error ?? "Impossible de charger les avis.";
         throw new Error(msg);
       }
       // Réinitialise le formulaire
