@@ -31,15 +31,15 @@ const COLOR_PALETTE = [
 ];
 
 const AI_NAMES = [
-  "IA Trouvix GPT",
-  "IA Trouvix GEMINI",
-  "IA Trouvix CLAUDE",
-  "IA Trouvix GROK",
-  "IA Trouvix COPILOT",
-  "IA Trouvix KIMI",
+  "GPT",
+  "GEMINI",
+  "CLAUDE",
+  "GROK",
+  "COPILOT",
+  "KIMI 2",
 ];
 
-const getDefaultAIName = (index: number) => AI_NAMES[index - 1] ?? `IA Trouvix ${index + 1}`;
+const getDefaultAIName = (index: number) => AI_NAMES[index] ?? `IA ${index + 1}`;
 
 const ROUND_OPTIONS = [5, 10, 15];
 
@@ -69,7 +69,7 @@ export function SetupScreen() {
     if (next[i]) {
       if (!names[i].trim()) {
         const nn = [...names];
-        nn[i] = AI_NAMES[i] ?? `IA Trouvix ${i + 1}`;
+        nn[i] = getDefaultAIName(i);
         setNames(nn);
       }
       if (!isPhotoAvatar(emojis[i])) {
@@ -84,7 +84,7 @@ export function SetupScreen() {
         ne[i] = "";
         setEmojis(ne);
       }
-      if (AI_NAMES.includes(names[i])) {
+      if (AI_NAMES.includes(names[i]) || names[i] === getDefaultAIName(i)) {
         const nn = [...names];
         nn[i] = "";
         setNames(nn);
