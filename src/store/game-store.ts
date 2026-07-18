@@ -389,14 +389,41 @@ export const useGameStore = create<GameState>((set, get) => {
       });
     },
 
-    restart: () =>
+    // Restart the match but keep the same players and match settings
+    // (same order, same isAI flags, same totalRounds). Scores and grid are reset.
+    restart: () => {
+      const state = get();
+      if (state.players.length < 2) {
+        // fallback: go home if not enough players
+        set({
+          phase: "home",
+          players: [],
+          currentPlayerIndex: 0,
+          grid: emptyGrid(),
+          turnTimeLeft: TURN_SECONDS,
+          statusMessage: "",
+          winnerId: null,
+          lastSquareCells: null,
+          lastSquareerId: null,
+          formedSquares: [],
+          resolving: false,
+          isPaused: false,
+          currentRound: 0,
+          lastDelta: null,
+          endReason: null,
+        });
+        return;
+      }
+
+      // Reset players' scores/alignments but keep identity and order
+      const newPlayers = state.players.map((p) => ({ ...p, score: 0, alignments: 0 }));
       set({
-        phase: "home",
-        players: [],
+        players: newPlayers,
         currentPlayerIndex: 0,
+        phase: "playing",
         grid: emptyGrid(),
         turnTimeLeft: TURN_SECONDS,
-        statusMessage: "",
+        statusMessage: `${newPlayers[0].name} commence ! ${TURN_SECONDS} secondes par coup. ⏱️`,
         winnerId: null,
         lastSquareCells: null,
         lastSquareerId: null,
@@ -405,8 +432,9 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
-    endReason: null,
-      }),
+        endReason: null,
+      });
+    },
 
     rematchTied: () => {
       const state = get();
