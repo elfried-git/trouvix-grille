@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Count cards in category
+  const db = getDb();
   const total = await db.card.count({ where: { category } });
   if (total === 0) {
     return NextResponse.json(

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
     }
 
+    const db = getDb();
     const reviews = await db.review.findMany({
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       select: {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +38,7 @@ export async function POST(
       // Body may be empty — that's fine
     }
 
+    const db = getDb();
     const review = await db.review.findUnique({
       where: { id },
       select: { id: true, name: true, rating: true, comment: true, status: true, createdAt: true },

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 // PATCH /api/reviews/[id] — met à jour un avis (réservé admin)
 // Body: { visible?: boolean, adminLiked?: boolean }

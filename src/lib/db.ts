@@ -39,9 +39,14 @@ function createPrismaClient() {
   });
 }
 
-export const db =
-  globalForPrisma.prisma ??
-  createPrismaClient();
+export function getDb() {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+  return globalForPrisma.prisma;
+}
 
 // En dev, on réutilise l'instance pour éviter les hot-reload qui créent plein de connexions
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+if (process.env.NODE_ENV !== 'production' && !globalForPrisma.prisma) {
+  globalForPrisma.prisma = createPrismaClient();
+}

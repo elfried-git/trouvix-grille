@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 // Helper : extrait un message d'erreur lisible
 function errMsg(err: unknown): string {
@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const all = searchParams.get("all") === "true";
+    const db = getDb();
     const reviews = await db.review.findMany({
       where: all ? undefined : { visible: true },
       orderBy: [{ adminLiked: "desc" }, { createdAt: "desc" }],
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const db = getDb();
     const review = await db.review.create({
       data: {
         authorName: authorName || "Anonyme",
