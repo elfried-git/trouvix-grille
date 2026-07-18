@@ -11,6 +11,7 @@ import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { ReviewsBoard } from "./ReviewsBoard";
 import { AdminRoomsBoard } from "./AdminRoomsBoard";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { isPhotoAvatar } from "@/lib/types";
 import {
   ArrowLeft,
@@ -437,17 +438,41 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Reviews board — visible only for Benchou Ferrari (admin) */}
+            {/* Admin panels — visible only for Benchou Ferrari (admin) */}
             {onlineIsBenchou && (
               <div className="mt-4">
-                <ReviewsBoard />
-              </div>
-            )}
+                <Accordion type="single" collapsible defaultValue="reviews">
+                  <AccordionItem value="reviews">
+                    <AccordionTrigger className="px-4">
+                      <div className="flex items-center gap-3">
+                        <img src="/trouvix-logo.svg" alt="" className="h-6 w-6" />
+                        <span className="font-display text-sm font-bold text-violet-100">Gestion des avis</span>
+                        <span className="ml-2 rounded-full bg-violet-400/20 px-2 py-0.5 text-[10px] font-bold text-violet-200">Reviews</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="mt-2">
+                        <ReviewsBoard />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
 
-            {/* Admin rooms board — visible only for Benchou Ferrari (super admin) */}
-            {onlineIsBenchou && (
-              <div className="mt-4">
-                <AdminRoomsBoard />
+                <Accordion type="single" collapsible defaultValue="rooms">
+                  <AccordionItem value="rooms">
+                    <AccordionTrigger className="px-4 mt-3">
+                      <div className="flex items-center gap-3">
+                        <Gamepad2 className="h-5 w-5 text-rose-300" />
+                        <span className="font-display text-sm font-bold text-rose-100">Gestion des salons</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="mt-2">
+                        <AdminRoomsBoard />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             )}
 

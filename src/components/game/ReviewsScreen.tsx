@@ -12,6 +12,7 @@ import {
   Loader2,
   Check,
   Trash2,
+  Heart,
 } from "lucide-react";
 
 interface Review {
@@ -20,6 +21,7 @@ interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+  adminLiked?: boolean;
 }
 
 export function ReviewsScreen() {
@@ -319,8 +321,19 @@ export function ReviewsScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: i * 0.04 }}
-                  className="relative overflow-hidden rounded-2xl border border-border/40 bg-card/40 p-4 transition hover:border-amber-400/30 hover:bg-card/60"
+                  className={`relative overflow-hidden rounded-2xl border p-4 transition ${
+                    r.adminLiked
+                      ? "border-amber-400/60 bg-gradient-to-br from-amber-500/10 to-rose-500/5 hover:from-amber-500/15"
+                      : "border-border/40 bg-card/40 hover:border-amber-400/30 hover:bg-card/60"
+                  }`}
                 >
+                  {/* Badge "Admin a aimé votre avis" */}
+                  {r.adminLiked && (
+                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full border border-rose-500/50 bg-rose-500/15 px-2 py-0.5 text-[9px] font-bold tracking-wide text-rose-200 shadow-sm">
+                      <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500" />
+                      Admin a aimé votre avis
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <div
@@ -344,7 +357,7 @@ export function ReviewsScreen() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-0.5">
+                    <div className={`flex items-center gap-0.5 ${r.adminLiked ? "mt-5" : ""}`}>
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}

@@ -31,11 +31,14 @@ model GameResult {
 }
 
 model Review {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   authorName String
-  rating    Int
-  comment   String
-  createdAt DateTime @default(now())
+  rating     Int
+  comment    String
+  visible    Boolean  @default(true)
+  adminLiked Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   @@index([createdAt])
+  @@index([adminLiked])
 }

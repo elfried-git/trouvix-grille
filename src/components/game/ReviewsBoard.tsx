@@ -9,6 +9,9 @@ import {
   Loader2,
   MessageSquare,
   CheckCircle2,
+  Heart,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface Review {
@@ -17,23 +20,30 @@ interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+  visible: boolean;
+  adminLiked: boolean;
 }
 
 /**
  * Board Avis/Suggestions — utilisé dans le dashboard Benchou Ferrari.
- * Affiche la liste des avis avec possibilité de suppression (admin).
- * Compact et intégrable dans un panel existant.
+ * L'admin peut : supprimer, masquer/afficher, liker (coup de cœur).
  */
 export function ReviewsBoard() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const loadReviews = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/reviews", { cache: "no-store" });
+      // ?all=true pour récupérer aussi les avis masqués (admin only)
+      const res = await fetch("/api/reviews?all=true", { cache: "no-store" });
       if (!res.ok) throw new Error("Erreur");
       const data = await res.json();
       setReviews(data.reviews ?? []);
@@ -48,19 +58,58 @@ export function ReviewsBoard() {
     loadReviews();
   }, [loadReviews]);
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
+  // Met à jour localement un avis après une action admin
+  const updateReview = (id: string, patch: Partial<Review>) => {
+    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    setBusyId(id);
     try {
       const res = await fetch(`/api/reviews/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Erreur");
       setReviews((prev) => prev.filter((r) => r.id !== id));
-      setToast("Avis supprimé.");
-      setTimeout(() => setToast(null), 2500);
+      showToast(`Avis de ${name} supprimé.`);
     } catch {
-      setToast("Erreur lors de la suppression.");
-      setTimeout(() => setToast(null), 2500);
+      showToast("Erreur lors de la suppression.");
     } finally {
-      setDeletingId(null);
+      setBusyId(null);
+    }
+  };
+
+  const toggleVisible = async (id: string, current: boolean, name: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visible: !current }),
+      });
+      if (!res.ok) throw new Error("Erreur");
+      updateReview(id, { visible: !current });
+      showToast(!current ? `Avis de ${name} affiché.` : `Avis de ${name} masqué.`);
+    } catch {
+      showToast("Erreur lors de la mise à jour.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const toggleLike = async (id: string, current: boolean, name: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminLiked: !current }),
+      });
+      if (!res.ok) throw new Error("Erreur");
+      updateReview(id, { adminLiked: !current });
+      showToast(!current ? `Coup de cœur pour ${name} ! ❤️` : `Coup de cœur retiré de ${name}.`);
+    } catch {
+      showToast("Erreur lors de la mise à jour.");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -69,7 +118,6 @@ export function ReviewsBoard() {
       ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
       : 0;
 
-  // Distribution des notes
   const distribution = [5, 4, 3, 2, 1].map((star) => ({
     star,
     count: reviews.filter((r) => r.rating === star).length,
@@ -107,7 +155,6 @@ export function ReviewsBoard() {
       {/* Stats + distribution */}
       {reviews.length > 0 && (
         <div className="mb-4 grid gap-3 sm:grid-cols-[auto_1fr]">
-          {/* Note moyenne */}
           <div className="flex items-center justify-center gap-3 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-3">
             <p className="font-display text-3xl font-black text-violet-200">
               {avgRating.toFixed(1)}
@@ -130,12 +177,9 @@ export function ReviewsBoard() {
               </p>
             </div>
           </div>
-
-          {/* Distribution */}
           <div className="flex flex-col justify-center gap-1">
             {distribution.map(({ star, count }) => {
-              const pct =
-                reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+              const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
               return (
                 <div key={star} className="flex items-center gap-2">
                   <span className="flex w-7 items-center gap-0.5 text-[10px] text-muted-foreground">
@@ -173,7 +217,7 @@ export function ReviewsBoard() {
           </p>
         </div>
       ) : (
-        <div className="flex max-h-[400px] flex-col gap-2 overflow-y-auto scroll-romantic pr-3">
+        <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto scroll-romantic pr-3">
           <AnimatePresence mode="popLayout">
             {reviews.map((r, i) => (
               <motion.div
@@ -183,8 +227,30 @@ export function ReviewsBoard() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ delay: i * 0.03 }}
-                className="relative overflow-visible rounded-xl border border-border/30 bg-card/30 p-3 transition hover:border-violet-400/30"
+                className={`relative overflow-visible rounded-xl border p-3 transition ${
+                  !r.visible
+                    ? "border-muted-foreground/20 bg-muted/5 opacity-60"
+                    : r.adminLiked
+                      ? "border-amber-400/50 bg-gradient-to-br from-amber-500/10 to-rose-500/5"
+                      : "border-border/30 bg-card/30 hover:border-violet-400/30"
+                }`}
               >
+                {/* Badge "Admin a aimé" + "Masqué" */}
+                <div className="absolute right-2 top-2 flex gap-1">
+                  {r.adminLiked && r.visible && (
+                    <span className="flex items-center gap-0.5 rounded-full border border-rose-500/50 bg-rose-500/15 px-1.5 py-0.5 text-[8px] font-bold text-rose-200">
+                      <Heart className="h-2 w-2 fill-rose-500 text-rose-500" />
+                      Admin a aimé
+                    </span>
+                  )}
+                  {!r.visible && (
+                    <span className="flex items-center gap-0.5 rounded-full border border-muted-foreground/30 bg-muted/20 px-1.5 py-0.5 text-[8px] font-bold uppercase text-muted-foreground">
+                      <EyeOff className="h-2 w-2" />
+                      Masqué
+                    </span>
+                  )}
+                </div>
+
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <div
@@ -208,7 +274,7 @@ export function ReviewsBoard() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-0.5">
+                  <div className={`flex items-center gap-0.5 ${r.adminLiked || !r.visible ? "mt-4" : ""}`}>
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
                         key={s}
@@ -225,23 +291,52 @@ export function ReviewsBoard() {
                   {r.comment}
                 </p>
 
-                {/* Bouton de suppression — action immédiate, sans confirmation */}
-                <div className="mt-2 flex justify-end">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 shrink-0 gap-1 whitespace-nowrap border-rose-400/50 bg-rose-500/10 px-3 text-xs font-semibold text-rose-200 transition hover:border-rose-400 hover:bg-rose-500/20 hover:text-rose-100"
-                    onClick={() => handleDelete(r.id)}
-                    disabled={deletingId === r.id}
+                {/* Actions admin : Masquer/Afficher · Liker · Supprimer */}
+                <div className="mt-2.5 flex flex-wrap justify-end gap-1.5">
+                  {/* Masquer / Afficher */}
+                  <button
+                    onClick={() => toggleVisible(r.id, r.visible, r.authorName)}
+                    disabled={busyId === r.id}
+                    className={`flex h-7 shrink-0 items-center gap-1 rounded-lg border px-2 text-[10px] font-semibold transition disabled:opacity-40 ${
+                      r.visible
+                        ? "border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
+                        : "border-emerald-400/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                    }`}
+                    title={r.visible ? "Masquer l'avis" : "Afficher l'avis"}
                   >
-                    {deletingId === r.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    {r.visible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    {r.visible ? "Masquer" : "Afficher"}
+                  </button>
+
+                  {/* Coup de cœur (like) */}
+                  <button
+                    onClick={() => toggleLike(r.id, r.adminLiked, r.authorName)}
+                    disabled={busyId === r.id}
+                    className={`flex h-7 shrink-0 items-center gap-1 rounded-lg border px-2 text-[10px] font-semibold transition disabled:opacity-40 ${
+                      r.adminLiked
+                        ? "border-rose-400/60 bg-rose-500/20 text-rose-200 hover:bg-rose-500/30"
+                        : "border-rose-400/30 bg-rose-500/5 text-rose-200/70 hover:bg-rose-500/15"
+                    }`}
+                    title={r.adminLiked ? "Retirer le coup de cœur" : "Mettre un coup de cœur"}
+                  >
+                    <Heart className={`h-3 w-3 ${r.adminLiked ? "fill-rose-400" : ""}`} />
+                    {r.adminLiked ? "Aimé" : "Liker"}
+                  </button>
+
+                  {/* Supprimer */}
+                  <button
+                    onClick={() => handleDelete(r.id, r.authorName)}
+                    disabled={busyId === r.id}
+                    className="flex h-7 shrink-0 items-center gap-1 rounded-lg border border-rose-400/50 bg-rose-500/10 px-2 text-[10px] font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-40"
+                    title="Supprimer définitivement"
+                  >
+                    {busyId === r.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
-                      <>
-                        <Trash2 className="h-3.5 w-3.5" /> Supprimer
-                      </>
+                      <Trash2 className="h-3 w-3" />
                     )}
-                  </Button>
+                    Suppr.
+                  </button>
                 </div>
               </motion.div>
             ))}

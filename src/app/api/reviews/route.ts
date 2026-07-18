@@ -7,12 +7,17 @@ function errMsg(err: unknown): string {
   return String(err);
 }
 
-// GET /api/reviews — liste publique de tous les avis (auto-visibles, pas de modération)
-export async function GET() {
+// GET /api/reviews — liste publique des avis visibles uniquement
+// Les avis masqués par l'admin (visible=false) ne sont pas retournés ici.
+// Un paramètre ?all=true permet à l'admin de tout récupérer (pour le board admin).
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const all = searchParams.get("all") === "true";
     const reviews = await db.review.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 200, // limite raisonnable
+      where: all ? undefined : { visible: true },
+      orderBy: [{ adminLiked: "desc" }, { createdAt: "desc" }],
+      take: 200,
     });
     return NextResponse.json({ reviews });
   } catch (err) {
