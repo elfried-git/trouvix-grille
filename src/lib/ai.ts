@@ -107,6 +107,29 @@ function cloneGrid(grid: AIGrid): AIGrid {
   return grid.map((row) => [...row]);
 }
 
+function countForks(grid: AIGrid, playerId: string): number {
+  let forks = 0;
+  for (const { row, col } of emptyCells(grid)) {
+    const test = cloneGrid(grid);
+    test[row][col] = playerId;
+    const threats = countThreats(test, playerId);
+    if (threats >= 2) forks += 1;
+  }
+  return forks;
+}
+
+function opponentImmediateWinCells(grid: AIGrid, opponentIds: string[]): AICell[] {
+  const cells: AICell[] = [];
+  for (const oppId of opponentIds) {
+    for (const win of findWinningCells(grid, oppId)) {
+      if (!cells.some((c) => c.row === win.row && c.col === win.col)) {
+        cells.push(win);
+      }
+    }
+  }
+  return cells;
+}
+
 /**
  * Find the best move for the AI.
  * @param grid current grid
@@ -129,12 +152,7 @@ export function findBestMove(
   }
 
   // === 2. Block opponent's immediate win ===
-  // Collect all opponent winning cells (must block all if multiple = fork, block the one that matters most)
-  const opponentWins: AICell[] = [];
-  for (const oppId of opponentIds) {
-    opponentWins.push(...findWinningCells(grid, oppId));
-  }
-  // Deduplicate
+  const opponentWins = opponentImmediateWinCells(grid, opponentIds);
   const oppWinSet = new Set(opponentWins.map((c) => `${c.row},${c.col}`));
 
   let bestScore = -Infinity;
@@ -160,42 +178,44 @@ export function findBestMove(
 
     // === 3. Create threats ===
     const myThreatsAfter = countThreats(afterAI, aiPlayerId);
-    // More aggressive: larger bonus for creating threats
-    score += myThreatsAfter * 6000;
+    score += myThreatsAfter * 7800;
 
     // Potential squares (2/4)
     const myPotentialAfter = countPotential(afterAI, aiPlayerId);
-    score += myPotentialAfter * 300;
+    score += myPotentialAfter * 420;
 
-    // === 4. Anti-suicide: after AI plays, can any opponent win? ===
-    let oppCanWin = false;
+    // === 3b. Fork creation: if this move creates multiple immediate threats, big bonus ===
+    const myForksAfter = countForks(afterAI, aiPlayerId);
+    score += myForksAfter * 25000;
+
+    // === 4. Anti-suicide: after AI plays, can any opponent win immediately? ===
+    let oppImmediateWinCount = 0;
     for (const oppId of opponentIds) {
-      const oppWins2 = findWinningCells(afterAI, oppId);
-      if (oppWins2.length > 0) {
-        oppCanWin = true;
-        break;
-      }
+      oppImmediateWinCount += findWinningCells(afterAI, oppId).length;
     }
-    if (oppCanWin) {
-      // Reduce anti-suicide penalty to be more willing to take risks,
-      // but still avoid obvious blunders. If multiple opponents can win, penalize more.
-      const oppImmediateWins = opponentIds.reduce((acc, oppId) => acc + findWinningCells(afterAI, oppId).length, 0);
-      score -= oppImmediateWins > 1 ? 60000 : 20000;
+    if (oppImmediateWinCount > 0) {
+      score -= oppImmediateWinCount > 1 ? 90000 : 32000;
     }
 
     // === 5. Reduce opponent's existing threats ===
-    // Count opponent threats before and after AI's move (did we break one?)
     for (const oppId of opponentIds) {
       const oppThreatsBefore = countThreats(grid, oppId);
       const oppThreatsAfter = countThreats(afterAI, oppId);
       if (oppThreatsAfter < oppThreatsBefore) {
-        score += 3000; // we blocked/broke an opponent threat
+        score += 5200;
+      }
+      if (oppThreatsAfter === 0 && oppThreatsBefore > 0) {
+        score += 4500; // fully neutralize an existing threat
       }
     }
 
-    // === Fork creation: if this move creates multiple immediate threats, big bonus ===
-    if (myThreatsAfter >= 2) {
-      score += 20000;
+    // === 5b. Penalize moves that create opponent forks ===
+    let opponentForks = 0;
+    for (const oppId of opponentIds) {
+      opponentForks += countForks(afterAI, oppId);
+    }
+    if (opponentForks > 0) {
+      score -= opponentForks * 30000;
     }
 
     // === 6. Center preference ===

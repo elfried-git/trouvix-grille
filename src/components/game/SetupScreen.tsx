@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,15 @@ const COLOR_PALETTE = [
   "#365314", // olive sombre
 ];
 
+const AI_NAMES = [
+  "IA Trouvix GPT",
+  "IA Trouvix GEMINI",
+  "IA Trouvix CLAUDE",
+  "IA Trouvix GROK",
+  "IA Trouvix COPILOT",
+  "IA Trouvix KIMI",
+];
+
 const ROUND_OPTIONS = [5, 10, 15];
 
 export function SetupScreen() {
@@ -42,12 +51,12 @@ export function SetupScreen() {
   // Avatar state: empty string = no photo yet (photo is required for humans); data URL = uploaded photo
   const [emojis, setEmojis] = useState<string[]>(Array.from({ length: 6 }, () => ""));
   // isAI: true = AI-controlled player (no photo required, robot avatar)
-  const [isAI, setIsAI] = useState<boolean[]>(Array.from({ length: 6 }, () => false));
+  const [isAI, setIsAI] = useState<boolean[]>([false, true, true, true, true, true]);
   const [rounds, setRounds] = useState(10);
 
-  // Validation: every visible player must have a name. Photo is now OPTIONAL.
+  // Validation: every visible human player must have a name. AI players are filled automatically.
   const playersValid = Array.from({ length: count }).every(
-    (_, i) => names[i].trim().length > 0
+    (_, i) => isAI[i] || names[i].trim().length > 0
   );
 
   const toggleAI = (i: number) => {
@@ -58,7 +67,7 @@ export function SetupScreen() {
     if (next[i]) {
       if (!names[i].trim()) {
         const nn = [...names];
-        nn[i] = "IA Trouvix";
+        nn[i] = AI_NAMES[i] ?? `IA Trouvix ${i + 1}`;
         setNames(nn);
       }
       if (!isPhotoAvatar(emojis[i])) {
@@ -73,7 +82,7 @@ export function SetupScreen() {
         ne[i] = "";
         setEmojis(ne);
       }
-      if (names[i] === "IA Trouvix") {
+      if (AI_NAMES.includes(names[i])) {
         const nn = [...names];
         nn[i] = "";
         setNames(nn);
@@ -121,14 +130,37 @@ export function SetupScreen() {
     setEmojis(next);
   };
 
+  useEffect(() => {
+    const nextAI = [...isAI];
+    const nextNames = [...names];
+    const nextEmojis = [...emojis];
+
+    for (let i = 1; i < count; i++) {
+      nextAI[i] = true;
+      if (!nextNames[i].trim()) {
+        nextNames[i] = AI_NAMES[i] ?? `IA Trouvix ${i + 1}`;
+      }
+      if (!isPhotoAvatar(nextEmojis[i])) {
+        nextEmojis[i] = "🤖";
+      }
+    }
+
+    setIsAI(nextAI);
+    setNames(nextNames);
+    setEmojis(nextEmojis);
+  }, [count]);
+
   const handleStart = () => {
     if (!playersValid) return;
-    const setupPlayers = Array.from({ length: count }).map((_, i) => ({
-      name: names[i].trim(),
-      color: colors[i],
-      emoji: emojis[i],
-      isAI: isAI[i],
-    }));
+    const setupPlayers = Array.from({ length: count }).map((_, i) => {
+      const aiName = AI_NAMES[i] || `IA Trouvix ${i + 1}`;
+      return {
+        name: isAI[i] ? names[i].trim() || aiName : names[i].trim(),
+        color: colors[i],
+        emoji: isAI[i] ? emojis[i] || "🤖" : emojis[i],
+        isAI: isAI[i],
+      };
+    });
     startGame(setupPlayers, rounds);
   };
 
