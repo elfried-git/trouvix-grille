@@ -1,6 +1,8 @@
-﻿"use client";
+const fs = require('fs');
+const path = require('path');
+const file = path.join(__dirname, 'src', 'components', 'game', 'WinnerScreen.tsx');
+const content = `"use client";
 
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGameStore } from "@/store/game-store";
@@ -9,8 +11,6 @@ import { Crown, RotateCcw, Home, Swords } from "lucide-react";
 
 export function WinnerScreen() {
   const players = useGameStore((s) => s.players);
-  const winnerId = useGameStore((s) => s.winnerId);
-  const endReason = useGameStore((s) => s.endReason);
   const restart = useGameStore((s) => s.restart);
   const backHome = useGameStore((s) => s.backHome);
   const rematchTied = useGameStore((s) => s.rematchTied);
@@ -26,94 +26,79 @@ export function WinnerScreen() {
 
   if (isTie) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-10">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 150, damping: 18 }}
-          className="relative z-10 flex w-full flex-col items-center text-center"
+      <Dialog open={true}>
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-4xl rounded-[2rem] border-4 border-violet-400/50 bg-violet-950/95 p-8 shadow-[0_0_120px_-20px_rgba(79,70,229,0.55)]"
         >
-          <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-            className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-6xl shadow-[0_0_50px_-5px_rgba(139,92,246,0.6)] sm:h-28 sm:w-28"
-          >
-            ⚖️
-          </motion.div>
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-5xl font-black uppercase tracking-[0.25em] text-violet-200">
+              Fin du match
+            </DialogTitle>
+            <DialogDescription className="mt-4 text-lg leading-8 text-violet-100/90">
+              {statusMessage || "Le match est termine. Voici le resultat final."}
+            </DialogDescription>
+          </DialogHeader>
 
-          <p className="mt-6 font-display text-sm uppercase tracking-[0.3em] text-violet-200/80">
-            Egalite parfaite
-          </p>
-          <h1 className="mt-2 font-display text-5xl font-black text-violet-200 sm:text-6xl">
-            {maxScore} pts
-          </h1>
-          <p className="mt-3 text-base text-muted-foreground">
-            {tiedPlayers.length} joueurs sont a egalite. Un challenge decisif va les departager.
-          </p>
+          <div className="mt-10 space-y-8">
+            <div className="rounded-3xl border border-violet-400/30 bg-violet-950/80 p-6 text-left shadow-xl">
+              <h2 className="mb-3 text-xl font-semibold text-violet-100">Egalite parfaite</h2>
+              <p className="text-sm leading-7 text-violet-200/80">
+                {tiedPlayers.length} joueurs sont a egalite. Un challenge decisif va les departager.
+              </p>
+            </div>
 
-          <div className="mt-8 w-full max-w-md">
-            <p className="mb-2 font-display text-xs uppercase tracking-widest text-violet-300/80">
-              En lice pour le challenge
-            </p>
-            <div className="flex flex-col gap-2">
-              {tiedPlayers.map((p, i) => (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + i * 0.1 }}
-                  className="flex items-center gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/10 p-4 shadow-[0_0_20px_-5px_rgba(139,92,246,0.4)] sm:p-3"
-                >
-                  <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
-                  <span className="flex-1 text-left font-bold text-violet-100">{p.name}</span>
-                  <span className="font-display text-2xl font-bold text-violet-200 sm:text-xl">{p.score} pts</span>
-                </motion.div>
-              ))}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-3xl border border-violet-400/20 bg-violet-950/80 p-5 shadow-xl">
+                <p className="text-xs uppercase tracking-[0.3em] text-violet-300/90">En lice pour le challenge</p>
+                <div className="mt-4 space-y-3">
+                  {tiedPlayers.map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-violet-500/30 bg-violet-900/60 p-3">
+                      <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                      <div>
+                        <p className="font-semibold text-violet-100">{p.name}</p>
+                        <p className="text-sm text-violet-300">{p.score} pts</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-3xl border border-violet-400/20 bg-violet-950/80 p-5 shadow-xl">
+                <p className="text-xs uppercase tracking-[0.3em] text-violet-300/90">Elimines</p>
+                <div className="mt-4 space-y-3">
+                  {ranked.filter((p) => p.score < maxScore).map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-violet-500/20 bg-violet-900/60 p-3 opacity-60">
+                      <Avatar avatar={p.emoji} color={p.color} size={36} emojiSize="text-lg" />
+                      <div>
+                        <p className="font-medium line-through text-violet-300">{p.name}</p>
+                        <p className="text-sm text-violet-400">{p.score} pts</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {ranked.filter((p) => p.score < maxScore).length > 0 && (
-            <div className="mt-4 w-full max-w-md">
-              <p className="mb-2 font-display text-xs uppercase tracking-widest text-muted-foreground/60">
-                Elimines
-              </p>
-              <div className="flex flex-col gap-2">
-                {ranked.filter((p) => p.score < maxScore).map((p, i) => (
-                  <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/20 p-3 opacity-40">
-                    <Avatar avatar={p.emoji} color={p.color} size={36} emojiSize="text-lg" />
-                    <span className="flex-1 text-left font-medium line-through">{p.name}</span>
-                    <span className="font-display text-lg font-bold">{p.score} pts</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button
-              onClick={rematchTied}
-              size="lg"
-              className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400"
-            >
-              <Swords className="mr-2 h-5 w-5" />
-              Lancer le challenge decisif
+          <DialogFooter className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button onClick={rematchTied} size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
+              <Swords className="mr-2 h-5 w-5" /> Lancer le challenge decisif
             </Button>
             <Button onClick={backHome} size="lg" variant="outline">
               <Home className="mr-2 h-5 w-5" /> Accueil
             </Button>
-          </div>
-
-          <p className="mt-6 text-xs text-muted-foreground">
-            Seuls les joueurs a egalite participent au challenge. Le premier a avoir plus de points gagne.
-          </p>
-        </motion.div>
-      </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   return (
     <Dialog open={true}>
-      <DialogContent showCloseButton={false} className="max-w-4xl rounded-[2rem] border-4 border-amber-400/50 bg-slate-950/95 p-8 shadow-[0_0_120px_-20px_rgba(245,158,11,0.45)]">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-4xl rounded-[2rem] border-4 border-amber-400/50 bg-slate-950/95 p-8 shadow-[0_0_120px_-20px_rgba(245,158,11,0.45)]"
+      >
         <DialogHeader className="text-center">
           <DialogTitle className="text-5xl font-black uppercase tracking-[0.25em] text-amber-200">Fin du match</DialogTitle>
           <DialogDescription className="mt-4 text-lg leading-8 text-amber-100/90">{statusMessage || "Le match est termine. Voici le classement final."}</DialogDescription>
@@ -177,3 +162,4 @@ export function WinnerScreen() {
     </Dialog>
   );
 }
+'

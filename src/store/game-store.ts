@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { toast } from "@/hooks/use-toast";
 import type { Phase, Player } from "@/lib/types";
 
 // ====== Game constants ======
@@ -138,14 +137,6 @@ function computeWinner(players: Player[]): string | null {
   let best = players[0];
   for (const p of players) if (p.score > best.score) best = p;
   return best.id;
-}
-
-function showEndGameToast(message: string) {
-  toast({
-    title: "Fin du match",
-    description: message,
-    duration: 5000,
-  });
 }
 
 export const useGameStore = create<GameState>((set, get) => {
@@ -303,9 +294,6 @@ export const useGameStore = create<GameState>((set, get) => {
           // Stalemate: no player can form a square anymore
           if (!canAnyPlayerFormSquare(s.grid, s.players)) {
             const winnerId = computeWinner(s.players);
-            showEndGameToast(
-              "Plus aucun carré possible — la partie se termine. Rejoue ou retourne à l'accueil."
-            );
             set({
               phase: "gameover",
               winnerId,
@@ -356,9 +344,6 @@ export const useGameStore = create<GameState>((set, get) => {
       // Stalemate: no player can form a square anymore (even if board not full)
       if (!canAnyPlayerFormSquare(grid, state.players)) {
         const winnerId = computeWinner(state.players);
-        showEndGameToast(
-          "Plus aucun carré possible — la partie se termine. Rejoue ou retourne à l'accueil."
-        );
         set({
           grid,
           resolving: true,
