@@ -6,17 +6,23 @@ const globalForPrisma = globalThis as unknown as {
 
 // En production : pas de logs verbeux. En dev : logs d'erreurs utiles.
 function getDatabaseUrl() {
-  const url = process.env.DATABASE_URL?.trim();
+  const url =
+    process.env.DATABASE_URL?.trim() ||
+    process.env.VERCEL_POSTGRES_URL?.trim() ||
+    process.env.POSTGRES_URL?.trim();
+
   if (!url) {
     throw new Error(
-      "DATABASE_URL is not configured. Set DATABASE_URL to a valid Postgres connection string."
+      "DATABASE_URL is not configured. Set DATABASE_URL to a valid Postgres connection string (postgres:// or postgresql://)."
     );
   }
-  if (!/^(postgres|postgresql):\/\//.test(url)) {
+
+  if (!/^(postgres|postgresql):\/\//i.test(url)) {
     throw new Error(
       "DATABASE_URL is invalid. It must start with postgres:// or postgresql://."
     );
   }
+
   return url;
 }
 
