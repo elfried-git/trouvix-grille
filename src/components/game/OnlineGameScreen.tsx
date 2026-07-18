@@ -120,22 +120,6 @@ export function OnlineGameScreen() {
             transition={{ type: "spring", stiffness: 150, damping: 18 }}
             className="flex w-full flex-col items-center text-center"
           >
-            {/* End-reason banner (stalemate / board-full) */}
-            {state.endReason && state.endReason !== "rounds" && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 flex items-center gap-2 rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-2 text-xs font-medium text-violet-200"
-              >
-                {state.endReason === "stalemate" ? (
-                  <>🚫 Plus aucun carré possible — la partie s'arrête ici.</>
-                ) : state.endReason === "board-full" ? (
-                  <>🟦 Plateau plein — la partie s'arrête ici.</>
-                ) : state.endReason === "players-left" ? (
-                  <>👋 Pas assez de joueurs — la partie s'arrête ici.</>
-                ) : null}
-              </motion.div>
-            )}
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 2.5, repeat: Infinity }}
@@ -222,23 +206,7 @@ export function OnlineGameScreen() {
           transition={{ type: "spring", stiffness: 150, damping: 18 }}
           className="flex w-full flex-col items-center text-center"
         >
-          {/* End-reason banner (stalemate / board-full) */}
-          {state.endReason && state.endReason !== "rounds" && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-200"
-            >
-              {state.endReason === "stalemate" ? (
-                <>🚫 Plus aucun carré possible — la partie s'arrête ici.</>
-              ) : state.endReason === "board-full" ? (
-                <>🟦 Plateau plein — la partie s'arrête ici.</>
-              ) : state.endReason === "players-left" ? (
-                <>👋 Pas assez de joueurs — la partie s'arrête ici.</>
-              ) : null}
-            </motion.div>
-          )}
-          <motion.div
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 2.5, repeat: Infinity }}
             className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 shadow-[0_0_50px_-5px_oklch(0.80_0.14_84/0.7)] sm:h-28 sm:w-28"

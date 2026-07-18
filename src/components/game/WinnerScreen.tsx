@@ -38,20 +38,6 @@ export function WinnerScreen() {
           transition={{ type: "spring", stiffness: 150, damping: 18 }}
           className="relative z-10 flex w-full flex-col items-center text-center"
         >
-          {/* End-reason banner (stalemate / board-full) */}
-          {endReason && endReason !== "rounds" && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex items-center gap-2 rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-2 text-xs font-medium text-violet-200"
-            >
-              {endReason === "stalemate" ? (
-                <>🚫 Plus aucun carré possible — la partie s'arrête ici.</>
-              ) : endReason === "board-full" ? (
-                <>🟦 Plateau plein — la partie s'arrête ici.</>
-              ) : null}
-            </motion.div>
-          )}
           {/* Tie icon */}
           <motion.div
             animate={{ y: [0, -10, 0] }}
@@ -163,20 +149,6 @@ export function WinnerScreen() {
         transition={{ type: "spring", stiffness: 150, damping: 18 }}
         className="relative z-10 flex w-full flex-col items-center text-center"
       >
-        {/* End-reason banner (stalemate / board-full) */}
-        {endReason && endReason !== "rounds" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-200"
-          >
-            {endReason === "stalemate" ? (
-              <>🚫 Plus aucun carré possible — la partie s'arrête ici.</>
-            ) : endReason === "board-full" ? (
-              <>🟦 Plateau plein — la partie s'arrête ici.</>
-            ) : null}
-          </motion.div>
-        )}
 
         {/* Winner hero: larger, animated and eye-catching but compact */}
         <div className="mb-6 flex w-full justify-center">
