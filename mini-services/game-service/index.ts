@@ -425,7 +425,7 @@ io.on('connection', (socket) => {
       return
     }
     // Notify all players in the room that it was deleted
-    io.to(code).emit('room-deleted', { roomCode: code, message: 'Le salon a été supprimé par l\'administrateur.' })
+    io.to(code).emit('room-destroyed', { reason: 'admin-deleted' })
     // Disconnect all sockets from the room
     io.in(code).socketsLeave(code)
     // Delete the room

@@ -70,20 +70,21 @@ function inBounds(r: number, c: number) {
   return r >= 0 && r < ROWS && c >= 0 && c < COLS;
 }
 
-// Check if the freshly placed pawn at (row,col) completes a 2x2 square
-// (the pawn is one of the 4 cells of a 2x2 block all owned by the player).
-function checkSquare(
+// Find all 2x2 squares completed by placing a pawn at (row, col).
+// A single placement can complete multiple adjacent squares.
+function findCompletedSquares(
   grid: GridCell[][],
   row: number,
   col: number,
   playerId: string
-): { row: number; col: number }[] | null {
+): { row: number; col: number }[][] {
   const offsets: [number, number][] = [
     [0, 0], // pawn is top-left
     [0, -1], // pawn is top-right
     [-1, 0], // pawn is bottom-left
     [-1, -1], // pawn is bottom-right
   ];
+  const squares: { row: number; col: number }[][] = [];
   for (const [dr, dc] of offsets) {
     const r0 = row + dr;
     const c0 = col + dc;
@@ -95,10 +96,10 @@ function checkSquare(
       { row: r0 + 1, col: c0 + 1 },
     ];
     if (cells.every((cell) => grid[cell.row][cell.col] === playerId)) {
-      return cells;
+      squares.push(cells);
     }
   }
-  return null;
+  return squares;
 }
 
 function isBoardFull(grid: GridCell[][]): boolean {
@@ -237,28 +238,42 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const cur = state.players[state.currentPlayerIndex];
       grid[row][col] = cur.id;
-      const square = checkSquare(grid, row, col, cur.id);
+      const squares = findCompletedSquares(grid, row, col, cur.id);
 
-      if (square) {
+      if (squares.length > 0) {
+        const points = squares.length;
         const players = state.players.map((p) =>
           p.id === cur.id
-            ? { ...p, score: p.score + 1, alignments: p.alignments + 1 }
+            ? {
+                ...p,
+                score: p.score + points,
+                alignments: p.alignments + points,
+              }
             : p
         );
-        const newRound = state.currentRound + 1;
+        const newRound = state.currentRound + points;
+        const lastSquareCells = Array.from(
+          new Set(squares.flatMap((sq) => sq.map((cell) => `${cell.row},${cell.col}`)))
+        ).map((coord) => {
+          const [rowStr, colStr] = coord.split(",");
+          return { row: Number(rowStr), col: Number(colStr) };
+        });
+
         set({
           grid,
           players,
-          lastSquareCells: square,
+          lastSquareCells,
           lastSquareerId: cur.id,
           formedSquares: [
             ...state.formedSquares,
-            { cells: square, playerId: cur.id },
+            ...squares.map((cells) => ({ cells, playerId: cur.id })),
           ],
           resolving: true,
-          lastDelta: { playerId: cur.id, delta: 1 },
+          lastDelta: { playerId: cur.id, delta: points },
           currentRound: newRound,
-          statusMessage: `🟦 ${cur.name} forme un carré ! +1 point (Carré ${newRound}/${state.totalRounds})`,
+          statusMessage: `🟦 ${cur.name} forme ${
+            points === 1 ? "un carré" : `${points} carrés`
+          } ! +${points} point${points > 1 ? "s" : ""} (Carré ${newRound}/${state.totalRounds})`,
         });
 
         setTimeout(() => {

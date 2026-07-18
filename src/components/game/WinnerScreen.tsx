@@ -158,7 +158,7 @@ export function WinnerScreen() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 150, damping: 18 }}
         className="relative z-10 flex w-full flex-col items-center text-center"
@@ -177,63 +177,49 @@ export function WinnerScreen() {
             ) : null}
           </motion.div>
         )}
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-          className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-6xl shadow-[0_0_50px_-5px_oklch(0.80_0.14_84/0.7)] sm:h-28 sm:w-28"
-        >
-          <Avatar
-            avatar={winner!.emoji}
-            color={winner!.color}
-            size={96}
-            emojiSize="text-5xl"
-            ring={false}
-            className="ring-4 ring-white/40"
-          />
-        </motion.div>
 
-        <p className="mt-6 font-display text-sm uppercase tracking-[0.3em] text-amber-200/80">
-          Le Champion Ultime
-        </p>
-        <h1 className="mt-2 font-display text-5xl font-black text-gold-gradient sm:text-6xl">
-          {winner!.name}
-        </h1>
-        <p className="mt-3 flex items-center gap-2 text-amber-200/80">
-          <Crown className="h-5 w-5 text-amber-300" />
-          avec {winner!.score} points
-        </p>
-
-        {/* Legendary card */}
-        <motion.div
-          initial={{ rotate: -3, opacity: 0 }}
-          animate={{ rotate: -3, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-8 w-full max-w-md -rotate-3 rounded-2xl border-2 border-amber-400/50 bg-gradient-to-br from-amber-950/60 to-black/60 p-6 shadow-2xl"
-        >
-          <div className="flex items-center justify-between border-b border-amber-400/30 pb-2">
-            <span className="font-display text-xs uppercase tracking-widest text-amber-300">
-              Carte Légendaire
-            </span>
-            <span className="text-2xl">🏆</span>
-          </div>
-          <p className="mt-3 font-display text-2xl font-bold text-amber-100">
-            Champion Ultime
-          </p>
-          <p className="mt-1 text-sm text-amber-100/70">
-            Privilèges honorifiques :
-          </p>
-          <div className="mt-4 flex flex-col gap-2">
-            {PERKS.map((perk) => (
-              <div
-                key={perk.label}
-                className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-100"
-              >
-                <perk.icon className="h-4 w-4 text-amber-300" />
-                {perk.label}
+        {/* Winner hero: larger, animated and eye-catching but compact */}
+        <div className="mb-6 flex w-full justify-center">
+          <div className="relative flex w-full max-w-3xl items-center justify-center">
+            <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-amber-400/10 via-rose-400/6 to-violet-400/6 blur-3xl opacity-80 animate-pulse" />
+            <div className="relative z-10 flex w-full flex-col items-center gap-3 rounded-2xl p-6">
+              <div className="rounded-full bg-white/5 p-1 shadow-xl">
+                <Avatar
+                  avatar={winner!.emoji}
+                  color={winner!.color}
+                  size={120}
+                  emojiSize="text-6xl"
+                  ring={true}
+                  className="ring-8 ring-white/20"
+                />
               </div>
-            ))}
+              <div className="mt-3 flex flex-col items-center">
+                <div className="flex items-center gap-3">
+                  <h1 className="font-display text-4xl sm:text-5xl font-black text-gold-gradient drop-shadow-lg">{winner!.name}</h1>
+                  <span className="rounded-full bg-amber-400/20 px-3 py-1 text-sm font-semibold text-amber-100">Champion</span>
+                </div>
+                <div className="mt-2 flex items-center gap-3 text-amber-200">
+                  <Crown className="h-6 w-6 text-amber-300 drop-shadow" />
+                  <span className="text-lg font-bold">{winner!.score} pts</span>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <Button
+                  onClick={restart}
+                  size="lg"
+                  className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                >
+                  <RotateCcw className="mr-2 h-5 w-5" />
+                  Rejouer
+                </Button>
+                <Button onClick={backHome} size="lg" variant="outline">
+                  <Home className="mr-2 h-5 w-5" />
+                  Accueil
+                </Button>
+              </div>
+            </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Ranking */}
         <div className="mt-8 w-full max-w-md">
@@ -246,35 +232,34 @@ export function WinnerScreen() {
                 key={p.id}
                 className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${
                   p.id === winner!.id
-                    ? "border-amber-400/50 bg-amber-500/10"
+                    ? "border-amber-400/60 bg-gradient-to-br from-amber-500/10 to-rose-500/5 shadow-lg"
                     : "border-border/50 bg-card/40"
                 }`}
               >
                 <span className="w-6 text-center font-display text-lg font-bold text-amber-200">
                   {i + 1}
                 </span>
-                <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
-                <span className="flex-1 text-left font-medium">{p.name}</span>
-                <span className="font-display text-2xl font-bold sm:text-xl">{p.score} pts</span>
+                {p.id === winner!.id ? (
+                  <div className="flex items-center gap-3">
+                    <Avatar avatar={p.emoji} color={p.color} size={64} emojiSize="text-3xl" />
+                    <div>
+                      <span className="flex-1 text-left font-bold text-amber-100 text-lg">{p.name}</span>
+                      <div className="mt-1 text-sm text-amber-200/90 font-display font-black">{p.score} pts</div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                    <span className="flex-1 text-left font-medium">{p.name}</span>
+                    <span className="font-display text-2xl font-bold sm:text-xl">{p.score} pts</span>
+                  </>
+                )}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Button
-            onClick={restart}
-            size="lg"
-            className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
-          >
-            <RotateCcw className="mr-2 h-5 w-5" />
-            Rejouer
-          </Button>
-          <Button onClick={backHome} size="lg" variant="outline">
-            <Home className="mr-2 h-5 w-5" />
-            Accueil
-          </Button>
-        </div>
+        {/* Bottom action buttons removed (already present in the hero) */}
 
         <p className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Sparkles className="h-3 w-3 text-amber-400" />

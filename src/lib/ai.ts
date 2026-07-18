@@ -160,11 +160,12 @@ export function findBestMove(
 
     // === 3. Create threats ===
     const myThreatsAfter = countThreats(afterAI, aiPlayerId);
-    score += myThreatsAfter * 2000;
+    // More aggressive: larger bonus for creating threats
+    score += myThreatsAfter * 6000;
 
     // Potential squares (2/4)
     const myPotentialAfter = countPotential(afterAI, aiPlayerId);
-    score += myPotentialAfter * 100;
+    score += myPotentialAfter * 300;
 
     // === 4. Anti-suicide: after AI plays, can any opponent win? ===
     let oppCanWin = false;
@@ -176,7 +177,10 @@ export function findBestMove(
       }
     }
     if (oppCanWin) {
-      score -= 40000;
+      // Reduce anti-suicide penalty to be more willing to take risks,
+      // but still avoid obvious blunders. If multiple opponents can win, penalize more.
+      const oppImmediateWins = opponentIds.reduce((acc, oppId) => acc + findWinningCells(afterAI, oppId).length, 0);
+      score -= oppImmediateWins > 1 ? 60000 : 20000;
     }
 
     // === 5. Reduce opponent's existing threats ===
@@ -189,11 +193,16 @@ export function findBestMove(
       }
     }
 
+    // === Fork creation: if this move creates multiple immediate threats, big bonus ===
+    if (myThreatsAfter >= 2) {
+      score += 20000;
+    }
+
     // === 6. Center preference ===
     const centerR = (AI_ROWS - 1) / 2;
     const centerC = (AI_COLS - 1) / 2;
     const dist = Math.abs(row - centerR) + Math.abs(col - centerC);
-    score += (20 - dist) * 3;
+    score += (20 - dist) * 6; // stronger center preference
 
     // === 7. Adjacency to own pions (build clusters) ===
     let adj = 0;
@@ -205,7 +214,7 @@ export function findBestMove(
         if (inBounds(nr, nc) && grid[nr][nc] === aiPlayerId) adj++;
       }
     }
-    score += adj * 20;
+    score += adj * 50; // favor building clusters aggressively
 
     // === 8. Avoid cells adjacent to opponent clusters (don't feed their squares) ===
     let oppAdj = 0;
