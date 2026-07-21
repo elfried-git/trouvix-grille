@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useOnlineStore } from "@/store/online-store";
 import {
   Star,
   Trash2,
@@ -33,6 +34,13 @@ export function ReviewsBoard() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const benchouPin = useOnlineStore((s) => s.benchouPin);
+
+  const headers = (extra?: Record<string, string>): Record<string, string> => ({
+    "Content-Type": "application/json",
+    "x-benchou-pin": benchouPin,
+    ...extra,
+  });
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -43,7 +51,10 @@ export function ReviewsBoard() {
     try {
       setLoading(true);
       // ?all=true pour récupérer aussi les avis masqués (admin only)
-      const res = await fetch("/api/reviews?all=true", { cache: "no-store" });
+      const res = await fetch("/api/reviews?all=true", {
+        cache: "no-store",
+        headers: { "x-benchou-pin": benchouPin },
+      });
       if (!res.ok) throw new Error("Erreur");
       const data = await res.json();
       setReviews(data.reviews ?? []);
@@ -52,7 +63,7 @@ export function ReviewsBoard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [benchouPin]);
 
   useEffect(() => {
     loadReviews();
@@ -66,7 +77,10 @@ export function ReviewsBoard() {
   const handleDelete = async (id: string, name: string) => {
     setBusyId(id);
     try {
-      const res = await fetch(`/api/reviews/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: "DELETE",
+        headers: headers(),
+      });
       if (!res.ok) throw new Error("Erreur");
       setReviews((prev) => prev.filter((r) => r.id !== id));
       showToast(`Avis de ${name} supprimé.`);
@@ -82,7 +96,7 @@ export function ReviewsBoard() {
     try {
       const res = await fetch(`/api/reviews/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: headers(),
         body: JSON.stringify({ visible: !current }),
       });
       if (!res.ok) throw new Error("Erreur");
@@ -100,7 +114,7 @@ export function ReviewsBoard() {
     try {
       const res = await fetch(`/api/reviews/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: headers(),
         body: JSON.stringify({ adminLiked: !current }),
       });
       if (!res.ok) throw new Error("Erreur");

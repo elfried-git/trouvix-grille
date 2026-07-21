@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
+const BENCHOU_PIN = process.env.BENCHOU_PIN || "331991";
+
+function validatePin(req: NextRequest): boolean {
+  const pin = req.headers.get("x-benchou-pin");
+  return !!pin && pin === BENCHOU_PIN;
+}
+
 // PATCH /api/reviews/[id] — met à jour un avis (réservé admin)
 // Body: { visible?: boolean, adminLiked?: boolean }
 export async function PATCH(
@@ -8,11 +15,16 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!validatePin(req)) {
+      return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+    }
+
     const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "ID manquant." }, { status: 400 });
     }
 
+    const db = getDb();
     const body = await req.json().catch(() => ({}));
     const data: { visible?: boolean; adminLiked?: boolean } = {};
 
@@ -49,15 +61,20 @@ export async function PATCH(
 
 // DELETE /api/reviews/[id] — supprime un avis (réservé admin)
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!validatePin(req)) {
+      return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+    }
+
     const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "ID manquant." }, { status: 400 });
     }
 
+    const db = getDb();
     const existing = await db.review.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Avis introuvable." }, { status: 404 });

@@ -133,8 +133,7 @@ export function HomeScreen() {
             onClick={goToReviews}
             variant="outline"
             size="sm"
-            disabled
-            className="gap-1.5 rounded-full border-amber-400/30 bg-amber-500/5 text-amber-200 opacity-50 cursor-not-allowed"
+            className="gap-1.5 rounded-full border-amber-400/30 bg-amber-500/5 text-amber-200 hover:bg-amber-500/15 transition"
           >
             <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
           </Button>

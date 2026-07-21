@@ -234,13 +234,13 @@ export function ReviewsScreen() {
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            maxLength={50}
+            maxLength={500}
             rows={3}
             placeholder="Dis-nous ce que tu as aimé..."
             className="w-full resize-none rounded-xl border border-border/50 bg-background/60 px-4 py-3 text-sm text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
           />
           <p className="mt-1 text-right text-[10px] text-muted-foreground/60">
-            {comment.length}/50
+            {comment.length}/500
           </p>
         </div>
 

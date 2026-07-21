@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
+const BENCHOU_PIN = process.env.BENCHOU_PIN || "331991";
+
+function validatePin(req: NextRequest): boolean {
+  const pin = req.headers.get("x-benchou-pin");
+  return !!pin && pin === BENCHOU_PIN;
+}
+
 // Helper : extrait un message d'erreur lisible
 function errMsg(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -14,6 +21,12 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const all = searchParams.get("all") === "true";
+
+    // Si l'admin demande tous les avis (y compris masqués), vérifier le PIN
+    if (all && !validatePin(req)) {
+      return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+    }
+
     const db = getDb();
     const reviews = await db.review.findMany({
       where: all ? undefined : { visible: true },
@@ -43,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const authorName = (body.authorName ?? "").toString().trim().slice(0, 40);
     const ratingRaw = Number(body.rating);
-    const comment = (body.comment ?? "").toString().trim().slice(0, 50);
+    const comment = (body.comment ?? "").toString().trim().slice(0, 500);
 
     // Validation : rating entre 1 et 5, commentaire non vide
     if (!Number.isInteger(ratingRaw) || ratingRaw < 1 || ratingRaw > 5) {

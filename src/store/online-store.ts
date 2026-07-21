@@ -61,6 +61,7 @@ interface OnlineStore {
   pendingAction: boolean;
   challenges: Challenge[]; // pending challenges for Benchou Ferrari
   isBenchou: boolean; // true if this client registered as Benchou Ferrari
+  benchouPin: string; // stored PIN for admin API calls (reviews, etc.)
   publicRooms: PublicRoom[]; // all lobby-phase rooms visible to everyone
   adminRooms: AdminRoom[]; // all rooms with full details (Benchou only)
   kicked: boolean; // true when this player was kicked by host/admin
@@ -110,6 +111,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   publicRooms: [],
   adminRooms: [],
   kicked: false,
+  benchouPin: "",
   reactions: [],
 
   init: () => {
@@ -388,7 +390,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         if (res?.error) {
           set({ errorMessage: res.error });
         } else if (res?.ok) {
-          set({ isBenchou: true, challenges: res.pendingChallenges ?? [] });
+          set({ isBenchou: true, benchouPin: pin, challenges: res.pendingChallenges ?? [] });
         }
         resolve();
       });

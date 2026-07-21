@@ -69,7 +69,7 @@ export function ReviewForm({ open, onOpenChange, onSubmitted }: ReviewFormProps)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: trimmedName,
+          authorName: trimmedName,
           rating,
           comment: trimmedComment,
         }),
