@@ -129,14 +129,14 @@ export function HomeScreen() {
           transition={{ delay: 0.6 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
-          <Button
+          {/* <Button
             onClick={goToReviews}
             variant="outline"
             size="sm"
             className="gap-1.5 rounded-full border-amber-400/30 bg-amber-500/5 text-amber-200 hover:bg-amber-500/15 transition"
           >
             <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
-          </Button>
+          </Button> */}
         </motion.div>
       </motion.div>
     </div>
