@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Play, Pause, StepForward, StepBack, Home, Lightbulb, MousePointer, ShieldOff, Square, Trophy, RefreshCw } from "lucide-react";
+import { Play, Lightbulb, MousePointer, ShieldOff, Square, Trophy, RefreshCw } from "lucide-react";
 
 interface SceneStep {
   title: string;
@@ -49,31 +49,25 @@ const DEMO_STEPS = [
 export function TutorialVideoScreen() {
   const backHome = useGameStore((s) => s.backHome);
   const [currentStep, setCurrentStep] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [demoGrid, setDemoGrid] = useState<DemoGrid>(emptyGrid());
   const [highlightCells, setHighlightCells] = useState<number[][]>([]);
 
   const currentScene = SCENES[currentStep] ?? SCENES[0];
   const isLastStep = currentStep >= SCENES.length - 1;
-  const isFirstStep = currentStep === 0;
 
   const goToNext = useCallback(() => {
-    if (currentStep < SCENES.length - 1) setCurrentStep((s) => s + 1);
-  }, [currentStep]);
+    setCurrentStep((s) => (s >= SCENES.length - 1 ? 0 : s + 1));
+  }, []);
 
-  const goToPrev = useCallback(() => {
-    if (currentStep > 0) setCurrentStep((s) => s - 1);
-  }, [currentStep]);
-
+  // Auto-advance toutes les 3 secondes, en boucle infinie
   useEffect(() => {
-    if (!isPlaying) return;
     const id = setTimeout(() => {
-      if (isLastStep) { setIsPlaying(false); return; }
       goToNext();
-    }, 5000);
+    }, 3000);
     return () => clearTimeout(id);
-  }, [isPlaying, currentStep, goToNext, isLastStep]);
+  }, [currentStep, goToNext]);
 
+  // Met à jour la grille démo à chaque étape
   useEffect(() => {
     const stepIdx = Math.min(currentStep, DEMO_STEPS.length - 1);
     const step = DEMO_STEPS[stepIdx];
@@ -83,17 +77,13 @@ export function TutorialVideoScreen() {
     setHighlightCells(step.highlight ?? []);
   }, [currentStep]);
 
-  const togglePlay = () => {
-    if (isLastStep && !isPlaying) setCurrentStep(0);
-    setIsPlaying((p) => !p);
-  };
-
   const progressPct = ((currentStep + 1) / SCENES.length) * 100;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6">
-      <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
-        <div className="flex flex-col gap-4">
+      <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:gap-6">
+        {/* Colonne grille (gauche) */}
+        <div className="flex flex-col items-center justify-start gap-2 lg:flex-1 lg:gap-4">
           <div className="flex items-center justify-end">
             <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 font-display text-sm font-bold text-amber-200">
               {currentStep + 1}/{SCENES.length}
@@ -102,39 +92,29 @@ export function TutorialVideoScreen() {
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
             <motion.div className="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-400" animate={{ width: `${progressPct}%` }} transition={{ duration: 0.3 }} />
           </div>
-          <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${DEMO_SIZE}, minmax(0, 1fr))`, width: "min(320px, 100%)" }}>
+          <div className="grid gap-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${DEMO_SIZE}, minmax(0, 1fr))`, width: "min(240px, 55vw)" }}>
             {Array.from({ length: DEMO_SIZE }).map((_, row) =>
               Array.from({ length: DEMO_SIZE }).map((__, col) => {
                 const val = demoGrid[row][col];
                 const filled = val !== null;
                 const hl = highlightCells.some(([r, c]) => r === row && c === col);
                 return (
-                  <div key={`${row}-${col}`} className={`relative aspect-square rounded-full transition-all duration-300 ${hl ? "ring-2 ring-amber-300 z-10" : "ring-1 ring-black/40"}`}
+                  <div key={`${row}-${col}`} className={`relative aspect-square rounded-full transition-all duration-300 ${hl ? "ring-1.5 ring-amber-300 z-10" : "ring-1 ring-black/40"}`}
                     style={{ backgroundColor: filled ? (val === "A" ? "#9f1239" : "#b8860b") : "oklch(0.10 0.015 22)" }}>
-                    {filled && <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white/90 drop-shadow sm:text-[10px]">{val === "A" ? "R" : "J"}</span>}
-                    {hl && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-black">*</motion.span>}
+                    {filled && <span className="absolute inset-0 flex items-center justify-center text-[7px] font-bold text-white/90 drop-shadow sm:text-[10px]">{val === "A" ? "R" : "J"}</span>}
+                    {hl && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[6px] font-bold text-black sm:h-5 sm:w-5 sm:text-[8px]">*</motion.span>}
                   </div>
                 );
               })
             )}
           </div>
-          <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: "#9f1239" }} /> Joueur R = Toi</span>
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: "#b8860b" }} /> Joueur J = Adversaire</span>
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground sm:text-xs">
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#9f1239" }} /> <span className="hidden xs:inline">Joueur</span> R = Toi</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#b8860b" }} /> <span className="hidden xs:inline">Joueur</span> J = Adv.</span>
           </div>
-          <div className="glass-card flex items-center justify-center gap-4 rounded-2xl p-3">
-            <button onClick={goToPrev} disabled={isFirstStep} className="flex h-10 w-10 items-center justify-center rounded-full border border-border/40 bg-card/40 text-muted-foreground transition hover:bg-card hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"><StepBack className="h-4 w-4" /></button>
-            <button onClick={togglePlay} className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-lg transition hover:from-rose-500 hover:to-rose-400">
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
-            </button>
-            <button onClick={goToNext} disabled={isLastStep} className="flex h-10 w-10 items-center justify-center rounded-full border border-border/40 bg-card/40 text-muted-foreground transition hover:bg-card hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"><StepForward className="h-4 w-4" /></button>
-            {!isFirstStep && (
-              <button onClick={() => { setCurrentStep(0); setIsPlaying(false); }} className="flex h-8 items-center gap-1 rounded-full border border-border/30 px-3 text-[11px] text-muted-foreground transition hover:text-foreground">
-                <RefreshCw className="h-3 w-3" /> Début
-              </button>
-)}
-          </div>
-          </div>
+        </div>
+
+        {/* Colonne explication (droite) */}
         <div className="flex flex-col gap-4">
           <AnimatePresence mode="wait">
             <motion.div key={currentStep} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="glass-card flex flex-1 flex-col rounded-3xl p-6 sm:p-8">
@@ -147,24 +127,19 @@ export function TutorialVideoScreen() {
                   <p className="text-sm font-medium text-amber-100">{currentScene.tip}</p>
                 </motion.div>
               )}
+              {/* Indicateurs de progression visuels (dots) */}
               <div className="mt-auto flex items-center justify-center gap-2 pt-6">
                 {SCENES.map((_, i) => (
-                  <button key={i} onClick={() => { setCurrentStep(i); setIsPlaying(false); }}
-                    className={`h-2 rounded-full transition-all duration-300 ${i === currentStep ? "w-8 bg-amber-400" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"}`}
-                    aria-label={`Étape ${i + 1}`} />
+                  <div key={i}
+                    className={`h-2 rounded-full transition-all duration-300 ${i === currentStep ? "w-8 bg-amber-400" : "w-2 bg-muted-foreground/30"}`}
+                  />
                 ))}
               </div>
             </motion.div>
           </AnimatePresence>
-          <div className="flex items-center gap-2">
-            {isLastStep && (
-              <Button size="sm" onClick={() => { setCurrentStep(0); setIsPlaying(false); }} className="ml-auto bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
-                <RefreshCw className="mr-1.5 h-4 w-4" /> Revoir du début
-              </Button>
-            )}
-          </div>
-          </div>
         </div>
       </div>
+    </div>
   );
 }
+
