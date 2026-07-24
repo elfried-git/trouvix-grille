@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
 import { Timer, Square, Users, Grid3x3, Trophy, Dices, Pause, Globe, Star } from "lucide-react";
+import { TutorialVideoScreen } from "./TutorialVideoScreen";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
@@ -65,13 +66,6 @@ export function HomeScreen() {
           <span className="text-red-gradient">Trouv</span>
           <span className="text-gold-gradient">ix</span>
         </h1>
-
-        <p className="mt-4 max-w-xl font-display text-base italic text-amber-100/70 sm:text-lg">
-          Place tes pions <span className="font-semibold text-amber-200">où tu veux</span> dans la
-          grille et forme un <span className="font-semibold text-rose-200">carré de 4 pions</span>{" "}
-          (2×2) pour marquer. <span className="font-semibold text-amber-200">10 secondes</span> par
-          coup, pause à tout moment. De 2 à 6 joueurs. 🏆
-        </p>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -138,7 +132,20 @@ export function HomeScreen() {
             <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
           </Button> */}
         </motion.div>
-      </motion.div>
+        </motion.div>
+
+
+{/* Démo */}
+        <div className="mt-20 w-full">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+            <h2 className="font-display text-2xl font-black tracking-wide">
+              <span className="text-red-gradient">Démo</span>
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+          </div>
+          <TutorialVideoScreen />
+        </div>
     </div>
   );
 }
