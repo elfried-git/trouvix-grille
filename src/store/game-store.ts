@@ -42,6 +42,8 @@ interface GameState {
   currentRound: number; // rounds elapsed so far (squares formed by anyone)
   lastDelta: { playerId: string; delta: number } | null;
   endReason: string | null; // 'rounds' | 'board-full' | 'stalemate' | null
+  initialPlayers: Player[]; // Store players as they were when startGame was called
+
 
   goToSetup: () => void;
   goToOnlineSetup: () => void;
@@ -157,6 +159,7 @@ export const useGameStore = create<GameState>((set, get) => {
     currentRound: 0,
     lastDelta: null,
     endReason: null,
+    initialPlayers: [],
 
     goToSetup: () => set({ phase: "setup" }),
     goToOnlineSetup: () => set({ phase: "online-setup" }),
@@ -178,7 +181,8 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
-    endReason: null,
+        endReason: null,
+        initialPlayers: [],
       }),
 
     startGame: (setupPlayers, rounds) => {
@@ -194,6 +198,7 @@ export const useGameStore = create<GameState>((set, get) => {
       }));
       set({
         players,
+        initialPlayers: players,
         currentPlayerIndex: 0,
         phase: "playing",
         grid: emptyGrid(),
@@ -438,8 +443,8 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
 
-      // Reset players' scores/alignments but keep identity and order
-      const newPlayers = state.players.map((p) => ({ ...p, score: 0, alignments: 0 }));
+      // Reset players' scores/alignments but keep identity and order from the VERY FIRST match
+      const newPlayers = state.initialPlayers.map((p) => ({ ...p, score: 0, alignments: 0 }));
       set({
         players: newPlayers,
         currentPlayerIndex: 0,

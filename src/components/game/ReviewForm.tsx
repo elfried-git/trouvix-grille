@@ -129,10 +129,12 @@ export function ReviewForm({ open, onOpenChange, onSubmitted }: ReviewFormProps)
                   <StarRating value={rating} onChange={setRating} size={28} />
                   {rating > 0 && <span className="font-display text-sm font-semibold text-amber-200">{rating}/5</span>}
                 </div>
+              </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="review-comment" className="text-sm text-amber-100/90">Ton commentaire</Label>
                 <Textarea id="review-comment" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Partagez votre expérience…" maxLength={500} className="scroll-romantic min-h-24 bg-background/60" />
                 <div className="flex justify-end text-xs text-muted-foreground">{comment.length}/500</div>
+              </div>
               {error && <div className="rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
             </div>
             <DialogFooter className="gap-2">

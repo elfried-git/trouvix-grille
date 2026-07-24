@@ -7,7 +7,7 @@ import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
-import { Flag, Home, Timer, Square, Target, Pause, Play, Crown, WifiOff, Swords } from "lucide-react";
+import { Flag, Home, Timer, Square, Target, Pause, Play, Crown, WifiOff, Swords, RotateCcw } from "lucide-react";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -22,6 +22,7 @@ export function OnlineGameScreen() {
   const togglePauseAction = useOnlineStore((s) => s.togglePause);
   const endGameAction = useOnlineStore((s) => s.endGame);
   const rematchTiedAction = useOnlineStore((s) => s.rematchTied);
+  const restartAction = useOnlineStore((s) => s.restart);
   const leaveRoomAction = useOnlineStore((s) => s.leaveRoom);
   const backHome = useGameStore((s) => s.backHome);
   const reactions = useOnlineStore((s) => s.reactions);
@@ -177,14 +178,24 @@ export function OnlineGameScreen() {
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               {amHost ? (
-                <Button
-                  onClick={rematchTiedAction}
-                  size="lg"
-                  className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400"
-                >
-                  <Swords className="mr-2 h-5 w-5" />
-                  Lancer le challenge décisif
-                </Button>
+                <>
+                  <Button
+                    onClick={rematchTiedAction}
+                    size="lg"
+                    className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400"
+                  >
+                    <Swords className="mr-2 h-5 w-5" />
+                    Lancer le challenge décisif
+                  </Button>
+                  <Button
+                    onClick={restartAction}
+                    size="lg"
+                    className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                  >
+                    <RotateCcw className="mr-2 h-5 w-5" />
+                    Rejouer
+                  </Button>
+                </>
               ) : (
                 <p className="text-sm text-violet-200/70">En attente de l'hôte pour le challenge...</p>
               )}
@@ -266,6 +277,17 @@ export function OnlineGameScreen() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {amHost ? (
+              <Button
+                onClick={restartAction}
+                size="lg"
+                className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+              >
+                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+              </Button>
+            ) : (
+              <p className="text-sm text-amber-200/70">En attente de l'hôte pour rejouer...</p>
+            )}
             <Button onClick={handleQuit} size="lg" variant="outline">
               <Home className="mr-2 h-5 w-5" /> Accueil
             </Button>

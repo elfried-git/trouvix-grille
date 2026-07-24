@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,9 @@ export function WinnerScreen() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button onClick={rematchTied} size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
               <Swords className="mr-2 h-5 w-5" /> Lancer le challenge decisif
+            </Button>
+            <Button onClick={restart} size="lg" className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
+              <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
             </Button>
             <Button onClick={backHome} size="lg" variant="outline">
               <Home className="mr-2 h-5 w-5" /> Accueil

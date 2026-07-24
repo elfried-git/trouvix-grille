@@ -60,6 +60,7 @@ interface GameState {
   totalRounds: number
   currentRound: number
   lastDelta: { playerId: string; delta: number } | null
+  initialPlayers: Player[]
 }
 
 interface Room {
@@ -195,6 +196,7 @@ function freshState(): GameState {
     totalRounds: 10,
     currentRound: 0,
     lastDelta: null,
+    initialPlayers: [],
   }
 }
 
@@ -813,6 +815,7 @@ io.on('connection', (socket) => {
     room.state.isPaused = false
     room.state.currentRound = 0
     room.state.lastDelta = null
+    room.state.initialPlayers = JSON.parse(JSON.stringify(room.state.players))
     const first = room.state.players[0]
     room.state.statusMessage = `${first.name} commence ! 10 secondes par coup. ⏱️`
     console.log(`[room ${room.roomCode}] game started (${room.state.players.length} players, ${room.totalRounds} rounds)`)
@@ -1001,17 +1004,19 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: "Seul l'hôte peut relancer" })
       return
     }
-    // Keep players, reset everything else, go back to lobby.
-    const keptPlayers = room.state.players.map((p) => ({
+    // Keep initial players, reset everything else, start playing again.
+    const keptPlayers = room.state.initialPlayers.map((p) => ({
       ...p,
       score: 0,
       alignments: 0,
     }))
     room.state = freshState()
+    room.state.phase = 'playing'
     room.state.players = keptPlayers
+    room.state.initialPlayers = JSON.parse(JSON.stringify(keptPlayers))
     room.state.totalRounds = room.totalRounds
-    room.state.statusMessage = 'Retour au salon. L’hôte peut relancer la partie.'
-    console.log(`[room ${room.roomCode}] restarted to lobby (${keptPlayers.length} players kept)`)
+    room.state.statusMessage = `${keptPlayers[0]?.name ?? 'Le premier joueur'} commence ! 10 secondes par coup. ⏱️`
+    console.log(`[room ${room.roomCode}] restarted to playing (${keptPlayers.length} players kept)`)
     broadcastState(room); broadcastAdminRoomList()
   })
 
