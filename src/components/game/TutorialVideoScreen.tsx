@@ -77,21 +77,11 @@ export function TutorialVideoScreen() {
     setHighlightCells(step.highlight ?? []);
   }, [currentStep]);
 
-  const progressPct = ((currentStep + 1) / SCENES.length) * 100;
-
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6">
       <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:gap-6">
         {/* Colonne grille (gauche) */}
         <div className="flex flex-col items-center justify-start gap-2 lg:flex-1 lg:gap-4">
-          <div className="flex items-center justify-end">
-            <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 font-display text-sm font-bold text-amber-200">
-              {currentStep + 1}/{SCENES.length}
-            </span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
-            <motion.div className="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-400" animate={{ width: `${progressPct}%` }} transition={{ duration: 0.3 }} />
-          </div>
           <div className="grid gap-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${DEMO_SIZE}, minmax(0, 1fr))`, width: "min(240px, 55vw)" }}>
             {Array.from({ length: DEMO_SIZE }).map((_, row) =>
               Array.from({ length: DEMO_SIZE }).map((__, col) => {
@@ -109,8 +99,8 @@ export function TutorialVideoScreen() {
             )}
           </div>
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground sm:text-xs">
-            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#9f1239" }} /> <span className="hidden xs:inline">Joueur</span> R = Toi</span>
-            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#b8860b" }} /> <span className="hidden xs:inline">Joueur</span> J = Adv.</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#9f1239" }} /> <span className="hidden xs:inline">Joueur</span> Joueur R = Toi</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#b8860b" }} /> <span className="hidden xs:inline">Joueur</span> Joueur J = Adversaire</span>
           </div>
         </div>
 
@@ -122,7 +112,7 @@ export function TutorialVideoScreen() {
               <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{currentScene.title}</h2>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">{currentScene.description}</p>
               {currentScene.tip && (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="mt-6 flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="mt-6 flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4">
                   <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
                   <p className="text-sm font-medium text-amber-100">{currentScene.tip}</p>
                 </motion.div>
