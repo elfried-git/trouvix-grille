@@ -1065,6 +1065,21 @@ io.on('connection', (socket) => {
     broadcastState(room); broadcastAdminRoomList()
   })
 
+  // ---- send-reaction ----
+  // Relay a floating emoji reaction to everyone in the same room (sender included,
+  // so the sender sees their own reaction animate). Purely cosmetic: no state change.
+  socket.on('send-reaction', (payload: { emoji?: string }) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) return // not in a room
+    const emoji = payload?.emoji
+    if (!emoji || typeof emoji !== 'string' || emoji.length > 16) return
+    io.to(binding.roomCode).emit('reaction-received', {
+      playerId: binding.playerId,
+      emoji,
+      timestamp: Date.now(),
+    })
+  })
+
   // ---- leave-room ----
   socket.on('leave-room', () => {
     const binding = socketBindings.get(socket.id)
