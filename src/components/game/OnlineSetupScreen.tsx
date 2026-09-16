@@ -285,6 +285,15 @@ export function OnlineSetupScreen() {
 
             {/* Action cards */}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {/* Join by code — the JOIN card */}
+              <button
+                onClick={() => setTab("join")}
+                className="group rounded-2xl border-emerald-400/30 bg-emerald-500/5 p-6 text-left transition hover:border-emerald-400/60 hover:bg-emerald-500/10"
+              >
+                <LogIn className="mb-3 h-8 w-8 text-emerald-300" />
+                <p className="font-display text-lg font-bold text-foreground">Rejoindre un salon</p>
+                <p className="mt-1 text-xs text-muted-foreground">Saisis le code du salon cree par l'hote pour entrer directement dedans.</p>
+              </button>
               <button
                 onClick={() => setTab("create")}
                 className="group rounded-2xl border border-amber-400/30 bg-amber-500/5 p-6 text-left transition hover:border-amber-400/60 hover:bg-amber-500/10"
