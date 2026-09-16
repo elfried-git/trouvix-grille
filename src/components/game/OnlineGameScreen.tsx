@@ -7,7 +7,7 @@ import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
-import { Flag, Home, Timer, Square, Target, Pause, Play, Crown, WifiOff, Swords, RotateCcw } from "lucide-react";
+import { Flag, Home, Timer, Pause, Play, Crown, WifiOff, Swords, RotateCcw } from "lucide-react";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -312,14 +312,6 @@ export function OnlineGameScreen() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/5 px-3 py-1.5 text-sm text-amber-200/90 sm:text-xs">
-            <Square className="h-3.5 w-3.5" />
-            Carré {state.currentRound}/{state.totalRounds}
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-sm text-rose-200/90 sm:text-xs">
-            <Target className="h-3.5 w-3.5" />
-            Carré = +1
-          </div>
           {amHost && (
             <Button
               variant="outline"
