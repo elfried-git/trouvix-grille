@@ -9,9 +9,6 @@ import { useOnlineStore } from "@/store/online-store";
 import type { PublicRoom } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
-import { ReviewsBoard } from "./ReviewsBoard";
-import { AdminRoomsBoard } from "./AdminRoomsBoard";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { isPhotoAvatar } from "@/lib/types";
 import {
   ArrowLeft,
@@ -31,6 +28,7 @@ import {
   ShieldCheck,
   UserMinus,
   Gamepad2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -72,6 +70,7 @@ export function OnlineSetupScreen() {
   const onlineListPublicRooms = useOnlineStore((s) => s.listPublicRooms);
   const onlineKickPlayer = useOnlineStore((s) => s.kickPlayer);
   const onlineAdminListRooms = useOnlineStore((s) => s.adminListRooms);
+  const onlineAdminDeleteRoom = useOnlineStore((s) => s.adminDeleteRoom);
 
   const [tab, setTab] = useState<Tab>("menu");
 
@@ -83,6 +82,7 @@ export function OnlineSetupScreen() {
   const [maxPlayers, setMaxPlayers] = useState(6); // host defines max players (2-6)
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [confirmRoomDelete, setConfirmRoomDelete] = useState<string | null>(null);
   const [benchouPin, setBenchouPin] = useState("");
   const [showPinForm, setShowPinForm] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -136,6 +136,14 @@ export function OnlineSetupScreen() {
     await onlineJoinRoom(joinCode.trim(), { name: name.trim(), color, emoji });
   };
 
+  // Super-admin (Benchou Ferrari) deletes a room: everyone inside — host included —
+  // is ejected and sent back to the home screen.
+  const handleAdminDeleteRoom = async (roomCode: string) => {
+    await onlineAdminDeleteRoom(roomCode);
+    setConfirmRoomDelete(null);
+    toast.success(`Salon ${roomCode} supprimé.`);
+  };
+
   // Challenge Benchou Ferrari — creates a room and sends a notification
   const handleBenchou = async () => {
     if (!profileValid || onlinePending) return;
@@ -161,6 +169,21 @@ export function OnlineSetupScreen() {
   const serverState = onlineState;
   const amHost = serverState?.hostId === onlineMyPlayerId;
   const players = serverState?.players ?? [];
+
+  // Public rooms shown on the menu.
+  // - Regular players only see lobbies still open for joining (the server refuses
+  //   joins once a game has started, so showing them would be misleading).
+  // - The super-admin sees EVERY active room (lobby + in-game) so he can delete
+  //   any of them.
+  const openRooms = onlinePublicRooms.filter(
+    (r) => onlineIsBenchou || !r.phase || r.phase === "lobby"
+  );
+
+  // The host can only launch once every seat is taken: the capacity chosen at
+  // creation (roomMaxPlayers) is the number of players required to start.
+  const roomMaxPlayers = serverState?.maxPlayers || 6;
+  const connectedCount = players.filter((p) => p.connected !== false).length;
+  const roomFull = connectedCount >= roomMaxPlayers;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-10">
@@ -447,75 +470,82 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Admin panels — visible only for Benchou Ferrari (admin) */}
-            {onlineIsBenchou && (
-              <div className="mt-4">
-                <Accordion type="single" collapsible defaultValue="reviews">
-                  <AccordionItem value="reviews">
-                    <AccordionTrigger className="px-4">
-                      <div className="flex items-center gap-3">
-                        <img src="/trouvix-logo.svg" alt="" className="h-6 w-6" />
-                        <span className="font-display text-sm font-bold text-violet-100">Gestion des avis</span>
-                        <span className="ml-2 rounded-full bg-violet-400/20 px-2 py-0.5 text-[10px] font-bold text-violet-200">Reviews</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="mt-2">
-                        <ReviewsBoard />
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-
-                <Accordion type="single" collapsible defaultValue="rooms">
-                  <AccordionItem value="rooms">
-                    <AccordionTrigger className="px-4 mt-3">
-                      <div className="flex items-center gap-3">
-                        <Gamepad2 className="h-5 w-5 text-rose-300" />
-                        <span className="font-display text-sm font-bold text-rose-100">Gestion des salons</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="mt-2">
-                        <AdminRoomsBoard />
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-            )}
-
             {/* Public rooms list — visible to everyone on the menu */}
-            {onlinePublicRooms.length > 0 && (
+            {openRooms.length > 0 && (
               <div className="mt-6">
                 <p className="mb-3 flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
                   <Gamepad2 className="h-3.5 w-3.5" />
-                  Salons ouverts ({onlinePublicRooms.length})
+                  Salons ouverts ({openRooms.length})
+                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/70">
+                    · mis à jour en direct
+                  </span>
                 </p>
-                <div className="flex max-h-[320px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
-                  {onlinePublicRooms.map((room) => (
+                <div className="flex max-h-[360px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
+                  {openRooms.map((room) => (
                     <div
                       key={room.roomCode}
                       className={`flex items-center gap-3 rounded-xl border p-3 transition ${
                         room.isFull
-                          ? "border-muted-foreground/20 bg-muted/5 opacity-60"
+                          ? "border-muted-foreground/20 bg-muted/5 opacity-70"
                           : "border-border/40 bg-card/40 hover:border-amber-400/40 hover:bg-amber-500/5"
                       }`}
                     >
+                      {/* Host avatar — shows the host's photo/color so players recognize them */}
+                      <Avatar
+                        avatar={room.hostEmoji}
+                        color={room.hostColor || COLOR_PALETTE[0]}
+                        size={40}
+                        emojiSize="text-lg"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-bold tracking-wider text-amber-200">
+                          {/* Room code — the join key, shown prominently and copyable */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard?.writeText(room.roomCode);
+                              toast.success("Code copié !");
+                            }}
+                            className="group flex items-center gap-1 rounded-md bg-background/60 px-2 py-0.5 font-mono text-sm font-bold tracking-wider text-amber-200 transition hover:bg-amber-500/20"
+                            title="Copier le code"
+                          >
                             {room.roomCode}
-                          </span>
+                            <Copy className="h-2.5 w-2.5 opacity-0 transition group-hover:opacity-60" />
+                          </button>
                           {room.isFull && (
                             <span className="rounded-full bg-muted/20 px-2 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">
                               Complet
                             </span>
                           )}
+                          {onlineIsBenchou && room.phase && room.phase !== "lobby" && (
+                            <span className="rounded-full border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-200">
+                              {room.phase === "playing" ? "En jeu" : "Terminé"}
+                            </span>
+                          )}
                         </div>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          Hôte : {room.hostName} · {room.playerCount}/{room.maxPlayers} joueurs · {room.totalRounds} rounds
+                          Hôte : <span className="font-medium text-foreground/80">{room.hostName}</span> · {room.totalRounds} rounds
                         </p>
+                        {/* Waiting-players gauge */}
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="flex items-center gap-1 text-[11px] font-medium text-amber-200/80">
+                            <Users className="h-3 w-3" />
+                            {room.playerCount}/{room.maxPlayers} en attente
+                          </div>
+                          <div className="flex gap-0.5">
+                            {Array.from({ length: room.maxPlayers }).map((_, i) => (
+                              <span
+                                key={i}
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  i < room.playerCount
+                                    ? room.isFull
+                                      ? "bg-rose-400"
+                                      : "bg-emerald-400"
+                                    : "bg-muted-foreground/25"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                       <Button
                         size="sm"
@@ -535,6 +565,42 @@ export function OnlineSetupScreen() {
                           </>
                         )}
                       </Button>
+                      {/* Super-admin only: delete the room (everyone is ejected) */}
+                      {onlineIsBenchou && (
+                        confirmRoomDelete === room.roomCode ? (
+                          <div className="flex shrink-0 items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                              onClick={() => setConfirmRoomDelete(null)}
+                              disabled={onlinePending}
+                            >
+                              Non
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1 whitespace-nowrap bg-rose-600 text-white hover:bg-rose-500"
+                              onClick={() => handleAdminDeleteRoom(room.roomCode)}
+                              disabled={onlinePending}
+                              title={`Supprimer le salon ${room.roomCode}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Suppr.
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 shrink-0 gap-1 whitespace-nowrap border-rose-400/50 bg-rose-500/10 text-[11px] font-semibold text-rose-200 hover:bg-rose-500/20"
+                            onClick={() => setConfirmRoomDelete(room.roomCode)}
+                            disabled={onlinePending}
+                            title={`Supprimer le salon ${room.roomCode}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Supprimer
+                          </Button>
+                        )
+                      )}
                     </div>
                   ))}
                 </div>
@@ -825,9 +891,10 @@ export function OnlineSetupScreen() {
                     )}
                   </div>
                 ))}
-                {players.length < 2 && (
+                {!roomFull && (
                   <p className="rounded-xl border border-dashed border-border/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                    En attente d'au moins un autre joueur...
+                    En attente de {roomMaxPlayers - connectedCount} joueur
+                    {roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon...
                   </p>
                 )}
               </div>
@@ -852,15 +919,25 @@ export function OnlineSetupScreen() {
 
             {/* Host actions */}
             {amHost ? (
+              <>
               <Button
                 onClick={onlineStartGame}
-                disabled={players.length < 2}
+                disabled={!roomFull}
                 size="lg"
                 className="w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-50"
               >
                 <Swords className="mr-2 h-5 w-5" />
                 Lancer la partie
               </Button>
+              {!roomFull && (
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-amber-200/80">
+                  <Users className="h-3.5 w-3.5" />
+                  En attente de {roomMaxPlayers - connectedCount} joueur
+                  {roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon
+                  ({connectedCount}/{roomMaxPlayers})
+                </p>
+              )}
+              </>
             ) : (
               <p className="text-center text-sm text-amber-200/70">
                 En attente de l'hôte pour lancer la partie...

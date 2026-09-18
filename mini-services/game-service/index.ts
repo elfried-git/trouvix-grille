@@ -10,7 +10,8 @@ const BOARD_FULL_RESOLVE_MS = 1200
 const BENCHOU_PIN = process.env.BENCHOU_PIN || '331991' // Secret PIN (override via env in production)
 const TICK_MS = 500 // 500ms = good balance between smoothness and memory
 const TICK_DT = TICK_MS / 1000 // 0.5 seconds
-const MAX_PLAYERS = 8
+const MAX_PLAYERS = 8 // hard server ceiling
+const DEFAULT_MAX_PLAYERS = 6 // default when the host doesn't specify a capacity
 const PORT = parseInt(process.env.PORT || '3003', 10)
 
 // ====== Types ======
@@ -67,6 +68,8 @@ interface Room {
   roomCode: string
   hostId: string
   totalRounds: number
+  maxPlayers: number // host-defined capacity (2-6), clamped to [2, MAX_PLAYERS]
+  createdAt: number
   state: GameState
 }
 
@@ -166,6 +169,13 @@ function uniqueRoomCode(): string {
   return code
 }
 
+// Clamp a host-provided capacity to the server limits ([2, MAX_PLAYERS]).
+function normalizeMaxPlayers(value: unknown): number {
+  const n = typeof value === 'number' ? Math.floor(value) : NaN
+  if (!Number.isFinite(n)) return DEFAULT_MAX_PLAYERS
+  return Math.min(MAX_PLAYERS, Math.max(2, n))
+}
+
 function makePlayer(setup: SetupPlayer): Player {
   return {
     id: makeId(),
@@ -216,6 +226,7 @@ function publicState(room: Room): any {
     roomCode: room.roomCode,
     hostId: room.hostId,
     totalRounds: room.totalRounds,
+    maxPlayers: room.maxPlayers,
     phase: s.phase,
     players: s.players.map((p) => ({ ...p })),
     currentPlayerIndex: s.currentPlayerIndex,
@@ -247,6 +258,9 @@ function reassignHost(room: Room): void {
     room.hostId = ''
     return
   }
+  // Only reassign when the host is genuinely GONE from the roster.
+  // A host who merely disconnected (still listed with connected=false) keeps
+  // his status, so he can come back and still be the host.
   if (!room.state.players.some((p) => p.id === room.hostId)) {
     room.hostId = room.state.players[0].id
     console.log(`[room ${room.roomCode}] host reassigned to ${room.hostId}`)
@@ -273,6 +287,23 @@ function nextPlayerIndex(room: Room): number {
   const n = room.state.players.length
   if (n === 0) return 0
   return (room.state.currentPlayerIndex + 1) % n
+}
+
+// Destroy a room entirely: notify everyone inside, detach them, drop the room
+// and expire its pending challenges. Used when the host leaves (the room dies
+// with him) and by the admin-delete-room handler.
+function destroyRoom(code: string, reason: string): void {
+  const room = rooms.get(code)
+  if (!room) return
+  io.to(code).emit('room-destroyed', { reason })
+  io.in(code).socketsLeave(code)
+  rooms.delete(code)
+  for (const [, ch] of challenges.entries()) {
+    if (ch.roomCode === code) ch.status = 'expired'
+  }
+  console.log(`[room ${code}] destroyed (${reason})`)
+  broadcastAdminRoomList()
+  broadcastPublicRoomList()
 }
 
 // ====== HTTP + Socket.io setup ======
@@ -313,7 +344,7 @@ function getAdminRoomList(): AdminRoomInfo[] {
     hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
     hostId: room.hostId,
     playerCount: room.state.players.filter((p) => p.connected !== false).length,
-    maxPlayers: MAX_PLAYERS,
+    maxPlayers: room.maxPlayers,
     phase: room.state.phase,
     totalRounds: room.totalRounds,
     currentRound: room.state.currentRound,
@@ -326,7 +357,7 @@ function getAdminRoomList(): AdminRoomInfo[] {
       connected: p.connected !== false,
       isAI: p.isAI ?? false,
     })),
-    createdAt: Date.now(), // approximate
+    createdAt: room.createdAt ?? Date.now(),
   }))
 }
 
@@ -341,6 +372,47 @@ function broadcastAdminRoomList(): void {
   }
 }
 
+// ====== Public room list helpers ======
+// Lightweight projection shown to EVERYONE on the online menu: the room code,
+// the host's identity (name/emoji/color), the number of waiting players, the
+// capacity, and the match length. No secrets, no in-game state.
+interface PublicRoomInfo {
+  roomCode: string
+  hostName: string
+  hostEmoji: string
+  hostColor: string
+  playerCount: number
+  maxPlayers: number
+  isFull: boolean
+  totalRounds: number
+  phase: string
+  createdAt: number
+}
+
+function getPublicRoomList(): PublicRoomInfo[] {
+  return Array.from(rooms.values()).map((room) => {
+    const host = room.state.players.find((p) => p.id === room.hostId)
+    const playerCount = room.state.players.filter((p) => p.connected !== false).length
+    return {
+      roomCode: room.roomCode,
+      hostName: host?.name ?? 'Inconnu',
+      hostEmoji: host?.emoji ?? '',
+      hostColor: host?.color ?? '#9f1239',
+      playerCount,
+      maxPlayers: room.maxPlayers,
+      isFull: playerCount >= room.maxPlayers,
+      totalRounds: room.totalRounds,
+      phase: room.state.phase,
+      createdAt: room.createdAt ?? Date.now(),
+    }
+  })
+}
+
+// Broadcast the public room list to every connected client (reactivity).
+function broadcastPublicRoomList(): void {
+  io.emit('public-rooms', { rooms: getPublicRoomList() })
+}
+
 // ====== Connection handling ======
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`)
@@ -348,7 +420,7 @@ io.on('connection', (socket) => {
   // ---- create-room ----
   socket.on(
     'create-room',
-    (payload: { player: SetupPlayer; totalRounds: number }, ack?: (res: any) => void) => {
+    (payload: { player: SetupPlayer; totalRounds: number; maxPlayers?: number }, ack?: (res: any) => void) => {
       try {
         const totalRounds = payload?.totalRounds
         if (![5, 10, 15].includes(totalRounds)) {
@@ -356,12 +428,15 @@ io.on('connection', (socket) => {
           else socket.emit('error', { message: 'Le nombre de rounds doit être 5, 10 ou 15' })
           return
         }
+        const maxPlayers = normalizeMaxPlayers(payload?.maxPlayers)
         const player = makePlayer(payload.player)
         const roomCode = uniqueRoomCode()
         const room: Room = {
           roomCode,
           hostId: player.id,
           totalRounds,
+          maxPlayers,
+          createdAt: Date.now(),
           state: freshState(),
         }
         room.state.totalRounds = totalRounds
@@ -370,9 +445,9 @@ io.on('connection', (socket) => {
         rooms.set(roomCode, room)
         socket.join(roomCode)
         socketBindings.set(socket.id, { roomCode, playerId: player.id })
-        console.log(`[room ${roomCode}] created by ${player.name} (${player.id}), totalRounds=${totalRounds}`)
+        console.log(`[room ${roomCode}] created by ${player.name} (${player.id}), totalRounds=${totalRounds}, maxPlayers=${maxPlayers}`)
         if (ack) ack({ roomCode, playerId: player.id })
-        broadcastState(room); broadcastAdminRoomList()
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
       } catch (err) {
         console.error('[create-room] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -426,20 +501,58 @@ io.on('connection', (socket) => {
       if (ack) ack({ error: 'Salon introuvable.' })
       return
     }
-    // Notify all players in the room that it was deleted
-    io.to(code).emit('room-destroyed', { reason: 'admin-deleted' })
-    // Disconnect all sockets from the room
-    io.in(code).socketsLeave(code)
-    // Delete the room
-    rooms.delete(code)
-    // Also delete any pending challenges for this room
-    for (const [chId, ch] of challenges.entries()) {
-      if (ch.roomCode === code) {
-        ch.status = 'expired'
+    destroyRoom(code, 'admin-deleted')
+    if (ack) ack({ ok: true, rooms: getAdminRoomList() })
+  })
+
+  // ---- kick-player (host only) ----
+  // The host removes a player from their own room (lobby only).
+  socket.on('kick-player', (payload: { playerId: string }, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) {
+      if (ack) ack({ error: "Vous n'êtes pas dans un salon." })
+      return
+    }
+    const room = findRoom(binding.roomCode)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    // Only the host may kick, and only while the game hasn't started
+    if (room.hostId !== binding.playerId) {
+      if (ack) ack({ error: "Seul l'hôte peut retirer un joueur." })
+      return
+    }
+    if (room.state.phase !== 'lobby') {
+      if (ack) ack({ error: 'Impossible de retirer un joueur en pleine partie.' })
+      return
+    }
+    const playerId = payload?.playerId
+    if (!playerId || playerId === room.hostId) {
+      if (ack) ack({ error: 'Joueur invalide.' })
+      return
+    }
+    const target = room.state.players.find((p) => p.id === playerId)
+    if (!target) {
+      if (ack) ack({ error: 'Joueur introuvable.' })
+      return
+    }
+    const targetName = target.name
+    // Notify the kicked player's socket and detach it from the room
+    for (const [sockId, b] of socketBindings.entries()) {
+      if (b.roomCode === room.roomCode && b.playerId === playerId) {
+        io.to(sockId).emit('kicked', { roomCode: room.roomCode, reason: 'removed-by-host' })
+        const sock = io.sockets.sockets.get(sockId)
+        if (sock) sock.leave(room.roomCode)
+        socketBindings.delete(sockId)
+        break
       }
     }
-    console.log(`[admin] Room ${code} deleted by Benchou Ferrari`)
-    if (ack) ack({ ok: true, rooms: getAdminRoomList() })
+    room.state.players = room.state.players.filter((p) => p.id !== playerId)
+    room.state.statusMessage = `${targetName} a été retiré du salon par l'hôte. (${room.state.players.length}/${room.maxPlayers})`
+    console.log(`[room ${room.roomCode}] ${targetName} kicked by host`)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    if (ack) ack({ ok: true })
   })
 
   // ---- admin-kick-player ----
@@ -482,7 +595,7 @@ io.on('connection', (socket) => {
     }
     room.state.statusMessage = `Un joueur a été expulsé par l'administrateur.`
     console.log(`[admin] Player ${playerId} kicked from room ${code} by Benchou Ferrari`)
-    broadcastState(room); broadcastAdminRoomList()
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
     if (ack) ack({ ok: true, rooms: getAdminRoomList() })
   })
 
@@ -503,7 +616,7 @@ io.on('connection', (socket) => {
       if (ack) ack({ error: 'La partie a déjà commencé' })
       return
     }
-    if (room.state.players.length >= MAX_PLAYERS) {
+    if (room.state.players.length >= room.maxPlayers) {
       if (ack) ack({ error: 'Le salon est complet' })
       return
     }
@@ -531,22 +644,20 @@ io.on('connection', (socket) => {
     room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/${MAX_PLAYERS})`
     console.log(`[admin] Benchou Ferrari joined room ${code}`)
     if (ack) ack({ ok: true, roomCode: code, playerId: benchou.id })
-    broadcastState(room); broadcastAdminRoomList()
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
   })
 
-  // ---- public-list-rooms ----
-  // Anyone can see the list of public rooms (room code + host name + player count).
+  // ---- list-public-rooms ----
+  // Anyone can see the list of public rooms (room code + host identity + player count).
   // Joining still requires the correct code.
+  socket.on('list-public-rooms', (_payload: any, ack?: (res: any) => void) => {
+    if (ack) ack({ rooms: getPublicRoomList() })
+  })
+
+  // ---- public-list-rooms (legacy alias) ----
+  // Keep the old event name working for any client still emitting it.
   socket.on('public-list-rooms', (_payload: any, ack?: (res: any) => void) => {
-    const publicRooms = Array.from(rooms.values()).map((room) => ({
-      roomCode: room.roomCode,
-      hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
-      playerCount: room.state.players.filter((p) => p.connected !== false).length,
-      maxPlayers: MAX_PLAYERS,
-      phase: room.state.phase,
-      totalRounds: room.totalRounds,
-    }))
-    if (ack) ack({ rooms: publicRooms })
+    if (ack) ack({ rooms: getPublicRoomList() })
   })
 
   // ---- challenge-benchou ----
@@ -566,6 +677,8 @@ io.on('connection', (socket) => {
           roomCode,
           hostId: player.id,
           totalRounds,
+          maxPlayers: DEFAULT_MAX_PLAYERS,
+          createdAt: Date.now(),
           state: freshState(),
         }
         room.state.totalRounds = totalRounds
@@ -609,7 +722,7 @@ io.on('connection', (socket) => {
         }).catch(() => {}) // ignore errors — email is best-effort
 
         if (ack) ack({ roomCode, playerId: player.id, challengeId: challenge.id })
-        broadcastState(room); broadcastAdminRoomList()
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
       } catch (err) {
         console.error('[challenge-benchou] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -662,7 +775,7 @@ io.on('connection', (socket) => {
         room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/8)`
         console.log(`[challenge] Benchou Ferrari accepted challenge — room ${room.roomCode}`)
         if (ack) ack({ ok: true, roomCode: room.roomCode, playerId: benchou.id })
-        broadcastState(room); broadcastAdminRoomList()
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
       } catch (err) {
         console.error('[accept-challenge] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -723,7 +836,7 @@ io.on('connection', (socket) => {
           else socket.emit('error', { message: 'La partie a déjà commencé' })
           return
         }
-        if (room.state.players.length >= MAX_PLAYERS) {
+        if (room.state.players.length >= room.maxPlayers) {
           if (ack) ack({ error: 'Le salon est complet' })
           else socket.emit('error', { message: 'Le salon est complet' })
           return
@@ -738,12 +851,12 @@ io.on('connection', (socket) => {
         room.state.players.push(player)
         socket.join(code)
         socketBindings.set(socket.id, { roomCode: code, playerId: player.id })
-        room.state.statusMessage = `${player.name} a rejoint le salon. (${room.state.players.length}/${MAX_PLAYERS})`
+        room.state.statusMessage = `${player.name} a rejoint le salon. (${room.state.players.length}/${room.maxPlayers})`
         console.log(`[room ${code}] ${player.name} (${player.id}) joined`)
         if (ack) ack({ playerId: player.id })
         // Notify others, then full state to everyone
         socket.to(code).emit('player-joined', { player })
-        broadcastState(room); broadcastAdminRoomList()
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
       } catch (err) {
         console.error('[join-room] error', err)
         if (ack) ack({ error: 'Erreur interne' })
@@ -764,16 +877,22 @@ io.on('connection', (socket) => {
           if (ack) ack({ ok: false, error: 'Salon introuvable' })
           return
         }
-        const exists = room.state.players.some((p) => p.id === playerId)
-        if (!exists) {
+        const existing = room.state.players.find((p) => p.id === playerId)
+        if (!existing) {
           if (ack) ack({ ok: false, error: 'Player not in room' })
           return
         }
+        // Mark the player as back online (a host who disconnected keeps his seat).
+        existing.connected = true
         socket.join(code)
         socketBindings.set(socket.id, { roomCode: code, playerId })
+        // If the rejoining player is the host, make sure the host badge follows him.
+        if (playerId === room.hostId) {
+          room.state.statusMessage = `L'hôte (${existing.name}) est de retour. En attente de joueurs...`
+        }
         console.log(`[room ${code}] player ${playerId} rejoined via socket ${socket.id}`)
-        if (ack) ack({ ok: true })
-        broadcastState(room); broadcastAdminRoomList()
+        if (ack) ack({ ok: true, isHost: playerId === room.hostId })
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
       } catch (err) {
         console.error('[rejoin-room] error', err)
         if (ack) ack({ ok: false, error: 'Erreur interne' })
@@ -798,9 +917,19 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'La partie a déjà commencé ou est terminée' })
       return
     }
-    if (room.state.players.length < 2) {
+    // The room must be full before the host can start: the capacity chosen at
+    // creation (maxPlayers) is the number of players required to launch.
+    const connectedCount = room.state.players.filter((p) => p.connected !== false).length
+    if (connectedCount < 2) {
       socket.emit('error', { message: 'Il faut au moins 2 joueurs pour commencer' })
       if (ack) ack({ error: 'Il faut au moins 2 joueurs pour commencer' })
+      return
+    }
+    if (connectedCount < room.maxPlayers) {
+      const missing = room.maxPlayers - connectedCount
+      const msg = `Il manque ${missing} joueur${missing > 1 ? 's' : ''} pour compléter le salon (${connectedCount}/${room.maxPlayers}).`
+      socket.emit('error', { message: msg })
+      if (ack) ack({ error: msg })
       return
     }
     room.state.phase = 'playing'
@@ -820,7 +949,7 @@ io.on('connection', (socket) => {
     room.state.statusMessage = `${first.name} commence ! 10 secondes par coup. ⏱️`
     console.log(`[room ${room.roomCode}] game started (${room.state.players.length} players, ${room.totalRounds} rounds)`)
     if (ack) ack({ ok: true })
-    broadcastState(room); broadcastAdminRoomList()
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
   })
 
   // ---- place-pawn ----
@@ -1081,10 +1210,12 @@ io.on('connection', (socket) => {
   })
 
   // ---- leave-room ----
+  // Voluntary departure (host/player clicked "leave"): the player is removed
+  // from the roster for good and the host may be reassigned.
   socket.on('leave-room', () => {
     const binding = socketBindings.get(socket.id)
     if (!binding) return
-    handleLeave(socket, binding)
+    handleLeave(socket, binding, true)
   })
 
   // ---- disconnect ----
@@ -1104,13 +1235,20 @@ io.on('connection', (socket) => {
   })
 })
 
-function handleLeave(socket: any, binding: SocketBinding): void {
+function handleLeave(socket: any, binding: SocketBinding, intentional = false): void {
   const code = binding.roomCode
   const playerId = binding.playerId
   socketBindings.delete(socket.id)
   socket.leave(code)
   const room = findRoom(code)
   if (!room) return
+  // HOST leaves VOLUNTARILY ("Quitter le salon") → the room dies with him in every
+  // phase: it is destroyed and everyone still inside is sent home immediately.
+  if (intentional && playerId === room.hostId) {
+    console.log(`[room ${code}] HOST ${playerId} left — destroying the room`)
+    destroyRoom(code, 'host-left')
+    return
+  }
 
   // During a game (playing/gameover): DON'T delete the player — mark as disconnected.
   // This preserves scores, grid pawns, and indices. The game continues with remaining players.
@@ -1122,7 +1260,7 @@ function handleLeave(socket: any, binding: SocketBinding): void {
 
       // Count still-connected players
       const connectedPlayers = room.state.players.filter((p) => p.connected !== false)
-      
+
       if (room.state.phase === 'playing') {
         if (connectedPlayers.length <= 1) {
           // Only 1 (or 0) player left → end the game
@@ -1165,7 +1303,20 @@ function handleLeave(socket: any, binding: SocketBinding): void {
     }
   }
 
-  // Lobby phase: remove the player entirely (original behavior)
+  // Lobby phase.
+  const leavingPlayer = room.state.players.find((p) => p.id === playerId)
+  // An UNINTENTIONAL disconnect of the HOST (closed tab, lost network) must not
+  // cost him his host status: keep him in the roster marked offline (like a
+  // mid-game disconnect) so that if he comes back he is still the host.
+  if (!intentional && leavingPlayer && playerId === room.hostId) {
+    leavingPlayer.connected = false
+    room.state.statusMessage = `L'hôte (${leavingPlayer.name}) s'est déconnecté. Le salon l'attend...`
+    console.log(`[room ${code}] HOST ${leavingPlayer.name} disconnected in lobby — kept as host`)
+    socket.to(code).emit('player-left', { playerId, playerName: leavingPlayer.name })
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    return
+  }
+  // Voluntary leave (or a non-host disconnecting): remove the player entirely.
   const removed = removePlayerFromRoom(room, playerId)
   if (removed) {
     console.log(`[room ${code}] player ${playerId} left (${room.state.players.length} remaining)`)
@@ -1174,9 +1325,10 @@ function handleLeave(socket: any, binding: SocketBinding): void {
   if (room.state.players.length === 0) {
     rooms.delete(code)
     console.log(`[room ${code}] deleted (empty)`)
+    broadcastPublicRoomList()
     return
   }
-  broadcastState(room); broadcastAdminRoomList()
+  broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
 }
 
 // ====== Server-side timer (optimized: only broadcast on second change) ======

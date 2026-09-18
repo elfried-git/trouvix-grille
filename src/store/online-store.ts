@@ -24,6 +24,7 @@ export interface PublicRoom {
   maxPlayers: number;
   isFull: boolean;
   totalRounds: number;
+  phase?: "lobby" | "playing" | "gameover";
   createdAt: number;
 }
 
@@ -188,7 +189,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       set({ publicRooms: payload.rooms ?? [] });
     });
     // Admin room list (sent only to Benchou Ferrari)
-    socket.on("admin-rooms", (payload: { rooms: AdminRoom[] }) => {
+    socket.on("admin-rooms-update", (payload: { rooms: AdminRoom[] }) => {
       set({ adminRooms: payload.rooms ?? [] });
     });
     // Kicked by host or admin
