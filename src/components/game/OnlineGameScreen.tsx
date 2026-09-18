@@ -7,6 +7,7 @@ import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
+import { playerBarGradient } from "@/lib/color";
 import { Flag, Home, Timer, Pause, Play, Crown, WifiOff, Swords, RotateCcw } from "lucide-react";
 
 // ===== Reaction emojis =====
@@ -380,7 +381,7 @@ export function OnlineGameScreen() {
                 style={{
                   background: urgent
                     ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
-                    : `linear-gradient(90deg, ${current?.color ?? "#f59e0b"}, #fbbf24)`,
+                    : playerBarGradient(current?.color ?? "#f59e0b"),
                 }}
                 animate={{ width: `${timePct}%` }}
                 transition={{ duration: 0.25, ease: "linear" }}

@@ -7,6 +7,7 @@ import { PlayerPanel } from "./PlayerPanel";
 import { Avatar } from "./Avatar";
 import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import { findBestMove } from "@/lib/ai";
+import { playerBarGradient } from "@/lib/color";
 import { Button } from "@/components/ui/button";
 import { Flag, Home, Timer, ScrollText, Pause, Play } from "lucide-react";
 import {
@@ -186,7 +187,7 @@ export function GameScreen() {
                 style={{
                   background: urgent
                     ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
-                    : `linear-gradient(90deg, ${current?.color ?? "#f59e0b"}, #fbbf24)`,
+                    : playerBarGradient(current?.color ?? "#f59e0b"),
                 }}
                 animate={{ width: isPaused ? `${timePct}%` : `${timePct}%` }}
                 transition={{ duration: 0.1, ease: "linear" }}
