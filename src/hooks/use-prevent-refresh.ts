@@ -50,14 +50,31 @@ export function usePreventRefresh(active: boolean) {
       }
     };
 
-    // 3) Disable mobile overscroll gestures in BOTH directions.
-    //    A downward drag at the top of the page triggers pull-to-refresh, and
-    //    an upward drag at the bottom (or the reversed gesture at the top on
-    //    some browsers/OEM skins) triggers the same reload — or a history
-    //    navigation. So we blanket-block any gesture that overscrolls either
-    //    vertical edge, regardless of the direction it came from.
+    // 3) Block ONLY the overscroll bounce, never the in-game scroll itself.
+    //    The game scrolls inside its own container (the layout gives the
+    //    in-game <main> `overflow-y-auto`), so the browser page never scrolls.
+    //    We therefore measure the REAL scrollable element under the finger
+    //    rather than `window`, and only neutralise the gesture when it would
+    //    carry that element PAST an edge — which is what browsers turn into
+    //    pull-to-refresh in either direction.
     let touchStartX = 0;
     let touchStartY = 0;
+
+    // Walk up from the touched node to the first element that can actually
+    // scroll vertically. Falls back to the document element (browser page).
+    const findScrollable = (node: EventTarget | null): HTMLElement => {
+      let el = node instanceof Element ? (node as HTMLElement) : null;
+      while (el && el !== document.body && el !== document.documentElement) {
+        const style = window.getComputedStyle(el);
+        const canScrollY =
+          /(auto|scroll|overlay)/.test(style.overflowY) &&
+          el.scrollHeight > el.clientHeight;
+        if (canScrollY) return el;
+        el = el.parentElement;
+      }
+      return document.documentElement;
+    };
+
     const onTouchStart = (e: TouchEvent) => {
       touchStartX = e.touches[0]?.clientX ?? 0;
       touchStartY = e.touches[0]?.clientY ?? 0;
@@ -68,30 +85,40 @@ export function usePreventRefresh(active: boolean) {
       const dx = x - touchStartX;
       const dy = y - touchStartY;
 
-      const doc = document.documentElement;
-      // Total scrollable distance. If the page fits without scrolling, the
-      // whole viewport is an overscroll zone and every vertical gesture is a
-      // refresh candidate.
-      const scrollable = doc.scrollHeight - window.innerHeight;
-      const atTop = window.scrollY <= 0;
-      const atBottom = window.scrollY >= scrollable - 1;
-
       const vertical = Math.abs(dy) > Math.abs(dx);
-      if (vertical && scrollable <= 1) {
-        // Not scrollable at all → block any vertical gesture in both directions.
-        e.preventDefault();
-        return;
-      }
       if (vertical) {
-        const pullingDown = dy > 0;
-        const pullingUp = dy < 0;
-        // Block the refresh gesture at BOTH edges and BOTH directions:
-        //  - at the top, any pull (down = classic refresh, up = reversed refresh)
-        //  - at the bottom, any pull (up = classic bottom overscroll, down = reversed)
-        if ((atTop && (pullingDown || pullingUp)) || (atBottom && (pullingUp || pullingDown))) {
+        const scroller = findScrollable(e.target);
+        const isDoc = scroller === document.documentElement;
+        const viewport = isDoc
+          ? window.innerHeight
+          : scroller.clientHeight;
+        const scrollTop = isDoc ? window.scrollY : scroller.scrollTop;
+        const maxScroll = scroller.scrollHeight - viewport;
+
+        // Not scrollable at all: the whole area is an overscroll zone, so any
+        // vertical drag is a refresh candidate → block in both directions.
+        if (maxScroll <= 1) {
           e.preventDefault();
           return;
         }
+
+        const atTop = scrollTop <= 0;
+        const atBottom = scrollTop >= maxScroll - 1;
+        const pullingDown = dy > 0;
+        const pullingUp = dy < 0;
+
+        // Block ONLY when the gesture would go PAST an edge:
+        //  - at the very top, dragging further down (or the reversed drag up on
+        //    some OEM skins) would overscroll;
+        //  - at the very bottom, dragging further up (or the reversed drag
+        //    down) would overscroll.
+        const overscrollsTop = atTop && (pullingDown || pullingUp);
+        const overscrollsBottom = atBottom && (pullingUp || pullingDown);
+        if (overscrollsTop || overscrollsBottom) {
+          e.preventDefault();
+          return;
+        }
+        // Otherwise we are mid-scroll inside the game → let the scroll happen.
       }
 
       // Horizontal edge swipes (back/forward navigation) — also a way to leave

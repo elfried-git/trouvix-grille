@@ -22,8 +22,15 @@ export default function Home() {
   usePreventRefresh(lockedInGame);
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col">
-      <main className="flex flex-1 flex-col">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden">
+      <main
+        className={`flex flex-1 flex-col ${
+          // In-game screens scroll INSIDE the app, never the browser page.
+          // The page itself is locked to the viewport height, so scrolling
+          // can't spill over into a browser-level pull-to-refresh.
+          lockedInGame ? "min-h-0 overflow-y-auto scroll-romantic overscroll-none" : ""
+        }`}
+      >
         {phase === "home" && <HomeScreen />}
         {phase === "setup" && <SetupScreen />}
         {phase === "playing" && <GameScreen />}
