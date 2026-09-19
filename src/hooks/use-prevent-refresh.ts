@@ -104,21 +104,25 @@ export function usePreventRefresh(active: boolean) {
 
         const atTop = scrollTop <= 0;
         const atBottom = scrollTop >= maxScroll - 1;
+        // dy > 0: the finger moves DOWN. dy < 0: the finger moves UP.
         const pullingDown = dy > 0;
         const pullingUp = dy < 0;
 
-        // Block ONLY when the gesture would go PAST an edge:
-        //  - at the very top, dragging further down (or the reversed drag up on
-        //    some OEM skins) would overscroll;
-        //  - at the very bottom, dragging further up (or the reversed drag
-        //    down) would overscroll.
-        const overscrollsTop = atTop && (pullingDown || pullingUp);
-        const overscrollsBottom = atBottom && (pullingUp || pullingDown);
+        // Block ONLY the direction that would carry the scroller PAST an edge
+        // — that is what the browser turns into pull-to-refresh. The OPPOSITE
+        // direction is exactly the gesture that scrolls back into the content,
+        // so it must stay free (this is what makes touch scrolling work on
+        // mobile: at the top you drag UP to reveal what is below).
+        //  - at the top, only an extra DOWNWARD drag overscrolls;
+        //  - at the bottom, only an extra UPWARD drag overscrolls.
+        const overscrollsTop = atTop && pullingDown;
+        const overscrollsBottom = atBottom && pullingUp;
         if (overscrollsTop || overscrollsBottom) {
           e.preventDefault();
           return;
         }
-        // Otherwise we are mid-scroll inside the game → let the scroll happen.
+        // Otherwise (mid-scroll, or dragging back into the content) let the
+        // native touch scroll run untouched.
       }
 
       // Horizontal edge swipes (back/forward navigation) — also a way to leave
