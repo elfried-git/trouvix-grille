@@ -70,6 +70,7 @@ export interface OnlineGameState {
   hostId: string;
   totalRounds: number;
   maxPlayers: number;
+  isBenchouChallenge?: boolean;
   phase: "lobby" | "playing" | "gameover";
   players: OnlinePlayer[];
   currentPlayerIndex: number;

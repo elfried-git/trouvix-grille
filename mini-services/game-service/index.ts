@@ -70,6 +70,7 @@ interface Room {
   totalRounds: number
   maxPlayers: number // host-defined capacity (2-6), clamped to [2, MAX_PLAYERS]
   createdAt: number
+  isBenchouChallenge?: boolean // true if created via "Jouer avec Benchou Ferrari" (private 1v1)
   state: GameState
 }
 
@@ -227,6 +228,7 @@ function publicState(room: Room): any {
     hostId: room.hostId,
     totalRounds: room.totalRounds,
     maxPlayers: room.maxPlayers,
+    isBenchouChallenge: room.isBenchouChallenge ?? false,
     phase: s.phase,
     players: s.players.map((p) => ({ ...p })),
     currentPlayerIndex: s.currentPlayerIndex,
@@ -334,6 +336,7 @@ interface AdminRoomInfo {
   phase: string
   totalRounds: number
   currentRound: number
+  isBenchouChallenge?: boolean
   players: { id: string; name: string; color: string; emoji: string; score: number; connected: boolean; isAI: boolean }[]
   createdAt: number
 }
@@ -348,6 +351,7 @@ function getAdminRoomList(): AdminRoomInfo[] {
     phase: room.state.phase,
     totalRounds: room.totalRounds,
     currentRound: room.state.currentRound,
+    isBenchouChallenge: room.isBenchouChallenge ?? false,
     players: room.state.players.map((p) => ({
       id: p.id,
       name: p.name,
@@ -390,22 +394,24 @@ interface PublicRoomInfo {
 }
 
 function getPublicRoomList(): PublicRoomInfo[] {
-  return Array.from(rooms.values()).map((room) => {
-    const host = room.state.players.find((p) => p.id === room.hostId)
-    const playerCount = room.state.players.filter((p) => p.connected !== false).length
-    return {
-      roomCode: room.roomCode,
-      hostName: host?.name ?? 'Inconnu',
-      hostEmoji: host?.emoji ?? '',
-      hostColor: host?.color ?? '#9f1239',
-      playerCount,
-      maxPlayers: room.maxPlayers,
-      isFull: playerCount >= room.maxPlayers,
-      totalRounds: room.totalRounds,
-      phase: room.state.phase,
-      createdAt: room.createdAt ?? Date.now(),
-    }
-  })
+  return Array.from(rooms.values())
+    .filter((room) => !room.isBenchouChallenge)
+    .map((room) => {
+      const host = room.state.players.find((p) => p.id === room.hostId)
+      const playerCount = room.state.players.filter((p) => p.connected !== false).length
+      return {
+        roomCode: room.roomCode,
+        hostName: host?.name ?? 'Inconnu',
+        hostEmoji: host?.emoji ?? '',
+        hostColor: host?.color ?? '#9f1239',
+        playerCount,
+        maxPlayers: room.maxPlayers,
+        isFull: playerCount >= room.maxPlayers,
+        totalRounds: room.totalRounds,
+        phase: room.state.phase,
+        createdAt: room.createdAt ?? Date.now(),
+      }
+    })
 }
 
 // Broadcast the public room list to every connected client (reactivity).
@@ -677,13 +683,14 @@ io.on('connection', (socket) => {
           roomCode,
           hostId: player.id,
           totalRounds,
-          maxPlayers: DEFAULT_MAX_PLAYERS,
+          maxPlayers: 2, // 1 vs 1 match
+          isBenchouChallenge: true,
           createdAt: Date.now(),
           state: freshState(),
         }
         room.state.totalRounds = totalRounds
         room.state.players.push(player)
-        room.state.statusMessage = `En attente de Benchou Ferrari... (hôte: ${player.name})`
+        room.state.statusMessage = `En attente de Benchou Ferrari pour un duel 1 vs 1... (hôte: ${player.name})`
         rooms.set(roomCode, room)
         socket.join(roomCode)
         socketBindings.set(socket.id, { roomCode, playerId: player.id })
@@ -710,7 +717,8 @@ io.on('connection', (socket) => {
         }
 
         // Call the email/webhook API (fire-and-forget)
-        fetch(`http://localhost:3000/api/notify-benchou`, {
+        const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT_APP || 9999}`
+        fetch(`${appUrl}/api/notify-benchou`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -768,11 +776,13 @@ io.on('connection', (socket) => {
           alignments: 0,
           isAI: false, // Benchou is a REAL person, not an AI!
         }
+        room.isBenchouChallenge = true
+        room.maxPlayers = 2 // Lock capacity to 2 for 1v1 Benchou match
         room.state.players.push(benchou)
         socket.join(room.roomCode)
         socketBindings.set(socket.id, { roomCode: room.roomCode, playerId: benchou.id })
         challenge.status = 'accepted'
-        room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/8)`
+        room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! Le duel 1 vs 1 peut commencer. (2/2)`
         console.log(`[challenge] Benchou Ferrari accepted challenge — room ${room.roomCode}`)
         if (ack) ack({ ok: true, roomCode: room.roomCode, playerId: benchou.id })
         broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
@@ -834,6 +844,11 @@ io.on('connection', (socket) => {
         if (room.state.phase !== 'lobby') {
           if (ack) ack({ error: 'La partie a déjà commencé' })
           else socket.emit('error', { message: 'La partie a déjà commencé' })
+          return
+        }
+        if (room.isBenchouChallenge) {
+          if (ack) ack({ error: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
+          else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
           return
         }
         if (room.state.players.length >= room.maxPlayers) {
@@ -925,7 +940,8 @@ io.on('connection', (socket) => {
       if (ack) ack({ error: 'Il faut au moins 2 joueurs pour commencer' })
       return
     }
-    if (connectedCount < room.maxPlayers) {
+    const isBenchouMatch = room.isBenchouChallenge || room.state.players.some((p) => p.name === 'Benchou Ferrari')
+    if (!isBenchouMatch && connectedCount < room.maxPlayers) {
       const missing = room.maxPlayers - connectedCount
       const msg = `Il manque ${missing} joueur${missing > 1 ? 's' : ''} pour compléter le salon (${connectedCount}/${room.maxPlayers}).`
       socket.emit('error', { message: msg })

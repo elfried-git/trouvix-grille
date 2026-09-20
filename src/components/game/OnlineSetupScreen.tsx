@@ -9,6 +9,7 @@ import { useOnlineStore } from "@/store/online-store";
 import type { PublicRoom } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
+import { AdminRoomsBoard } from "./AdminRoomsBoard";
 import { isPhotoAvatar } from "@/lib/types";
 import {
   ArrowLeft,
@@ -171,17 +172,20 @@ export function OnlineSetupScreen() {
   const players = serverState?.players ?? [];
 
   // Public rooms shown on the menu.
-  // - Regular players only see lobbies still open for joining (the server refuses
-  //   joins once a game has started, so showing them would be misleading).
-  // - The super-admin sees EVERY active room (lobby + in-game) so he can delete
-  //   any of them.
+  // Benchou Ferrari 1v1 challenges are STRICTLY private and excluded from this list.
   const openRooms = onlinePublicRooms.filter(
-    (r) => onlineIsBenchou || !r.phase || r.phase === "lobby"
+    (r) => !r.isBenchouChallenge && (!r.phase || r.phase === "lobby")
   );
 
   // The host can only launch once every seat is taken: the capacity chosen at
   // creation (roomMaxPlayers) is the number of players required to start.
-  const roomMaxPlayers = serverState?.maxPlayers || 6;
+  // Benchou 1v1 challenge rooms require exactly 2 players (Host + Benchou)
+  const isBenchouChallengeRoom =
+    (serverState as any)?.isBenchouChallenge ||
+    players.some((p) => p.name === "Benchou Ferrari");
+  const roomMaxPlayers = isBenchouChallengeRoom
+    ? 2
+    : serverState?.maxPlayers || 6;
   const connectedCount = players.filter((p) => p.connected !== false).length;
   const roomFull = connectedCount >= roomMaxPlayers;
 
@@ -349,7 +353,7 @@ export function OnlineSetupScreen() {
                   Jouer avec Benchou Ferrari
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Sollicite Benchou Ferrari pour une partie. Il recevra une notification.
+                  Défie Benchou Ferrari pour un match 1 vs 1 privé. Seul le super admin recevra l'invitation.
                 </p>
               </button>
             </div>
@@ -405,8 +409,8 @@ export function OnlineSetupScreen() {
                     <Button
                       size="sm"
                       onClick={async () => {
-                        await onlineRegisterAsBenchou(benchouPin);
-                        if (onlineIsBenchou) {
+                        const success = await onlineRegisterAsBenchou(benchouPin);
+                        if (success) {
                           setShowPinForm(false);
                           setBenchouPin("");
                           onlineClearError();
@@ -467,6 +471,13 @@ export function OnlineSetupScreen() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Super Admin Rooms Board (visible only to Benchou Ferrari) */}
+            {onlineIsBenchou && (
+              <div className="mt-6">
+                <AdminRoomsBoard />
               </div>
             )}
 
@@ -633,8 +644,8 @@ export function OnlineSetupScreen() {
                   className="h-14 w-14 rounded-full object-cover ring-2 ring-violet-400/40"
                 />
                 <div>
-                  <p className="font-display text-sm font-bold text-violet-200">Benchou Ferrari</p>
-                  <p className="text-xs text-muted-foreground">Je suis prêt à te défier. 😂</p>
+                  <p className="font-display text-sm font-bold text-violet-200">Benchou Ferrari (Match 1 vs 1)</p>
+                  <p className="text-xs text-muted-foreground">Salon privé réservé. Je suis prêt pour le duel ! 🔥</p>
                 </div>
               </div>
             )}
@@ -836,7 +847,7 @@ export function OnlineSetupScreen() {
             <div className="mb-4">
               <p className="mb-2 flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
                 <Users className="h-3.5 w-3.5" />
-                Joueurs ({players.length}/{serverState.maxPlayers || 6})
+                Joueurs ({players.length}/{roomMaxPlayers})
               </p>
               <div className="flex flex-col gap-2">
                 {players.map((p) => (
@@ -893,8 +904,9 @@ export function OnlineSetupScreen() {
                 ))}
                 {!roomFull && (
                   <p className="rounded-xl border border-dashed border-border/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                    En attente de {roomMaxPlayers - connectedCount} joueur
-                    {roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon...
+                    {isBenchouChallengeRoom
+                      ? "En attente de Benchou Ferrari pour rejoindre le duel 1 vs 1..."
+                      : `En attente de ${roomMaxPlayers - connectedCount} joueur${roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon...`}
                   </p>
                 )}
               </div>
@@ -929,12 +941,17 @@ export function OnlineSetupScreen() {
                 <Swords className="mr-2 h-5 w-5" />
                 Lancer la partie
               </Button>
+              {roomFull && isBenchouChallengeRoom && (
+                <p className="mt-2 text-center text-xs font-semibold text-emerald-300 animate-pulse">
+                  ⚡ Benchou Ferrari a rejoint le salon ! Tu peux lancer le duel 1 vs 1.
+                </p>
+              )}
               {!roomFull && (
                 <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-amber-200/80">
                   <Users className="h-3.5 w-3.5" />
-                  En attente de {roomMaxPlayers - connectedCount} joueur
-                  {roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon
-                  ({connectedCount}/{roomMaxPlayers})
+                  {isBenchouChallengeRoom
+                    ? "En attente de Benchou Ferrari pour démarrer le duel 1 vs 1 (1/2)"
+                    : `En attente de ${roomMaxPlayers - connectedCount} joueur${roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon (${connectedCount}/${roomMaxPlayers})`}
                 </p>
               )}
               </>

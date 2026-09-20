@@ -124,6 +124,11 @@ export function AdminRoomsBoard() {
                     <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${phaseColor(room.phase)}`}>
                       {phaseLabel(room.phase)}
                     </span>
+                    {room.isBenchouChallenge && (
+                      <span className="rounded-full border border-violet-400/50 bg-violet-500/20 px-2 py-0.5 text-[9px] font-bold uppercase text-violet-200">
+                        ⚔️ Défi 1v1
+                      </span>
+                    )}
                     {room.phase === "playing" && (
                       <span className="text-[10px] text-muted-foreground">
                         Carré {room.currentRound}/{room.totalRounds}

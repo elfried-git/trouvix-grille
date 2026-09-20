@@ -26,6 +26,7 @@ export interface PublicRoom {
   totalRounds: number;
   phase?: "lobby" | "playing" | "gameover";
   createdAt: number;
+  isBenchouChallenge?: boolean;
 }
 
 export interface AdminRoomPlayer {
@@ -50,6 +51,7 @@ export interface AdminRoom {
   totalRounds: number;
   currentRound: number;
   createdAt: number;
+  isBenchouChallenge?: boolean;
   players: AdminRoomPlayer[];
 }
 
@@ -76,7 +78,7 @@ interface OnlineStore {
   createRoom: (player: SetupPlayer, totalRounds: number, maxPlayers?: number) => Promise<void>;
   joinRoom: (roomCode: string, player: SetupPlayer) => Promise<void>;
   challengeBenchou: (player: SetupPlayer, totalRounds: number) => Promise<void>;
-  registerAsBenchou: (pin: string) => Promise<void>;
+  registerAsBenchou: (pin: string) => Promise<boolean>;
   acceptChallenge: (challengeId: string) => Promise<void>;
   declineChallenge: (challengeId: string) => Promise<void>;
   challengeDeclined: boolean; // true when Benchou declined the current challenge
@@ -386,14 +388,17 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         await Notification.requestPermission();
       }
     }
-    return new Promise<void>((resolve) => {
+    return new Promise<boolean>((resolve) => {
       socket.emit("register-as-benchou", { pin }, (res: { ok?: boolean; pendingChallenges?: Challenge[]; error?: string }) => {
         if (res?.error) {
           set({ errorMessage: res.error });
+          resolve(false);
         } else if (res?.ok) {
           set({ isBenchou: true, benchouPin: pin, challenges: res.pendingChallenges ?? [] });
+          resolve(true);
+        } else {
+          resolve(false);
         }
-        resolve();
       });
     });
   },

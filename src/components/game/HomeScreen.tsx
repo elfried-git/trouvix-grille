@@ -23,7 +23,7 @@ export function HomeScreen() {
   const goToReviews = useGameStore((s) => s.goToReviews);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-10">
+    <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
       {/* Floating icons */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -131,21 +131,20 @@ export function HomeScreen() {
           >
             <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
           </Button> */}
-        </motion.div>
-        </motion.div>
+                </motion.div>
+              </motion.div>
 
-
-{/* Démo */}
-        <div className="mt-20 w-full">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-            <h2 className="font-display text-2xl font-black tracking-wide">
-              <span className="text-red-gradient">Démo</span>
-            </h2>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-          </div>
-          <TutorialVideoScreen />
-        </div>
-    </div>
-  );
-}
+              {/* Démo — hors du conteneur centré, sinon poussée hors écran et coupée */}
+              <div className="mt-16 w-full">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+                  <h2 className="font-display text-2xl font-black tracking-wide">
+                    <span className="text-red-gradient">Démo</span>
+                  </h2>
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+                </div>
+                <TutorialVideoScreen />
+              </div>
+            </div>
+          );
+        }

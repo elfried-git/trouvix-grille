@@ -28,7 +28,9 @@ export default function Home() {
           // In-game screens scroll INSIDE the app, never the browser page.
           // The page itself is locked to the viewport height, so scrolling
           // can't spill over into a browser-level pull-to-refresh.
-          lockedInGame ? "min-h-0 overflow-y-auto scroll-romantic overscroll-none" : ""
+          lockedInGame
+            ? "min-h-0 overflow-y-auto scroll-romantic overscroll-none"
+            : "min-h-0 overflow-y-auto scroll-romantic"
         }`}
       >
         {phase === "home" && <HomeScreen />}
