@@ -43,7 +43,7 @@ export function Dice({ value, isRolling, onRoll, disabled }: DiceProps) {
           </span>
         ))}
       </motion.button>
-      <p className="font-display text-sm tracking-wide text-amber-200/80">
+      <p className="font-display text-base tracking-wide text-amber-200/80">
         {isRolling
           ? "Le dé tourne..."
           : value

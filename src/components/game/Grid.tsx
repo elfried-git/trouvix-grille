@@ -74,7 +74,7 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
                     >
                       {/* Star badge on cells that are part of a formed square */}
                       {isSquareCell && !isFresh && (
-                        <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs drop-shadow">
+                        <span className="absolute inset-0 flex items-center justify-center text-xs sm:text-xs drop-shadow">
                           ⭐
                         </span>
                       )}
