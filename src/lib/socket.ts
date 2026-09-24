@@ -25,19 +25,25 @@ function getGameServiceUrl(): string {
 export function getSocket(): Socket {
   if (!socket) {
     const url = getGameServiceUrl();
-    const isLocalDev = url.startsWith("/");
 
     socket = io(url, {
-      transports: ["websocket", "polling"],
+      // "polling" first: an HTTP request reaches a cold/sleeping host
+      // (e.g. Railway free plan) much faster than a raw WebSocket handshake,
+      // then Socket.IO transparently upgrades to WebSocket. Trying
+      // "websocket" first makes the very first connection look stuck.
+      transports: ["polling", "websocket"],
       forceNew: true,
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 500,
       reconnectionDelayMax: 3000,
-      timeout: 10000,
+      timeout: 20000,
       // In production, CORS is handled by the remote server
       // In local dev, Caddy proxies the request
     });
+
+    // Expose the resolved URL so callers (wake helper) can reuse it.
+    (socket as any).__trouvixUrl = url;
 
     if (process.env.NODE_ENV !== "production") {
       console.log("[socket] connecting to:", url);
@@ -51,6 +57,41 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+}
+
+/**
+ * Ping the game-service over plain HTTP to wake it up.
+ *
+ * On hosts like Railway's free plan the service goes to sleep after a period
+ * of inactivity; the first request has to spin the container back up (a "cold
+ * start" of ~10-30s). Firing a cheap HTTP GET to /health *before* opening the
+ * Socket.IO connection starts that wake-up in the background, so by the time
+ * the user clicks "Créer"/"Rejoindre" the server is already responding.
+ *
+ * Safe to call multiple times: it never throws and ignores failures.
+ */
+export function wakeGameService(): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      if (typeof window === "undefined") return resolve();
+      const url = getGameServiceUrl();
+      // Local dev uses the Caddy gateway with a XTransformPort query param —
+      // there's no /health route through it, and no cold start either, so skip.
+      if (url.startsWith("/")) return resolve();
+
+      const healthUrl = url.replace(/\/+$/, "") + "/health";
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 25000);
+      fetch(healthUrl, { method: "GET", signal: controller.signal, cache: "no-store" })
+        .catch(() => {})
+        .finally(() => {
+          clearTimeout(timer);
+          resolve();
+        });
+    } catch {
+      resolve();
+    }
+  });
 }
 
 // Types shared with the server

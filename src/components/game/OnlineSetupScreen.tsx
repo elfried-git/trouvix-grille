@@ -48,6 +48,7 @@ export function OnlineSetupScreen() {
   const backHome = useGameStore((s) => s.backHome);
   // Use precise selectors to avoid re-rendering on every state-update (timer ticks at 10Hz)
   const onlineConnected = useOnlineStore((s) => s.connected);
+  const onlineConnecting = useOnlineStore((s) => s.connecting);
   const onlineRoomCode = useOnlineStore((s) => s.roomCode);
   const onlineMyPlayerId = useOnlineStore((s) => s.myPlayerId);
   const onlineState = useOnlineStore((s) => s.state);
@@ -224,11 +225,19 @@ export function OnlineSetupScreen() {
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
               onlineConnected
                 ? "bg-emerald-500/10 text-emerald-300"
-                : "bg-rose-500/10 text-rose-300"
+                : onlineConnecting
+                  ? "bg-amber-500/10 text-amber-300"
+                  : "bg-rose-500/10 text-rose-300"
             }`}
           >
-            {onlineConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-            {onlineConnected ? "Connecté" : "Hors ligne"}
+            {onlineConnected ? (
+              <Wifi className="h-3 w-3" />
+            ) : onlineConnecting ? (
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300/30 border-t-amber-300" />
+            ) : (
+              <WifiOff className="h-3 w-3" />
+            )}
+            {onlineConnected ? "Connecté" : onlineConnecting ? "Connexion…" : "Hors ligne"}
           </span>
         </div>
 

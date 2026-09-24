@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { getSocket, disconnectSocket } from "@/lib/socket";
+import { getSocket, disconnectSocket, wakeGameService } from "@/lib/socket";
 import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
 
 export interface Challenge {
@@ -57,6 +57,7 @@ export interface AdminRoom {
 
 interface OnlineStore {
   connected: boolean;
+  connecting: boolean; // true while we're (re)connecting to the game service
   myPlayerId: string | null;
   roomCode: string | null;
   state: OnlineGameState | null;
@@ -103,6 +104,7 @@ interface OnlineStore {
 
 export const useOnlineStore = create<OnlineStore>((set, get) => ({
   connected: false,
+  connecting: true,
   myPlayerId: null,
   roomCode: null,
   state: null,
@@ -123,9 +125,15 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     if ((socket as any).__trouvixListeners) return;
     (socket as any).__trouvixListeners = true;
 
-    if (socket.connected) set({ connected: true });
+    // Wake the (possibly sleeping) game service over HTTP while Socket.IO
+    // negotiates. This makes the first connection much faster on hosts that
+    // put the service to sleep (Railway free plan cold start).
+    wakeGameService();
+
+    if (socket.connected) set({ connected: true, connecting: false });
+    else set({ connecting: true });
     socket.on("connect", () => {
-      set({ connected: true });
+      set({ connected: true, connecting: false });
       // Auto-fetch public rooms immediately on connect (reactivity)
       socket.emit("list-public-rooms", {}, (res: { rooms?: PublicRoom[] }) => {
         if (res?.rooms) set({ publicRooms: res.rooms });
@@ -137,7 +145,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         });
       }
     });
-    socket.on("disconnect", () => set({ connected: false }));
+    socket.on("disconnect", () => set({ connected: false, connecting: true }));
     socket.on("state-update", (payload: { state: OnlineGameState }) => {
       // Always set a NEW object reference so Zustand detects the change
       // (socket.io may reuse the same parsed object in some edge cases)
@@ -251,6 +259,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     disconnectSocket();
     set({
       connected: false,
+      connecting: false,
       myPlayerId: null,
       roomCode: null,
       state: null,

@@ -7,6 +7,7 @@ import { GameScreen } from "@/components/game/GameScreen";
 import { WinnerScreen } from "@/components/game/WinnerScreen";
 import { OnlineRouter } from "@/components/game/OnlineRouter";
 import { ReviewsScreen } from "@/components/game/ReviewsScreen";
+import { GameServiceWarmer } from "@/components/game/GameServiceWarmer";
 import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 
 export default function Home() {
@@ -23,6 +24,9 @@ export default function Home() {
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden">
+      {/* Start waking + connecting to the game-service as soon as the app opens,
+          so the online status is ready before the player reaches the menu. */}
+      <GameServiceWarmer />
       <main
         className={`flex flex-1 flex-col ${
           // In-game screens scroll INSIDE the app, never the browser page.
