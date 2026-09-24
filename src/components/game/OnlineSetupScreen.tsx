@@ -71,6 +71,7 @@ export function OnlineSetupScreen() {
   const onlinePublicRooms = useOnlineStore((s) => s.publicRooms);
   const onlineListPublicRooms = useOnlineStore((s) => s.listPublicRooms);
   const onlineKickPlayer = useOnlineStore((s) => s.kickPlayer);
+  const onlineDestroyRoom = useOnlineStore((s) => s.destroyRoom);
   const onlineAdminListRooms = useOnlineStore((s) => s.adminListRooms);
   const onlineAdminDeleteRoom = useOnlineStore((s) => s.adminDeleteRoom);
 
@@ -85,6 +86,7 @@ export function OnlineSetupScreen() {
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [confirmRoomDelete, setConfirmRoomDelete] = useState<string | null>(null);
+  const [confirmDestroyRoom, setConfirmDestroyRoom] = useState(false);
   const [benchouPin, setBenchouPin] = useState("");
   const [showPinForm, setShowPinForm] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -359,7 +361,7 @@ export function OnlineSetupScreen() {
                   <Bot className="h-7 w-7 text-violet-300" />
                 </div>
                 <p className="font-display text-lg font-bold text-foreground">
-                  Jouer avec Benchou Ferrari
+                  Jouer contre Benchou
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Défie Benchou Ferrari pour un match 1 vs 1 privé. Seul le super admin recevra l'invitation.
@@ -636,7 +638,7 @@ export function OnlineSetupScreen() {
               {activeTab === "create"
                 ? "Créer un salon"
                 : activeTab === "benchou"
-                  ? "Jouer avec Benchou Ferrari"
+                  ? "Jouer contre Benchou"
                   : "Rejoindre un salon"}
             </h2>
 
@@ -952,7 +954,7 @@ export function OnlineSetupScreen() {
               </Button>
               {roomFull && isBenchouChallengeRoom && (
                 <p className="mt-2 text-center text-xs font-semibold text-emerald-300 animate-pulse">
-                  ⚡ Benchou Ferrari a rejoint le salon ! Tu peux lancer le duel 1 vs 1.
+                  ⚡ Benchou Ferrari a rejoint le salon !
                 </p>
               )}
               {!roomFull && (
@@ -983,6 +985,46 @@ export function OnlineSetupScreen() {
             >
               Retour au menu en ligne
             </Button>
+
+            {/* Host-only: close (destroy) the room for everyone. A non-host has no
+                such button — their own departure never destroys the room. */}
+            {amHost && (
+              confirmDestroyRoom ? (
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmDestroyRoom(false)}
+                    className="flex-1"
+                    disabled={onlinePending}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      await onlineDestroyRoom();
+                      setConfirmDestroyRoom(false);
+                      backHome();
+                    }}
+                    disabled={onlinePending}
+                    className="flex-1 bg-rose-600 text-white hover:bg-rose-500"
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" /> Confirmer la fermeture
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmDestroyRoom(true)}
+                  disabled={onlinePending}
+                  className="mt-3 w-full border-rose-400/50 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                >
+                  <Trash2 className="mr-1 h-4 w-4" /> Détruire le salon (tous les joueurs sortent)
+                </Button>
+              )
+            )}
           </div>
         )}
       </motion.div>

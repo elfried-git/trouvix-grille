@@ -10,6 +10,10 @@ const BOARD_FULL_RESOLVE_MS = 1200
 const BENCHOU_PIN = process.env.BENCHOU_PIN || '331991' // Secret PIN (override via env in production)
 const TICK_MS = 500 // 500ms = good balance between smoothness and memory
 const TICK_DT = TICK_MS / 1000 // 0.5 seconds
+// How long an empty room (nobody connected) is kept alive before it self-destructs.
+// An empty room stays reachable with its code for this long so the host and the
+// players can come back and keep playing; after that it is obsolete and deleted.
+const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000 // 10 minutes
 const MAX_PLAYERS = 8 // hard server ceiling
 const DEFAULT_MAX_PLAYERS = 6 // default when the host doesn't specify a capacity
 const PORT = parseInt(process.env.PORT || '3003', 10)
@@ -71,6 +75,10 @@ interface Room {
   maxPlayers: number // host-defined capacity (2-6), clamped to [2, MAX_PLAYERS]
   createdAt: number
   isBenchouChallenge?: boolean // true if created via "Jouer avec Benchou Ferrari" (private 1v1)
+  // Timestamp when the room last became empty (no connected player).
+  // null while at least one player is connected. When set, the room is kept
+  // alive for EMPTY_ROOM_TTL_MS so people can rejoin, then it is destroyed.
+  emptySince: number | null
   state: GameState
 }
 
@@ -291,6 +299,30 @@ function nextPlayerIndex(room: Room): number {
   return (room.state.currentPlayerIndex + 1) % n
 }
 
+// True when at least one player in the room is still connected.
+function hasConnectedPlayers(room: Room): boolean {
+  return room.state.players.some((p) => p.connected !== false)
+}
+
+// If nobody is connected, start (or keep) the countdown that will destroy the
+// room after EMPTY_ROOM_TTL_MS. The room stays fully usable in the meantime:
+// anyone (host included) can rejoin with its code and cancel the countdown.
+function armEmptyTimer(room: Room): void {
+  if (hasConnectedPlayers(room)) return
+  if (room.emptySince === null) {
+    room.emptySince = Date.now()
+    console.log(`[room ${room.roomCode}] empty — will self-destruct in ${EMPTY_ROOM_TTL_MS / 60000} min if nobody rejoins`)
+  }
+}
+
+// A player is back: the room is no longer empty, cancel any pending expiry.
+function cancelEmptyTimer(room: Room): void {
+  if (room.emptySince !== null) {
+    room.emptySince = null
+    console.log(`[room ${room.roomCode}] someone rejoined — expiry cancelled`)
+  }
+}
+
 // Destroy a room entirely: notify everyone inside, detach them, drop the room
 // and expire its pending challenges. Used when the host leaves (the room dies
 // with him) and by the admin-delete-room handler.
@@ -310,9 +342,16 @@ function destroyRoom(code: string, reason: string): void {
 
 // ====== HTTP + Socket.io setup ======
 const httpServer = createServer((req, res) => {
-  // Health check endpoint — Railway uses this to verify the service is alive
+  // Health check endpoint — Railway uses this to verify the service is alive,
+  // and the web client pings it to wake a sleeping service before connecting.
   if (req.url === '/health' || req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      // Allow the browser (served from a different origin) to read the response.
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': '*',
+    })
     res.end(JSON.stringify({ status: 'ok', service: 'trouvix-game-service', time: new Date().toISOString() }))
     return
   }
@@ -320,7 +359,10 @@ const httpServer = createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }))
 })
 const io = new Server(httpServer, {
-  path: '/',
+  // Standard Socket.IO path. Do NOT use '/' here: with path '/' Socket.IO
+  // swallows every HTTP request (including /health) and answers 400, which
+  // breaks the health-check wake-up used to shorten cold starts.
+  path: '/socket.io',
   cors: { origin: '*', methods: ['GET', 'POST'] },
   pingTimeout: 60000,
   pingInterval: 25000,
@@ -443,6 +485,7 @@ io.on('connection', (socket) => {
           totalRounds,
           maxPlayers,
           createdAt: Date.now(),
+          emptySince: null,
           state: freshState(),
         }
         room.state.totalRounds = totalRounds
@@ -686,6 +729,7 @@ io.on('connection', (socket) => {
           maxPlayers: 2, // 1 vs 1 match
           isBenchouChallenge: true,
           createdAt: Date.now(),
+          emptySince: null,
           state: freshState(),
         }
         room.state.totalRounds = totalRounds
@@ -866,6 +910,7 @@ io.on('connection', (socket) => {
         room.state.players.push(player)
         socket.join(code)
         socketBindings.set(socket.id, { roomCode: code, playerId: player.id })
+        cancelEmptyTimer(room)
         room.state.statusMessage = `${player.name} a rejoint le salon. (${room.state.players.length}/${room.maxPlayers})`
         console.log(`[room ${code}] ${player.name} (${player.id}) joined`)
         if (ack) ack({ playerId: player.id })
@@ -901,6 +946,8 @@ io.on('connection', (socket) => {
         existing.connected = true
         socket.join(code)
         socketBindings.set(socket.id, { roomCode: code, playerId })
+        // Someone is back — the room must not self-destruct.
+        cancelEmptyTimer(room)
         // If the rejoining player is the host, make sure the host badge follows him.
         if (playerId === room.hostId) {
           room.state.statusMessage = `L'hôte (${existing.name}) est de retour. En attente de joueurs...`
@@ -1225,6 +1272,32 @@ io.on('connection', (socket) => {
     })
   })
 
+  // ---- destroy-room (HOST only) ----
+  // The host explicitly closes the room: it is destroyed immediately and every
+  // player still inside is sent home. A non-host cannot do this — their own
+  // departure only frees a seat (and, if nobody remains, starts the empty-room
+  // countdown). This is the only way to destroy a room on purpose.
+  socket.on('destroy-room', (_payload: any, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) {
+      if (ack) ack({ error: 'Tu n\'es dans aucun salon.' })
+      return
+    }
+    const room = findRoom(binding.roomCode)
+    if (!room) {
+      if (ack) ack({ ok: true })
+      return
+    }
+    if (room.hostId !== binding.playerId) {
+      if (ack) ack({ error: "Seul l'hôte peut détruire le salon." })
+      else socket.emit('error', { message: "Seul l'hôte peut détruire le salon." })
+      return
+    }
+    console.log(`[room ${room.roomCode}] destroyed by host ${binding.playerId}`)
+    if (ack) ack({ ok: true })
+    destroyRoom(room.roomCode, 'host-destroyed')
+  })
+
   // ---- leave-room ----
   // Voluntary departure (host/player clicked "leave"): the player is removed
   // from the roster for good and the host may be reassigned.
@@ -1258,11 +1331,34 @@ function handleLeave(socket: any, binding: SocketBinding, intentional = false): 
   socket.leave(code)
   const room = findRoom(code)
   if (!room) return
-  // HOST leaves VOLUNTARILY ("Quitter le salon") → the room dies with him in every
-  // phase: it is destroyed and everyone still inside is sent home immediately.
+  // HOST leaves VOLUNTARILY ("Quitter le salon") in the LOBBY → the room does NOT
+  // die instantly anymore. It stays reachable for EMPTY_ROOM_TTL_MS so the host
+  // and the other players can come back with the same code. The host keeps his
+  // seat (marked offline) so he can reclaim his role on rejoin. The room is only
+  // scheduled for self-destruction if nobody is connected (see armEmptyTimer).
+  if (intentional && playerId === room.hostId && room.state.phase === 'lobby') {
+    const host = room.state.players.find((p) => p.id === playerId)
+    if (host) host.connected = false
+    room.state.statusMessage = `L'hôte (${host?.name ?? '?'}) a quitté le salon. Le salon reste ouvert ${EMPTY_ROOM_TTL_MS / 60000} min pour un retour.`
+    console.log(`[room ${code}] HOST ${playerId} left voluntarily — room kept alive for ${EMPTY_ROOM_TTL_MS / 60000} min`)
+    socket.to(code).emit('player-left', { playerId, playerName: host?.name })
+    armEmptyTimer(room)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    return
+  }
+  // HOST leaves VOLUNTARILY during a GAME → end the match (as before) but keep the
+  // room alive so everyone can see the result / rematch within the grace window.
   if (intentional && playerId === room.hostId) {
-    console.log(`[room ${code}] HOST ${playerId} left — destroying the room`)
-    destroyRoom(code, 'host-left')
+    console.log(`[room ${code}] HOST ${playerId} left mid-game — ending the match`)
+    const host = room.state.players.find((p) => p.id === playerId)
+    if (host) host.connected = false
+    room.state.phase = 'gameover'
+    room.state.resolving = false
+    room.state.winnerId = computeWinner(room.state.players)
+    room.state.statusMessage = `L'hôte (${host?.name ?? '?'}) a quitté la partie.`
+    socket.to(code).emit('player-left', { playerId, playerName: host?.name, gameOver: true })
+    armEmptyTimer(room)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
     return
   }
 
@@ -1326,23 +1422,24 @@ function handleLeave(socket: any, binding: SocketBinding, intentional = false): 
   // mid-game disconnect) so that if he comes back he is still the host.
   if (!intentional && leavingPlayer && playerId === room.hostId) {
     leavingPlayer.connected = false
-    room.state.statusMessage = `L'hôte (${leavingPlayer.name}) s'est déconnecté. Le salon l'attend...`
+    room.state.statusMessage = `L'hôte (${leavingPlayer.name}) s'est déconnecté. Le salon l'attend ${EMPTY_ROOM_TTL_MS / 60000} min...`
     console.log(`[room ${code}] HOST ${leavingPlayer.name} disconnected in lobby — kept as host`)
     socket.to(code).emit('player-left', { playerId, playerName: leavingPlayer.name })
+    armEmptyTimer(room)
     broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
     return
   }
   // Voluntary leave (or a non-host disconnecting): remove the player entirely.
+  const removedPlayer = room.state.players.find((p) => p.id === playerId)
   const removed = removePlayerFromRoom(room, playerId)
   if (removed) {
     console.log(`[room ${code}] player ${playerId} left (${room.state.players.length} remaining)`)
-    socket.to(code).emit('player-left', { playerId, playerName: room.state.players.find(p => p.id === playerId)?.name })
+    socket.to(code).emit('player-left', { playerId, playerName: removedPlayer?.name })
   }
-  if (room.state.players.length === 0) {
-    rooms.delete(code)
-    console.log(`[room ${code}] deleted (empty)`)
-    broadcastPublicRoomList()
-    return
+  // Nobody connected anymore → don't delete right away: keep the room reachable
+  // for EMPTY_ROOM_TTL_MS so the host and players can rejoin, then it expires.
+  if (!hasConnectedPlayers(room)) {
+    armEmptyTimer(room)
   }
   broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
 }
@@ -1378,6 +1475,25 @@ setInterval(() => {
   }
 }, TICK_MS)
 
+// ====== Empty-room reaper ======
+// Every 15s, destroy rooms that have been empty (nobody connected) for longer
+// than EMPTY_ROOM_TTL_MS. Until then an empty room stays reachable by its code.
+setInterval(() => {
+  const now = Date.now()
+  for (const room of rooms.values()) {
+    if (room.emptySince === null) continue
+    // Someone is connected again → the timer should already be cancelled; be safe.
+    if (hasConnectedPlayers(room)) {
+      room.emptySince = null
+      continue
+    }
+    if (now - room.emptySince >= EMPTY_ROOM_TTL_MS) {
+      console.log(`[room ${room.roomCode}] empty for ${EMPTY_ROOM_TTL_MS / 60000} min — auto-destroying`)
+      destroyRoom(room.roomCode, 'expired-empty')
+    }
+  }
+}, 15000)
+
 // ====== Boot ======
 httpServer.listen(PORT, () => {
   console.log(`Trouvix game service on port ${PORT}`)
@@ -1396,28 +1512,23 @@ function shutdown(signal: string) {
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT', () => shutdown('SIGINT'))
 
-// ====== Memory cleanup: remove empty/stale rooms every 5 minutes ======
+// ====== Memory cleanup: remove stale rooms every 5 minutes ======
+// NOTE: empty rooms are NOT deleted here — they are kept reachable for
+// EMPTY_ROOM_TTL_MS and destroyed by the empty-room reaper above. This
+// periodic pass only clears genuinely stale rooms that have no connected
+// player and whose grace window has already elapsed.
 const CLEANUP_INTERVAL = 5 * 60 * 1000 // 5 minutes
-const STALE_ROOM_MS = 30 * 60 * 1000 // 30 minutes of inactivity = stale
 setInterval(() => {
+  const now = Date.now()
   let cleaned = 0
   for (const [code, room] of rooms.entries()) {
-    // Delete empty rooms
-    if (room.state.players.length === 0) {
-      rooms.delete(code)
-      cleaned++
-      continue
-    }
-    // Delete stale rooms (no active game, created > 30 min ago)
-    // We use the last status change as a proxy — if phase is lobby and older than 30 min, clean
-    if (room.state.phase === 'lobby') {
-      // Check if any player is still connected
-      const hasConnected = room.state.players.some((p) => p.connected !== false)
-      if (!hasConnected) {
-        rooms.delete(code)
-        cleaned++
-      }
-    }
+    // Only rooms with nobody connected AND whose grace window has expired.
+    if (hasConnectedPlayers(room)) continue
+    if (room.emptySince !== null && now - room.emptySince < EMPTY_ROOM_TTL_MS) continue
+    // If emptySince was never set (legacy room), treat it as stale if in lobby.
+    if (room.emptySince === null && room.state.phase !== 'lobby') continue
+    rooms.delete(code)
+    cleaned++
   }
   if (cleaned > 0) {
     console.log(`[cleanup] Removed ${cleaned} stale room(s). Active rooms: ${rooms.size}`)

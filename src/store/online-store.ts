@@ -95,6 +95,7 @@ interface OnlineStore {
   // room management
   listPublicRooms: () => void;
   kickPlayer: (playerId: string) => Promise<void>;
+  destroyRoom: () => Promise<void>;
   adminListRooms: () => void;
   adminKickPlayer: (roomCode: string, playerId: string) => Promise<void>;
   adminDeleteRoom: (roomCode: string) => Promise<void>;
@@ -502,15 +503,15 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   },
 
   leaveRoom: () => {
-    // Emit leave-room but DON'T destroy the socket — keep it alive for rejoin
+    // Emit leave-room but DON'T destroy the socket — keep it alive for rejoin.
+    // The server keeps the room alive for 10 minutes after everyone leaves, so
+    // the host (and the players) can come back with the same code.
     const socket = getSocket();
     if (socket.connected) {
       socket.emit("leave-room");
     }
-    try {
-      localStorage.removeItem("trouvix_room");
-      localStorage.removeItem("trouvix_player");
-    } catch {}
+    // Keep trouvix_room / trouvix_player so the online screen can offer to
+    // rejoin the same room (host regains his role) during the grace window.
     set({
       myPlayerId: null,
       roomCode: null,
@@ -576,6 +577,23 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         set({ pendingAction: false });
         if (res?.error) set({ errorMessage: res.error });
         resolve();
+      });
+    });
+  },
+
+  // Host-only: close the room for everyone immediately.
+  destroyRoom: async () => {
+    const socket = getSocket();
+    set({ pendingAction: true });
+    return new Promise<void>((resolve) => {
+      const done = () => {
+        set({ pendingAction: false });
+        resolve();
+      };
+      if (!socket.connected) return done();
+      socket.emit("destroy-room", {}, (res: { ok?: boolean; error?: string }) => {
+        if (res?.error) set({ errorMessage: res.error });
+        done();
       });
     });
   },
