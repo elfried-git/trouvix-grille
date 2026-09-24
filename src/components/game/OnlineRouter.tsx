@@ -9,8 +9,10 @@ import { OnlineGameScreen } from "./OnlineGameScreen";
 export function OnlineRouter() {
   const state = useOnlineStore((s) => s.state);
   const kicked = useOnlineStore((s) => s.kicked);
+  const kickedToOnline = useOnlineStore((s) => s.kickedToOnline);
   const clearKicked = useOnlineStore((s) => s.clearKicked);
   const backHome = useGameStore((s) => s.backHome);
+  const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
 
   // Initialize socket ONCE on mount. Try reconnect only if we have saved data.
   useEffect(() => {
@@ -29,16 +31,20 @@ export function OnlineRouter() {
     };
   }, []);
 
-  // When kicked (host left / admin deleted) — show a brief message then go home
+  // When kicked (host left / admin deleted) — show a brief message, then:
+  // • if the host closed the room to start a NEW game, land on the ONLINE menu
+  //   so the player can compose a fresh game from scratch;
+  // • otherwise, go back to the home screen.
   useEffect(() => {
     if (kicked) {
       const id = setTimeout(() => {
         clearKicked();
-        backHome();
+        if (kickedToOnline) goToOnlineSetup();
+        else backHome();
       }, 3500);
       return () => clearTimeout(id);
     }
-  }, [kicked, clearKicked, backHome]);
+  }, [kicked, kickedToOnline, clearKicked, backHome, goToOnlineSetup]);
 
   // If we have a server state and the phase is "playing" or "gameover", show the game screen.
   // Otherwise (lobby or no state), show the setup/lobby screen.

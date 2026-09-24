@@ -1003,9 +1003,10 @@ export function OnlineSetupScreen() {
                   <Button
                     size="sm"
                     onClick={async () => {
-                      await onlineDestroyRoom();
+                      // Just destroy: the room-destroyed handler will redirect
+                      // everyone (host included) to the online menu.
                       setConfirmDestroyRoom(false);
-                      backHome();
+                      await onlineDestroyRoom();
                     }}
                     disabled={onlinePending}
                     className="flex-1 bg-rose-600 text-white hover:bg-rose-500"

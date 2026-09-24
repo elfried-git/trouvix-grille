@@ -69,6 +69,7 @@ interface OnlineStore {
   publicRooms: PublicRoom[]; // all lobby-phase rooms visible to everyone
   adminRooms: AdminRoom[]; // all rooms with full details (Benchou only)
   kicked: boolean; // true when this player was kicked by host/admin
+  kickedToOnline: boolean; // redirect the after-kick screen to the online menu instead of home
   reactions: { id: string; emoji: string; timestamp: number }[]; // floating emoji reactions
 
   // lifecycle
@@ -117,6 +118,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   publicRooms: [],
   adminRooms: [],
   kicked: false,
+  kickedToOnline: false,
   benchouPin: "",
   reactions: [],
 
@@ -231,7 +233,10 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         set((s) => ({ reactions: s.reactions.filter((r) => r.id !== reaction.id) }));
       }, 3000);
     });
-    // Room destroyed by host leaving or admin deleting — everyone goes home
+    // Room destroyed — the host closed it (or an admin deleted it).
+    // • host-destroyed / new-game → everyone goes back to the ONLINE menu so the
+    //   host can start a fresh game from scratch (new room, new settings).
+    // • otherwise (admin / host left) → back to the home screen.
     socket.on("room-destroyed", (payload: { reason: string }) => {
       const reason = payload?.reason;
       set({
@@ -239,10 +244,13 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         roomCode: null,
         state: null,
         kicked: true,
+        kickedToOnline: reason === "host-destroyed" || reason === "new-game",
         errorMessage:
           reason === "admin-deleted"
             ? "Le salon a été supprimé par l'administrateur."
-            : "L'hôte a quitté le salon. La partie est terminée.",
+            : reason === "host-destroyed" || reason === "new-game"
+              ? "L'hôte a fermé le salon. Crée ou rejoins une nouvelle partie."
+              : "L'hôte a quitté le salon. La partie est terminée.",
       });
       try {
         localStorage.removeItem("trouvix_room");
@@ -633,7 +641,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     });
   },
 
-  clearKicked: () => set({ kicked: false, errorMessage: null }),
+  clearKicked: () => set({ kicked: false, kickedToOnline: false, errorMessage: null }),
 
   sendReaction: (emoji) => {
     const socket = getSocket();

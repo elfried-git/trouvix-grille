@@ -8,7 +8,7 @@ import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { playerBarGradient } from "@/lib/color";
-import { Flag, Home, Timer, Pause, Play, Crown, WifiOff, Swords, RotateCcw } from "lucide-react";
+import { Flag, Home, Timer, Pause, Play, Crown, WifiOff, Swords, RotateCcw, Plus } from "lucide-react";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -25,6 +25,7 @@ export function OnlineGameScreen() {
   const rematchTiedAction = useOnlineStore((s) => s.rematchTied);
   const restartAction = useOnlineStore((s) => s.restart);
   const leaveRoomAction = useOnlineStore((s) => s.leaveRoom);
+  const destroyRoomAction = useOnlineStore((s) => s.destroyRoom);
   const backHome = useGameStore((s) => s.backHome);
   const reactions = useOnlineStore((s) => s.reactions);
   const sendReactionAction = useOnlineStore((s) => s.sendReaction);
@@ -196,6 +197,14 @@ export function OnlineGameScreen() {
                     <RotateCcw className="mr-2 h-5 w-5" />
                     Rejouer
                   </Button>
+                  <Button
+                    onClick={destroyRoomAction}
+                    size="lg"
+                    variant="outline"
+                  >
+                    <Plus className="mr-2 h-5 w-5" />
+                    Nouvelle partie
+                  </Button>
                 </>
               ) : (
                 <p className="text-sm text-violet-200/70">En attente de l'hôte pour le challenge...</p>
@@ -279,13 +288,22 @@ export function OnlineGameScreen() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {amHost ? (
-              <Button
-                onClick={restartAction}
-                size="lg"
-                className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
-              >
-                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
-              </Button>
+              <>
+                <Button
+                  onClick={restartAction}
+                  size="lg"
+                  className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                >
+                  <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+                </Button>
+                <Button
+                  onClick={destroyRoomAction}
+                  size="lg"
+                  variant="outline"
+                >
+                  <Plus className="mr-2 h-5 w-5" /> Nouvelle partie
+                </Button>
+              </>
             ) : (
               <p className="text-sm text-amber-200/70">En attente de l'hôte pour rejouer...</p>
             )}
