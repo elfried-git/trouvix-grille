@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Grid } from "./Grid";
-import { PlayerPanel } from "./PlayerPanel";
 import { Avatar } from "./Avatar";
 import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import { findBestMove } from "@/lib/ai";
@@ -140,28 +139,48 @@ export function GameScreen() {
       </div>
 
       {/* Main layout */}
-      <div className="grid flex-1 grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
-        {/* Grid + timer + status */}
-        <div className="flex flex-col gap-4">
-          {/* Timer bar */}
-          <div className="glass-card rounded-2xl p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Avatar
-                  avatar={current?.emoji ?? "❓"}
-                  color={current?.color ?? "#52525b"}
-                  size={44}
-                  emojiSize="text-xl"
-                />
-                <div>
-                  <p className="text-xs text-muted-foreground sm:text-[11px]">Tour de</p>
-                  <p className="font-display text-base font-bold leading-tight">
-                    {current?.name}
-                  </p>
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4">
+        {/* Professional score counter & players list — above the grid */}
+        <div className="glass-card rounded-2xl p-3 sm:p-4 space-y-3">
+          {/* Players list with live scores and active turn highlight */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none sm:flex-wrap">
+            {players.map((p) => {
+              const isActive = p.id === current?.id;
+              return (
+                <div
+                  key={p.id}
+                  className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition-all shrink-0 ${
+                    isActive
+                      ? "bg-amber-500/20 border-2 border-amber-400/80 shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)] ring-1 ring-amber-300/50"
+                      : "bg-card/40 border border-border/40 opacity-80"
+                  }`}
+                >
+                  <Avatar avatar={p.emoji} color={p.color} size={28} emojiSize="text-sm" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1">
+                      <span className={`text-xs font-bold truncate max-w-[90px] sm:max-w-[120px] ${isActive ? "text-amber-100" : "text-foreground"}`}>
+                        {p.name}
+                      </span>
+                      {p.isAI && (
+                        <span className="rounded bg-violet-400/20 px-1 py-0.2 text-[9px] font-semibold text-violet-200">
+                          IA
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`font-display text-xs sm:text-sm font-black pl-1 ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                    {p.score} <span className="text-[10px] font-normal text-muted-foreground">pts</span>
+                  </span>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+
+          {/* Seconds countdown & progress bar */}
+          <div className="space-y-1.5 pt-1 border-t border-border/30">
+            <div className="flex items-center justify-end">
               <div
-                className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${
+                className={`flex items-center gap-1 font-display text-sm sm:text-base font-black tabular-nums ${
                   isPaused
                     ? "text-emerald-300"
                     : urgent
@@ -171,17 +190,19 @@ export function GameScreen() {
               >
                 {isPaused ? (
                   <>
-                    <Pause className="h-5 w-5" /> Pause
+                    <Pause className="h-4 w-4" /> Pause
                   </>
                 ) : (
                   <>
-                    <Timer className={`h-5 w-5 ${urgent ? "animate-pulse" : ""}`} />
+                    <Timer className={`h-4 w-4 ${urgent ? "animate-pulse" : ""}`} />
                     {turnTimeLeft.toFixed(1)}s
                   </>
                 )}
               </div>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+
+            {/* Countdown progress bar */}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
               <motion.div
                 className="h-full rounded-full"
                 style={{
@@ -189,28 +210,22 @@ export function GameScreen() {
                     ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
                     : playerBarGradient(current?.color ?? "#f59e0b"),
                 }}
-                animate={{ width: isPaused ? `${timePct}%` : `${timePct}%` }}
+                animate={{ width: `${timePct}%` }}
                 transition={{ duration: 0.1, ease: "linear" }}
               />
             </div>
           </div>
-
-          {/* The board */}
-          <Grid
-            players={players}
-            currentPlayerId={current?.id ?? null}
-            isPaused={isPaused}
-          />
         </div>
 
-        {/* Side panel */}
-        <div className="flex flex-col gap-4">
-          <PlayerPanel
-            players={players}
-            currentPlayerId={current?.id ?? null}
-            lastDelta={lastDelta}
-            grid={grid}
-          />
+        {/* The board */}
+        <Grid
+          players={players}
+          currentPlayerId={current?.id ?? null}
+          isPaused={isPaused}
+        />
+
+        {/* Quit button */}
+        <div className="flex justify-center pt-2">
           <Button
             variant="ghost"
             size="sm"

@@ -913,20 +913,8 @@ export function OnlineSetupScreen() {
                     )}
                   </div>
                 ))}
-                {!roomFull && (
-                  <p className="rounded-xl border border-dashed border-border/60 px-3 py-4 text-center text-xs text-muted-foreground">
-                    {isBenchouChallengeRoom
-                      ? "En attente de Benchou Ferrari pour rejoindre le duel 1 vs 1..."
-                      : `En attente de ${roomMaxPlayers - connectedCount} joueur${roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon...`}
-                  </p>
-                )}
               </div>
             </div>
-
-            {/* Status */}
-            <p className="mb-4 text-center text-sm text-muted-foreground">
-              {serverState.statusMessage}
-            </p>
 
             {/* Declined challenge banner */}
             {onlineChallengeDeclined && (
@@ -940,91 +928,73 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Host actions */}
+            {/* Host / Guest Actions */}
             {amHost ? (
-              <>
-              <Button
-                onClick={onlineStartGame}
-                disabled={!roomFull}
-                size="lg"
-                className="w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-50"
-              >
-                <Swords className="mr-2 h-5 w-5" />
-                Lancer la partie
-              </Button>
-              {roomFull && isBenchouChallengeRoom && (
-                <p className="mt-2 text-center text-xs font-semibold text-emerald-300 animate-pulse">
-                  ⚡ Benchou Ferrari a rejoint le salon !
-                </p>
-              )}
-              {!roomFull && (
-                <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-amber-200/80">
-                  <Users className="h-3.5 w-3.5" />
-                  {isBenchouChallengeRoom
-                    ? "En attente de Benchou Ferrari pour démarrer le duel 1 vs 1 (1/2)"
-                    : `En attente de ${roomMaxPlayers - connectedCount} joueur${roomMaxPlayers - connectedCount > 1 ? "s" : ""} pour compléter le salon (${connectedCount}/${roomMaxPlayers})`}
-                </p>
-              )}
-              </>
-            ) : (
-              <p className="text-center text-sm text-amber-200/70">
-                En attente de l'hôte pour lancer la partie...
-              </p>
-            )}
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // Leave room but keep socket alive for quick rejoin
-                onlineLeaveRoom();
-                setTab("menu");
-                // Don't clear name/emoji — user might just want to modify, not re-enter everything
-              }}
-              className="mt-3 w-full text-muted-foreground hover:text-foreground"
-            >
-              Retour au menu en ligne
-            </Button>
-
-            {/* Host-only: close (destroy) the room for everyone. A non-host has no
-                such button — their own departure never destroys the room. */}
-            {amHost && (
-              confirmDestroyRoom ? (
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setConfirmDestroyRoom(false)}
-                    className="flex-1"
-                    disabled={onlinePending}
-                  >
-                    Annuler
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={async () => {
-                      // Just destroy: the room-destroyed handler will redirect
-                      // everyone (host included) to the online menu.
-                      setConfirmDestroyRoom(false);
-                      await onlineDestroyRoom();
-                    }}
-                    disabled={onlinePending}
-                    className="flex-1 bg-rose-600 text-white hover:bg-rose-500"
-                  >
-                    <Trash2 className="mr-1 h-4 w-4" /> Confirmer la fermeture
-                  </Button>
-                </div>
-              ) : (
+              <div className="space-y-3 pt-2">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfirmDestroyRoom(true)}
-                  disabled={onlinePending}
-                  className="mt-3 w-full border-rose-400/50 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                  onClick={onlineStartGame}
+                  disabled={!roomFull}
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40"
                 >
-                  <Trash2 className="mr-1 h-4 w-4" /> Détruire le salon (tous les joueurs sortent)
+                  <Swords className="mr-2 h-5 w-5" />
+                  {roomFull
+                    ? "Lancer la partie"
+                    : `En attente de joueurs (${connectedCount}/${roomMaxPlayers})`}
                 </Button>
-              )
+
+                {confirmDestroyRoom ? (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmDestroyRoom(false)}
+                      className="flex-1"
+                      disabled={onlinePending}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        setConfirmDestroyRoom(false);
+                        await onlineDestroyRoom();
+                      }}
+                      disabled={onlinePending}
+                      className="flex-1 bg-rose-600 text-white hover:bg-rose-500"
+                    >
+                      <Trash2 className="mr-1.5 h-4 w-4" /> Confirmer la fermeture
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmDestroyRoom(true)}
+                    disabled={onlinePending}
+                    className="w-full text-muted-foreground hover:text-rose-300"
+                  >
+                    <Trash2 className="mr-1.5 h-4 w-4" /> Fermer le salon
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3 pt-2">
+                <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-center text-sm text-amber-200">
+                  ⏳ En attente de l'hôte pour lancer la partie...
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onlineLeaveRoom();
+                    setTab("menu");
+                  }}
+                  className="w-full text-muted-foreground hover:text-foreground"
+                >
+                  Quitter le salon
+                </Button>
+              </div>
             )}
           </div>
         )}

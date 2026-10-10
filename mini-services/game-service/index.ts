@@ -155,6 +155,31 @@ function isBoardFull(grid: GridCell[][]): boolean {
   return grid.every((row) => row.every((c) => c !== null))
 }
 
+function canAnyPlayerFormSquare(grid: GridCell[][], players: Player[]): boolean {
+  const activePlayers = players.filter((p) => p.connected !== false)
+  if (activePlayers.length === 0) return false
+  const activeIds = new Set(activePlayers.map((p) => p.id))
+  for (let r0 = 0; r0 <= ROWS - 2; r0++) {
+    for (let c0 = 0; c0 <= COLS - 2; c0++) {
+      const cells = [
+        grid[r0][c0],
+        grid[r0][c0 + 1],
+        grid[r0 + 1][c0],
+        grid[r0 + 1][c0 + 1],
+      ]
+      const filled = cells.filter((c) => c !== null) as string[]
+      if (filled.length === 0) return true // empty 2x2: any player can form it
+      if (filled.length === 4) continue // already filled (either completed square or blocked)
+      const owner = filled[0]
+      // Check if all filled cells in this 2x2 belong to the SAME owner who is still active
+      if (activeIds.has(owner) && filled.every((c) => c === owner)) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
 function computeWinner(players: Player[]): string | null {
   if (players.length === 0) return null
   let best = players[0]
@@ -1105,6 +1130,15 @@ io.on('connection', (socket) => {
           broadcastState(r2)
           return
         }
+        if (!canAnyPlayerFormSquare(st.grid, st.players)) {
+          const winnerId = computeWinner(st.players)
+          st.phase = 'gameover'
+          st.winnerId = winnerId
+          st.statusMessage = 'Plus aucun carré possible sur la grille ! Fin du match. 🏆'
+          console.log(`[room ${r2.roomCode}] GAME OVER (no more squares possible) winner=${winnerId}`)
+          broadcastState(r2)
+          return
+        }
         const nextIndex = nextPlayerIndex(r2)
         const next = st.players[nextIndex]
         st.currentPlayerIndex = nextIndex
@@ -1115,11 +1149,12 @@ io.on('connection', (socket) => {
       return
     }
 
-    // No square: check board full
-    if (isBoardFull(s.grid)) {
+    // No square: check board full OR no more squares possible
+    if (isBoardFull(s.grid) || !canAnyPlayerFormSquare(s.grid, s.players)) {
       s.resolving = true
       const winnerId = computeWinner(s.players)
-      s.statusMessage = 'Plateau plein ! Fin du match.'
+      const isFull = isBoardFull(s.grid)
+      s.statusMessage = isFull ? 'Plateau plein ! Fin du match.' : 'Plus aucun carré possible sur la grille ! Fin du match.'
       broadcastState(room); broadcastAdminRoomList()
       setTimeout(() => {
         const r2 = findRoom(binding.roomCode)
@@ -1130,8 +1165,8 @@ io.on('connection', (socket) => {
         st.winnerId = winnerId
         st.resolving = false
         st.lastSquareCells = null
-        st.statusMessage = 'Plateau plein — match terminé ! 🏆'
-        console.log(`[room ${r2.roomCode}] GAME OVER (board full) winner=${winnerId}`)
+        st.statusMessage = isFull ? 'Plateau plein — match terminé ! 🏆' : 'Plus aucun carré possible — match terminé ! 🏆'
+        console.log(`[room ${r2.roomCode}] GAME OVER (${isFull ? 'board full' : 'no more squares possible'}) winner=${winnerId}`)
         broadcastState(r2)
       }, BOARD_FULL_RESOLVE_MS)
       return
@@ -1196,6 +1231,11 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: "Seul l'hôte peut relancer" })
       return
     }
+    const connectedCount = room.state.players.filter((p) => p.connected !== false).length
+    if (connectedCount < 2) {
+      socket.emit('error', { message: "Il n'y a plus assez de joueurs connectés pour relancer." })
+      return
+    }
     // Keep initial players, reset everything else, start playing again.
     const keptPlayers = room.state.initialPlayers.map((p) => ({
       ...p,
@@ -1232,8 +1272,9 @@ io.on('connection', (socket) => {
     if (s.players.length === 0) return
     const maxScore = Math.max(...s.players.map((p) => p.score))
     const tied = s.players.filter((p) => p.score === maxScore)
-    if (tied.length <= 1) {
-      socket.emit('error', { message: 'Aucune égalité à départager' })
+    const connectedTied = tied.filter((p) => p.connected !== false)
+    if (connectedTied.length <= 1) {
+      socket.emit('error', { message: 'Les autres joueurs à égalité ont quitté le salon.' })
       return
     }
     // Keep only tied players, reset their scores, start a new game

@@ -27,6 +27,7 @@ export function OnlineGameScreen() {
   const leaveRoomAction = useOnlineStore((s) => s.leaveRoom);
   const destroyRoomAction = useOnlineStore((s) => s.destroyRoom);
   const backHome = useGameStore((s) => s.backHome);
+  const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
   const reactions = useOnlineStore((s) => s.reactions);
   const sendReactionAction = useOnlineStore((s) => s.sendReaction);
 
@@ -103,17 +104,34 @@ export function OnlineGameScreen() {
     backHome();
   };
 
+  const handleNewGame = () => {
+    if (amHost) {
+      destroyRoomAction();
+    } else {
+      leaveRoomAction();
+      try {
+        localStorage.removeItem("trouvix_room");
+        localStorage.removeItem("trouvix_player");
+      } catch {}
+      goToOnlineSetup();
+    }
+  };
+
   // === GAME OVER ===
   if (state.phase === "gameover") {
     const ranked = [...players].sort((a, b) => b.score - a.score);
     const maxScore = ranked.length > 0 ? ranked[0].score : 0;
     const tiedPlayerIds = state.tiedPlayerIds ?? [];
+    const connectedPlayers = players.filter((p) => p.connected !== false);
+    const hasEnoughPlayersToRestart = connectedPlayers.length >= 2;
     const isTie = tiedPlayerIds.length > 1;
+    const tiedPlayers = ranked.filter((p) => tiedPlayerIds.includes(p.id));
+    const connectedTiedPlayers = tiedPlayers.filter((p) => p.connected !== false);
+    const hasEnoughTiedToRematch = connectedTiedPlayers.length >= 2;
     const singleWinner = !isTie ? ranked[0] : null;
 
     // === TIE SCREEN ===
     if (isTie) {
-      const tiedPlayers = ranked.filter((p) => tiedPlayerIds.includes(p.id));
       const eliminated = ranked.filter((p) => !tiedPlayerIds.includes(p.id));
       return (
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-10">
@@ -151,10 +169,19 @@ export function OnlineGameScreen() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 + i * 0.1 }}
-                    className="flex items-center gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/10 p-4 shadow-[0_0_20px_-5px_oklch(0.60_0.20_300/0.4)] sm:p-3"
+                    className={`flex items-center gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/10 p-4 shadow-[0_0_20px_-5px_oklch(0.60_0.20_300/0.4)] sm:p-3 ${
+                      p.connected === false ? "opacity-50" : ""
+                    }`}
                   >
                     <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
-                    <span className="flex-1 text-left font-bold text-violet-100">{p.name}</span>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className={`font-bold text-violet-100 truncate ${p.connected === false ? "line-through text-muted-foreground" : ""}`}>
+                        {p.name}
+                      </p>
+                      {p.connected === false && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-rose-300">A quitté le salon</span>
+                      )}
+                    </div>
                     <span className="font-display text-2xl font-bold text-violet-200 sm:text-xl">{p.score} pts</span>
                   </motion.div>
                 ))}
@@ -184,7 +211,8 @@ export function OnlineGameScreen() {
                   <Button
                     onClick={rematchTiedAction}
                     size="lg"
-                    className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400"
+                    disabled={!hasEnoughTiedToRematch}
+                    className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Swords className="mr-2 h-5 w-5" />
                     Lancer le challenge décisif
@@ -192,13 +220,14 @@ export function OnlineGameScreen() {
                   <Button
                     onClick={restartAction}
                     size="lg"
-                    className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                    disabled={!hasEnoughPlayersToRestart}
+                    className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <RotateCcw className="mr-2 h-5 w-5" />
                     Rejouer
                   </Button>
                   <Button
-                    onClick={destroyRoomAction}
+                    onClick={handleNewGame}
                     size="lg"
                     variant="outline"
                   >
@@ -207,11 +236,30 @@ export function OnlineGameScreen() {
                   </Button>
                 </>
               ) : (
-                <p className="text-sm text-violet-200/70">En attente de l'hôte pour le challenge...</p>
+                <>
+                  <Button
+                    onClick={handleNewGame}
+                    size="lg"
+                    className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 shadow-md"
+                  >
+                    <Plus className="mr-2 h-5 w-5" />
+                    Nouvelle partie (Créer un salon)
+                  </Button>
+                </>
               )}
               <Button onClick={handleQuit} size="lg" variant="outline">
                 <Home className="mr-2 h-5 w-5" /> Accueil
               </Button>
+              {amHost && !hasEnoughPlayersToRestart && (
+                <p className="w-full text-center text-xs text-rose-300/90 mt-2 font-medium">
+                  ⚠️ Plus aucun autre joueur dans le salon. Crée une nouvelle partie ou retourne à l'accueil.
+                </p>
+              )}
+              {!amHost && (
+                <p className="w-full text-center text-xs text-violet-200/60 mt-1">
+                  ⏳ Tu peux aussi attendre que l'hôte lance le challenge décisif.
+                </p>
+              )}
             </div>
           </motion.div>
         </div>
@@ -268,16 +316,21 @@ export function OnlineGameScreen() {
                     p.id === singleWinner?.id
                       ? "border-amber-400/50 bg-amber-500/10"
                       : "border-border/50 bg-card/40"
-                  }`}
+                  } ${p.connected === false ? "opacity-50" : ""}`}
                 >
                   <span className="w-6 text-center font-display text-lg font-bold text-amber-200">
                     {i + 1}
                   </span>
                   <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate font-display text-sm font-semibold text-foreground">{p.name}</p>
-                    {p.id === singleWinner?.id && (
+                    <p className={`truncate font-display text-sm font-semibold ${p.connected === false ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                      {p.name}
+                    </p>
+                    {p.id === singleWinner?.id && p.connected !== false && (
                       <span className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Champion</span>
+                    )}
+                    {p.connected === false && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-rose-300">A quitté le salon</span>
                     )}
                   </div>
                   <span className="font-display text-2xl font-bold sm:text-xl">{p.score} pts</span>
@@ -292,12 +345,13 @@ export function OnlineGameScreen() {
                 <Button
                   onClick={restartAction}
                   size="lg"
-                  className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                  disabled={!hasEnoughPlayersToRestart}
+                  className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
                 </Button>
                 <Button
-                  onClick={destroyRoomAction}
+                  onClick={handleNewGame}
                   size="lg"
                   variant="outline"
                 >
@@ -305,11 +359,29 @@ export function OnlineGameScreen() {
                 </Button>
               </>
             ) : (
-              <p className="text-sm text-amber-200/70">En attente de l'hôte pour rejouer...</p>
+              <>
+                <Button
+                  onClick={handleNewGame}
+                  size="lg"
+                  className="bg-gradient-to-r from-amber-600 to-amber-500 text-white hover:from-amber-500 hover:to-amber-400 shadow-md"
+                >
+                  <Plus className="mr-2 h-5 w-5" /> Nouvelle partie (Créer un salon)
+                </Button>
+              </>
             )}
             <Button onClick={handleQuit} size="lg" variant="outline">
               <Home className="mr-2 h-5 w-5" /> Accueil
             </Button>
+            {amHost && !hasEnoughPlayersToRestart && (
+              <p className="w-full text-center text-xs text-rose-300/90 mt-2 font-medium">
+                ⚠️ Plus aucun autre joueur dans le salon. Crée une nouvelle partie ou retourne à l'accueil.
+              </p>
+            )}
+            {!amHost && (
+              <p className="w-full text-center text-xs text-amber-200/60 mt-1">
+                ⏳ Tu peux aussi attendre que l'hôte relance la partie.
+              </p>
+            )}
           </div>
         </motion.div>
       </div>
@@ -361,49 +433,84 @@ export function OnlineGameScreen() {
         </div>
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
-        {/* Grid + timer */}
-        <div className="flex flex-col gap-4">
-          {/* Professional score counter — above the grid */}
-          <div className="glass-card rounded-2xl p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <Avatar avatar={current?.emoji ?? ""} color={current?.color ?? "#52525b"} size={44} emojiSize="text-xl" />
-                <div>
-                  <p className="text-xs text-muted-foreground sm:text-[11px]">
-                    {isMyTurn ? "À toi de jouer" : "Tour de"}
-                  </p>
-                  <p className="font-display text-base font-bold leading-tight">{current?.name}</p>
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4">
+          {/* Professional score counter & players list — above the grid */}
+          <div className="glass-card rounded-2xl p-3 sm:p-4 space-y-3">
+            {/* Players list with live scores and active turn highlight */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none sm:flex-wrap">
+              {players.map((p) => {
+                const isActive = p.id === current?.id;
+                const isMe = p.id === myId;
+                const isDisconnected = p.connected === false;
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition-all shrink-0 ${
+                      isActive
+                        ? "bg-amber-500/20 border-2 border-amber-400/80 shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)] ring-1 ring-amber-300/50"
+                        : "bg-card/40 border border-border/40 opacity-80"
+                    } ${isDisconnected ? "opacity-40 line-through" : ""}`}
+                  >
+                    <Avatar avatar={p.emoji} color={p.color} size={28} emojiSize="text-sm" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className={`text-xs font-bold truncate max-w-[90px] sm:max-w-[120px] ${isActive ? "text-amber-100" : "text-foreground"}`}>
+                          {p.name}
+                        </span>
+                        {isMe && (
+                          <span className="rounded bg-amber-400/20 px-1 py-0.2 text-[9px] font-semibold text-amber-200">
+                            Toi
+                          </span>
+                        )}
+                        {p.isAI && (
+                          <span className="rounded bg-violet-400/20 px-1 py-0.2 text-[9px] font-semibold text-violet-200">
+                            IA
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`font-display text-xs sm:text-sm font-black pl-1 ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                      {p.score} <span className="text-[10px] font-normal text-muted-foreground">pts</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Seconds countdown & progress bar */}
+            <div className="space-y-1.5 pt-1 border-t border-border/30">
+              <div className="flex items-center justify-end">
+                <div
+                  className={`flex items-center gap-1 font-display text-sm sm:text-base font-black tabular-nums ${
+                    state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
+                  }`}
+                >
+                  {state.isPaused ? (
+                    <>
+                      <Pause className="h-4 w-4" /> Pause
+                    </>
+                  ) : (
+                    <>
+                      <Timer className={`h-4 w-4 ${urgent ? "animate-pulse" : ""}`} />
+                      {state.turnTimeLeft.toFixed(1)}s
+                    </>
+                  )}
                 </div>
               </div>
-              <div
-                className={`flex items-center gap-1.5 font-display text-3xl font-black tabular-nums sm:text-2xl ${
-                  state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
-                }`}
-              >
-                {state.isPaused ? (
-                  <>
-                    <Pause className="h-5 w-5" /> Pause
-                  </>
-                ) : (
-                  <>
-                    <Timer className={`h-5 w-5 ${urgent ? "animate-pulse" : ""}`} />
-                    {state.turnTimeLeft.toFixed(1)}s
-                  </>
-                )}
+
+              {/* Countdown progress bar */}
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{
+                    background: urgent
+                      ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
+                      : playerBarGradient(current?.color ?? "#f59e0b"),
+                  }}
+                  animate={{ width: `${timePct}%` }}
+                  transition={{ duration: 0.25, ease: "linear" }}
+                />
               </div>
-            </div>
-            <div className="mt-2.5 h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
-              <motion.div
-                className="h-full rounded-full"
-                style={{
-                  background: urgent
-                    ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
-                    : playerBarGradient(current?.color ?? "#f59e0b"),
-                }}
-                animate={{ width: `${timePct}%` }}
-                transition={{ duration: 0.25, ease: "linear" }}
-              />
             </div>
           </div>
 
@@ -517,54 +624,18 @@ export function OnlineGameScreen() {
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Side panel */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <h3 className="font-display text-sm font-semibold uppercase tracking-widest text-amber-200/70">
-              Joueurs
-            </h3>
-            <div className="flex max-h-[440px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
-              {players.map((p) => {
-                const isCurrent = p.id === current?.id;
-                const isLeader = [...players].sort((a, b) => b.score - a.score)[0]?.id === p.id && p.score > 0;
-                const pionCount = state.grid.flat().filter((c) => c === p.id).length;
-                return (
-                  <motion.div
-                    key={p.id}
-                    layout
-                    className={`relative overflow-hidden rounded-xl border p-4 transition-all sm:p-3 ${
-                      isCurrent
-                        ? "border-amber-400/60 bg-amber-500/10 shadow-[0_0_20px_-5px_oklch(0.80_0.14_84/0.4)]"
-                        : "border-border/60 bg-card/40"
-                    }`}
-                  >
-                    {isCurrent && <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-amber-300 to-rose-500" />}
-                    <div className="flex items-center gap-3">
-                      <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="truncate font-display text-sm font-semibold text-foreground">{p.name}</p>
-                          {isLeader && <Crown className="h-3.5 w-3.5 text-amber-300" />}
-                          {p.isAI && <span className="rounded-full bg-violet-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-violet-200">IA</span>}
-                          {p.connected === false && <span className="rounded-full bg-rose-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-300">Hors ligne</span>}
-                          {isCurrent && <span className="flex items-center gap-0.5 rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-200"><Timer className="h-2.5 w-2.5" />À toi</span>}
-                          {p.id === state.hostId && <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-200">Hôte</span>}
-                        </div>
-                        <p className="text-xs text-muted-foreground sm:text-[11px]">{p.alignments} carré{p.alignments > 1 ? "s" : ""} · {pionCount} pion{pionCount > 1 ? "s" : ""}</p>
-                      </div>
-                      <p className={`font-display text-3xl font-bold sm:text-2xl ${p.connected === false ? "opacity-40" : ""}`}>{p.score}</p>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+          {/* Quit button */}
+          <div className="flex justify-center pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleQuit}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Home className="mr-1.5 h-4 w-4" /> Quitter la partie
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleQuit} className="text-muted-foreground hover:text-foreground">
-            <Home className="mr-1.5 h-4 w-4" /> Quitter la partie
-          </Button>
-        </div>
       </div>
     </div>
   );

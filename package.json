@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 9999",
+    "dev:game": "npx tsx mini-services/game-service/index.ts",
     "build": "next build",
     "start": "next start -p 9999",
     "lint": "eslint .",
