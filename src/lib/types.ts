@@ -1,5 +1,7 @@
 export type Phase = "home" | "setup" | "playing" | "gameover" | "online-setup" | "online-playing" | "reviews";
 
+export type AIProfile = "gpt" | "gemini" | "claude" | "grok" | "copilot" | "kimi";
+
 export interface Player {
   id: string;
   name: string;
@@ -8,6 +10,7 @@ export interface Player {
   score: number;
   alignments: number; // number of 4-in-a-row made
   isAI?: boolean; // true for AI-controlled players
+  aiProfile?: AIProfile;
 }
 
 // Helper: returns true if the avatar is a photo (data URL or public asset URL) vs an emoji

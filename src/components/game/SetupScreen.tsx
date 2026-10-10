@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { isPhotoAvatar } from "@/lib/types";
+import type { AIProfile } from "@/lib/types";
 import { ArrowLeft, ArrowRight, Swords, Users, Minus, Plus, Target, Check, Camera, X, Bot } from "lucide-react";
 
 // Elegant color palette — 16 distinct deep tones (so up to 6 players always have a unique choice)
@@ -30,14 +31,15 @@ const COLOR_PALETTE = [
   "#365314", // olive sombre
 ];
 
-const AI_NAMES = [
-  "GPT",
-  "GEMINI",
-  "CLAUDE",
-  "GROK",
-  "COPILOT",
-  "KIMI 2",
+const AI_OPTIONS: { id: AIProfile; name: string; style: string }[] = [
+  { id: "gpt", name: "GPT", style: "Équilibré" },
+  { id: "gemini", name: "GEMINI", style: "Créatif" },
+  { id: "claude", name: "CLAUDE", style: "Prudent" },
+  { id: "grok", name: "GROK", style: "Offensif" },
+  { id: "copilot", name: "COPILOT", style: "Méthodique" },
+  { id: "kimi", name: "KIMI 2", style: "Tactique" },
 ];
+const AI_NAMES = AI_OPTIONS.map((ai) => ai.name);
 
 const getDefaultAIName = (index: number) => AI_NAMES[index] ?? `IA ${index + 1}`;
 
@@ -54,6 +56,7 @@ export function SetupScreen() {
   const [emojis, setEmojis] = useState<string[]>(Array.from({ length: 6 }, () => ""));
   // isAI: true = AI-controlled player (no photo required, robot avatar)
   const [isAI, setIsAI] = useState<boolean[]>([false, true, true, true, true, true]);
+  const [aiProfiles, setAiProfiles] = useState<AIProfile[]>(["gpt", "gemini", "claude", "grok", "copilot", "kimi"]);
   const [rounds, setRounds] = useState(10);
 
   // Validation: every visible human player must have a name. AI players are filled automatically.
@@ -111,6 +114,15 @@ export function SetupScreen() {
     setColors(next);
   };
 
+  const chooseAiProfile = (profile: AIProfile) => {
+    const nextProfiles = [...aiProfiles];
+    nextProfiles[1] = profile;
+    setAiProfiles(nextProfiles);
+    const nextNames = [...names];
+    nextNames[1] = AI_OPTIONS.find((option) => option.id === profile)?.name ?? "GPT";
+    setNames(nextNames);
+  };
+
   // Upload a photo as avatar (read file as data URL)
   const uploadPhoto = (i: number, file: File | null) => {
     if (!file) return;
@@ -161,6 +173,7 @@ export function SetupScreen() {
         color: colors[i],
         emoji: isAI[i] ? emojis[i] || "🤖" : emojis[i],
         isAI: isAI[i],
+        aiProfile: isAI[i] ? aiProfiles[i] : undefined,
       };
     });
     startGame(setupPlayers, rounds);
@@ -339,6 +352,24 @@ export function SetupScreen() {
                   </button>
                 )}
               </div>
+              {count === 2 && i === 1 && isAI[i] && (
+                <div className="mt-4 rounded-lg border border-violet-400/20 bg-violet-950/20 p-3">
+                  <p className="mb-2 text-xs font-semibold text-violet-100">Choisis ton adversaire IA</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {AI_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => chooseAiProfile(option.id)}
+                        aria-pressed={aiProfiles[1] === option.id}
+                        className={`rounded-lg border px-2.5 py-2 text-left transition ${aiProfiles[1] === option.id ? "border-violet-300 bg-violet-500/25 ring-1 ring-violet-300/50" : "border-border/60 bg-background/40 hover:border-violet-300/40"}`}
+                      >
+                        <span className="block text-xs font-bold">🤖 {option.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {/* Color picker */}
               <div className="mt-3 flex flex-wrap gap-2.5 pl-1 sm:gap-1.5">
                 {COLOR_PALETTE.map((color) => {

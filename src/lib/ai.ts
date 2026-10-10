@@ -1,3 +1,5 @@
+import type { AIProfile } from "@/lib/types";
+
 // Strong AI for the Trouvix 2x2 square game.
 // Strategy (heuristic evaluation, 2-ply lookahead on critical moves):
 //   1. Win immediately if possible (complete a 2x2 square)
@@ -140,7 +142,8 @@ function opponentImmediateWinCells(grid: AIGrid, opponentIds: string[]): AICell[
 export function findBestMove(
   grid: AIGrid,
   aiPlayerId: string,
-  opponentIds: string[]
+  opponentIds: string[],
+  profile: AIProfile = "gpt"
 ): AICell | null {
   const empties = emptyCells(grid);
   if (empties.length === 0) return null;
@@ -158,13 +161,23 @@ export function findBestMove(
   let bestScore = -Infinity;
   let bestMoves: AICell[] = [];
 
+  const strategies: Record<AIProfile, { block: number; threat: number; potential: number; fork: number; risk: number; neutralize: number; center: number; adjacency: number }> = {
+    gpt: { block: 50000, threat: 7800, potential: 420, fork: 25000, risk: 32000, neutralize: 5200, center: 6, adjacency: 50 },
+    gemini: { block: 48000, threat: 8500, potential: 650, fork: 36000, risk: 30000, neutralize: 5000, center: 7, adjacency: 55 },
+    claude: { block: 80000, threat: 7200, potential: 400, fork: 26000, risk: 58000, neutralize: 9000, center: 8, adjacency: 35 },
+    grok: { block: 42000, threat: 10800, potential: 300, fork: 22000, risk: 22000, neutralize: 4200, center: 4, adjacency: 100 },
+    copilot: { block: 65000, threat: 8200, potential: 600, fork: 28000, risk: 42000, neutralize: 7600, center: 14, adjacency: 48 },
+    kimi: { block: 55000, threat: 9000, potential: 740, fork: 38000, risk: 38000, neutralize: 6500, center: 10, adjacency: 62 },
+  };
+  const strategy = strategies[profile] ?? strategies.gpt;
+
   for (const cell of empties) {
     const { row, col } = cell;
     let score = 0;
 
     // Blocking: if this cell is an opponent's winning cell, big bonus
     if (oppWinSet.has(`${row},${col}`)) {
-      score += 50000;
+      score += strategy.block;
     }
 
     // Simulate AI placing here
@@ -178,15 +191,15 @@ export function findBestMove(
 
     // === 3. Create threats ===
     const myThreatsAfter = countThreats(afterAI, aiPlayerId);
-    score += myThreatsAfter * 7800;
+    score += myThreatsAfter * strategy.threat;
 
     // Potential squares (2/4)
     const myPotentialAfter = countPotential(afterAI, aiPlayerId);
-    score += myPotentialAfter * 420;
+    score += myPotentialAfter * strategy.potential;
 
     // === 3b. Fork creation: if this move creates multiple immediate threats, big bonus ===
     const myForksAfter = countForks(afterAI, aiPlayerId);
-    score += myForksAfter * 25000;
+    score += myForksAfter * strategy.fork;
 
     // === 4. Anti-suicide: after AI plays, can any opponent win immediately? ===
     let oppImmediateWinCount = 0;
@@ -194,7 +207,7 @@ export function findBestMove(
       oppImmediateWinCount += findWinningCells(afterAI, oppId).length;
     }
     if (oppImmediateWinCount > 0) {
-      score -= oppImmediateWinCount > 1 ? 90000 : 32000;
+      score -= oppImmediateWinCount > 1 ? strategy.risk * 2.8 : strategy.risk;
     }
 
     // === 5. Reduce opponent's existing threats ===
@@ -202,10 +215,10 @@ export function findBestMove(
       const oppThreatsBefore = countThreats(grid, oppId);
       const oppThreatsAfter = countThreats(afterAI, oppId);
       if (oppThreatsAfter < oppThreatsBefore) {
-        score += 5200;
+        score += strategy.neutralize;
       }
       if (oppThreatsAfter === 0 && oppThreatsBefore > 0) {
-        score += 4500; // fully neutralize an existing threat
+        score += strategy.neutralize * 0.86; // fully neutralize an existing threat
       }
     }
 
@@ -222,7 +235,7 @@ export function findBestMove(
     const centerR = (AI_ROWS - 1) / 2;
     const centerC = (AI_COLS - 1) / 2;
     const dist = Math.abs(row - centerR) + Math.abs(col - centerC);
-    score += (20 - dist) * 6; // stronger center preference
+    score += (20 - dist) * strategy.center;
 
     // === 7. Adjacency to own pions (build clusters) ===
     let adj = 0;
@@ -234,7 +247,7 @@ export function findBestMove(
         if (inBounds(nr, nc) && grid[nr][nc] === aiPlayerId) adj++;
       }
     }
-    score += adj * 50; // favor building clusters aggressively
+    score += adj * strategy.adjacency;
 
     // === 8. Avoid cells adjacent to opponent clusters (don't feed their squares) ===
     let oppAdj = 0;

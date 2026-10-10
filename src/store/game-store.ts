@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import type { Phase, Player } from "@/lib/types";
+import type { AIProfile } from "@/lib/types";
 
 // ====== Game constants ======
 const ROWS = 10;
@@ -23,6 +24,7 @@ export interface SetupPlayer {
   color: string;
   emoji: string;
   isAI?: boolean;
+  aiProfile?: AIProfile;
 }
 
 interface GameState {
@@ -195,6 +197,7 @@ export const useGameStore = create<GameState>((set, get) => {
         score: 0,
         alignments: 0,
         isAI: p.isAI ?? false,
+        aiProfile: p.aiProfile,
       }));
       set({
         players,

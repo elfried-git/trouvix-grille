@@ -5,7 +5,7 @@ import { Server } from 'socket.io'
 const ROWS = 10
 const COLS = 10
 const TURN_SECONDS = 10
-const RESOLVE_MS = 1700 // celebration lock after a square
+const RESOLVE_MS = 850 // short celebration lock after a square
 const BOARD_FULL_RESOLVE_MS = 1200
 const BENCHOU_PIN = process.env.BENCHOU_PIN || '331991' // Secret PIN (override via env in production)
 const TICK_MS = 500 // 500ms = good balance between smoothness and memory
@@ -59,6 +59,7 @@ interface GameState {
   winnerId: string | null
   lastSquareCells: CellCoord[] | null
   lastSquareerId: string | null
+  squareEventId: number | null
   formedSquares: FormedSquare[]
   resolving: boolean
   isPaused: boolean
@@ -234,6 +235,7 @@ function freshState(): GameState {
     winnerId: null,
     lastSquareCells: null,
     lastSquareerId: null,
+    squareEventId: null,
     formedSquares: [],
     resolving: false,
     isPaused: false,
@@ -272,6 +274,7 @@ function publicState(room: Room): any {
     tiedPlayerIds: [...tiedPlayerIds],
     lastSquareCells: s.lastSquareCells ? s.lastSquareCells.map((c) => ({ ...c })) : null,
     lastSquareerId: s.lastSquareerId,
+    squareEventId: s.squareEventId,
     formedSquares: s.formedSquares.map((sq) => ({ cells: sq.cells, playerId: sq.playerId })),
     resolving: s.resolving,
     isPaused: s.isPaused,
@@ -1027,6 +1030,7 @@ io.on('connection', (socket) => {
     room.state.winnerId = null
     room.state.lastSquareCells = null
     room.state.lastSquareerId = null
+    room.state.squareEventId = null
     room.state.formedSquares = []
     room.state.resolving = false
     room.state.isPaused = false
@@ -1106,6 +1110,7 @@ io.on('connection', (socket) => {
       }
       s.lastSquareCells = square
       s.lastSquareerId = cur.id
+      s.squareEventId = Date.now()
       s.formedSquares.push({ cells: square, playerId: cur.id })
       s.resolving = true
       s.lastDelta = { playerId: cur.id, delta: 1 }
@@ -1113,6 +1118,14 @@ io.on('connection', (socket) => {
       s.statusMessage = `🟦 ${cur.name} forme un carré ! +1 point (Carré ${s.currentRound}/${s.totalRounds})`
       console.log(`[room ${room.roomCode}] SQUARE by ${cur.name} at (${row},${col}) — carré ${s.currentRound}/${s.totalRounds}`)
       broadcastState(room); broadcastAdminRoomList()
+      // Cosmetic event broadcast to every socket in the room (including the
+      // player who formed the square) so every client starts the same effect.
+      io.to(room.roomCode).emit('square-formed', {
+        eventId: s.squareEventId,
+        playerId: cur.id,
+        color: cur.color,
+        cells: square.map((cell) => ({ ...cell })),
+      })
 
       setTimeout(() => {
         const r2 = findRoom(binding.roomCode)
@@ -1287,6 +1300,7 @@ io.on('connection', (socket) => {
     room.state.winnerId = null
     room.state.lastSquareCells = null
     room.state.lastSquareerId = null
+    room.state.squareEventId = null
     room.state.formedSquares = []
     room.state.resolving = false
     room.state.isPaused = false

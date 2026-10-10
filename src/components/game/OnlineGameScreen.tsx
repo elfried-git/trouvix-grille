@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
@@ -29,7 +29,19 @@ export function OnlineGameScreen() {
   const backHome = useGameStore((s) => s.backHome);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
   const reactions = useOnlineStore((s) => s.reactions);
+  const squareEvent = useOnlineStore((s) => s.squareEvent);
   const sendReactionAction = useOnlineStore((s) => s.sendReaction);
+
+  // The game state is the source of truth. The dedicated socket event is only
+  // an optimization for starting the celebration immediately.
+  const stateSquareEvent = useMemo(() => state?.squareEventId != null && state.lastSquareCells?.length === 4
+    ? {
+        eventId: state.squareEventId,
+        playerId: state.lastSquareerId ?? "",
+        color: state.players.find((player) => player.id === state.lastSquareerId)?.color ?? "#f59e0b",
+        cells: state.lastSquareCells,
+      }
+    : null, [state?.squareEventId, state?.lastSquareCells, state?.lastSquareerId, state?.players]);
 
   // === AI auto-play (host computes moves for AI players) ===
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,26 +82,28 @@ export function OnlineGameScreen() {
 
   // === Ripple shockwave when a square is formed ===
   const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; color: string }>>([]);
-  const prevSquareKeyRef = useRef<string>("");
+  const [activeSquareEvent, setActiveSquareEvent] = useState<{ eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] } | null>(null);
+  const handledSquareEventRef = useRef<number | null>(null);
 
   const removeRipple = useCallback((id: number) => {
     setRipples((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
   useEffect(() => {
-    if (!state) return;
-    const cells = state.lastSquareCells;
-    const key = cells?.map((c) => `${c.row},${c.col}`).sort().join("|") ?? "";
-    if (key && key !== prevSquareKeyRef.current) {
+    const event = squareEvent ?? stateSquareEvent;
+    if (!event || event.eventId === handledSquareEventRef.current) return;
+    const cells = event.cells;
+    if (cells.length === 4) {
+      setActiveSquareEvent(event);
+      setTimeout(() => {
+        setActiveSquareEvent((active) => active?.eventId === event.eventId ? null : active);
+      }, 700);
       // Compute center of the square in percentage of the grid
-      const avgRow = cells!.reduce((s, c) => s + c.row, 0) / cells!.length;
-      const avgCol = cells!.reduce((s, c) => s + c.col, 0) / cells!.length;
+      const avgRow = cells.reduce((s, c) => s + c.row, 0) / cells.length;
+      const avgCol = cells.reduce((s, c) => s + c.col, 0) / cells.length;
       const centerX = ((avgCol + 0.5) / COLS) * 100;
       const centerY = ((avgRow + 0.5) / ROWS) * 100;
-      // Find the color of the player who owns these cells
-      const ownerId = cells![0] ? state.grid[cells![0].row][cells![0].col] : null;
-      const owner = state.players.find((p) => p.id === ownerId);
-      const color = vividColor(owner?.color ?? "#f59e0b");
+      const color = vividColor(event.color);
       const now = Date.now();
       // Spawn 3 concentric ripple rings with staggered timing
       setRipples((prev) => [
@@ -98,9 +112,9 @@ export function OnlineGameScreen() {
         { id: now + 1, x: centerX, y: centerY, color },
         { id: now + 2, x: centerX, y: centerY, color },
       ]);
+      handledSquareEventRef.current = event.eventId;
     }
-    prevSquareKeyRef.current = key;
-  }, [state?.lastSquareCells, state?.grid, state?.players]);
+  }, [squareEvent, stateSquareEvent]);
 
   if (!state) {
     return (
@@ -128,12 +142,16 @@ export function OnlineGameScreen() {
       sq.cells.some((cell) => cell.row === r && cell.col === c)
     );
   const inLastSquare = (r: number, c: number) =>
-    !!state.lastSquareCells?.some((cell) => cell.row === r && cell.col === c);
+    !!state.lastSquareCells?.some((cell) => cell.row === r && cell.col === c) ||
+    !!activeSquareEvent?.cells.some((cell) => cell.row === r && cell.col === c);
 
   const timePct = Math.max(0, Math.min(100, (state.turnTimeLeft / 10) * 100));
   const urgent = state.turnTimeLeft <= 3 && !state.resolving && !state.isPaused;
   // Vivid, high-saturation color of the current player — same color the whole turn
   const turnColor = vividColor(current?.color ?? "#f59e0b");
+  const squareHighlightColor = vividColor(
+    activeSquareEvent?.color ?? state.players.find((player) => player.id === state.lastSquareerId)?.color ?? "#f59e0b"
+  );
 
   const handleQuit = () => {
     leaveRoomAction();
@@ -567,7 +585,7 @@ export function OnlineGameScreen() {
           {/* Board */}
           <div className="mx-auto w-full max-w-[min(560px,calc(100vw-1.5rem))]">
             <div className="relative rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1.5 shadow-2xl sm:p-2">
-              <div className="grid gap-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
+              <div className="relative z-20 grid gap-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {
                     const cellVal = state.grid[row][col];
@@ -592,17 +610,27 @@ export function OnlineGameScreen() {
                       >
                         {filled ? (
                           <motion.div
-                            initial={{ scale: 0.3, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: "spring", stiffness: 360, damping: 18 }}
+                            initial={isFresh ? { scale: 1, opacity: 1 } : { scale: 0.3, opacity: 0 }}
+                            animate={isFresh
+                              ? { scale: [1, 1.2, 1], opacity: 1, filter: ["brightness(1)", "brightness(1.7)", "brightness(1)"] }
+                              : { scale: 1, opacity: 1 }}
+                            transition={isFresh
+                              ? { duration: 0.32, repeat: 1, ease: "easeInOut" }
+                              : { type: "spring", stiffness: 360, damping: 18 }}
                             className={`absolute inset-[2px] rounded-full shadow-lg ${
                               isFresh
-                                ? "ring-4 ring-amber-200 pulse-glow z-20"
+                                ? "ring-4 z-20"
                                 : isSquareCell
                                   ? "ring-[3px] ring-amber-300/80 z-10"
                                   : "ring-2 ring-white/30"
                             }`}
-                            style={{ backgroundColor: cellColor }}
+                            style={{
+                              backgroundColor: cellColor,
+                              boxShadow: isFresh
+                                ? `0 0 0 2px #fff, 0 0 7px 3px ${squareHighlightColor}, 0 0 18px 7px ${squareHighlightColor}, 0 0 34px 12px ${squareHighlightColor}bb`
+                                : undefined,
+                              filter: isFresh ? `drop-shadow(0 0 8px ${squareHighlightColor})` : undefined,
+                            }}
                           >
                             {isSquareCell && !isFresh && (
                               <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs drop-shadow">⭐</span>
@@ -622,13 +650,29 @@ export function OnlineGameScreen() {
                 )}
               </div>
 
+              {/* Flash the whole grid from the square's position for every player. */}
+              <AnimatePresence>
+                {activeSquareEvent && (
+                  <motion.div
+                    key={`square-flash-${activeSquareEvent.eventId}`}
+                    className="pointer-events-none absolute inset-0 z-30 rounded-3xl"
+                    style={{
+                      background: `radial-gradient(circle at ${((activeSquareEvent.cells.reduce((sum, cell) => sum + cell.col, 0) / 4 + 0.5) / COLS) * 100}% ${((activeSquareEvent.cells.reduce((sum, cell) => sum + cell.row, 0) / 4 + 0.5) / ROWS) * 100}%, ${squareHighlightColor}66 0%, transparent 62%)`,
+                    }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0.65, 0] }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                  />
+                )}
+              </AnimatePresence>
+
               {/* Ripple shockwave overlay */}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-30">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-40">
                 <AnimatePresence>
                   {ripples.map((ripple, i) => {
                     // Stagger: ring index is ripple.id % 3 gives 0, 1, 2
                     const ringIndex = ripple.id % 3;
-                    const delay = ringIndex * 0.15;
                     return (
                       <motion.div
                         key={ripple.id}
@@ -644,10 +688,10 @@ export function OnlineGameScreen() {
                           boxShadow: `0 0 ${20 - ringIndex * 4}px ${ripple.color}aa, 0 0 ${50 - ringIndex * 10}px ${ripple.color}44`,
                         }}
                         initial={{ scale: 0.3, opacity: 1 }}
-                        animate={{ scale: 18, opacity: 0 }}
+                        animate={{ scale: 15, opacity: 0 }}
                         transition={{
-                          duration: 1.0 + ringIndex * 0.15,
-                          delay,
+                          duration: 0.5 + ringIndex * 0.06,
+                          delay: ringIndex * 0.06,
                           ease: "easeOut",
                         }}
                         onAnimationComplete={() => removeRipple(ripple.id)}

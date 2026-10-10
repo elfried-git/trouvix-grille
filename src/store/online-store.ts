@@ -71,6 +71,7 @@ interface OnlineStore {
   kicked: boolean; // true when this player was kicked by host/admin
   kickedToOnline: boolean; // redirect the after-kick screen to the online menu instead of home
   reactions: { id: string; emoji: string; timestamp: number }[]; // floating emoji reactions
+  squareEvent: { eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] } | null;
 
   // lifecycle
   init: () => void;
@@ -121,6 +122,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   kickedToOnline: false,
   benchouPin: "",
   reactions: [],
+  squareEvent: null,
 
   init: () => {
     const socket = getSocket();
@@ -152,10 +154,23 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     socket.on("state-update", (payload: { state: OnlineGameState }) => {
       // Always set a NEW object reference so Zustand detects the change
       // (socket.io may reuse the same parsed object in some edge cases)
+      const nextState = { ...payload.state };
+      const formingPlayer = nextState.players.find((p) => p.id === nextState.lastSquareerId);
+      const eventId = nextState.squareEventId;
+      const currentEvent = get().squareEvent;
       set({
-        state: { ...payload.state },
+        state: nextState,
         roomCode: payload.state.roomCode,
+        ...(eventId && nextState.lastSquareCells?.length === 4 && formingPlayer && currentEvent?.eventId !== eventId
+          ? { squareEvent: { eventId, playerId: formingPlayer.id, color: formingPlayer.color, cells: nextState.lastSquareCells } }
+          : {}),
       });
+    });
+    socket.on("square-formed", (payload: { eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] }) => {
+      if (!payload || !Number.isFinite(payload.eventId) || typeof payload.playerId !== "string" || typeof payload.color !== "string" || !Array.isArray(payload.cells) || payload.cells.length !== 4) return;
+      if (get().squareEvent?.eventId !== payload.eventId) {
+        set({ squareEvent: { eventId: payload.eventId, playerId: payload.playerId, color: payload.color, cells: payload.cells } });
+      }
     });
     socket.on("error", (payload: { message: string }) => {
       set({ errorMessage: payload.message });
@@ -281,13 +296,14 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       adminRooms: [],
       kicked: false,
       reactions: [],
+      squareEvent: null,
     });
   },
 
   createRoom: async (player, totalRounds, maxPlayers) => {
     const socket = getSocket();
     get().init();
-    set({ errorMessage: null, pendingAction: true });
+    set({ errorMessage: null, pendingAction: true, squareEvent: null });
 
     // Wait for socket connection before emitting
     if (!socket.connected) {
@@ -328,7 +344,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     const socket = getSocket();
     get().init(); // ensure listeners
     const upperCode = roomCode.toUpperCase();
-    set({ errorMessage: null, pendingAction: true, roomCode: upperCode });
+    set({ errorMessage: null, pendingAction: true, roomCode: upperCode, squareEvent: null });
 
     // Wait for socket to be connected before emitting (max 5s)
     const ensureConnected = (): Promise<void> => {
@@ -530,6 +546,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       challengeDeclined: false,
       kicked: false,
       reactions: [],
+      squareEvent: null,
     });
   },
 

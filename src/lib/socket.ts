@@ -122,6 +122,7 @@ export interface OnlineGameState {
   tiedPlayerIds: string[];
   lastSquareCells: { row: number; col: number }[] | null;
   lastSquareerId: string | null;
+  squareEventId?: number | null;
   formedSquares: { cells: { row: number; col: number }[]; playerId: string }[];
   resolving: boolean;
   isPaused: boolean;

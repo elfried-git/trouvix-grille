@@ -70,7 +70,7 @@ export function GameScreen() {
       const opponentIds = s.players
         .filter((p) => p.id !== aiPlayer.id)
         .map((p) => p.id);
-      const move = findBestMove(s.grid, aiPlayer.id, opponentIds);
+      const move = findBestMove(s.grid, aiPlayer.id, opponentIds, aiPlayer.aiProfile);
       if (move) {
         s.placePawn(move.row, move.col);
       }
