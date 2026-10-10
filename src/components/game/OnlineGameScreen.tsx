@@ -702,23 +702,23 @@ export function OnlineGameScreen() {
               </div>
 
               {/* Floating reactions */}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+              <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden rounded-3xl">
                 <AnimatePresence>
                   {reactions.map((r) => {
                     const xOffset = ((r.timestamp % 80) - 40);
                     return (
                       <motion.div
                         key={r.id}
-                        initial={{ opacity: 0, y: 40, scale: 0.5 }}
+                        initial={{ opacity: 0, top: "88%", scale: 0.5 }}
                         animate={{
                           opacity: [0, 1, 1, 0],
-                          y: [40, -20, -80, -160],
+                          top: ["88%", "72%", "50%", "50%"],
                           scale: [0.5, 1.3, 1, 0.8],
                           x: xOffset,
                         }}
                         exit={{ opacity: 0, scale: 0.5 }}
                         transition={{ duration: 3, ease: "easeOut" }}
-                        className="absolute bottom-4 left-1/2 -translate-x-1/2"
+                        className="absolute left-1/2 -translate-x-1/2"
                       >
                         <span className="text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                           {r.emoji}
