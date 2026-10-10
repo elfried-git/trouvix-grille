@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
@@ -82,6 +83,7 @@ export function OnlineGameScreen() {
 
   // === Ripple shockwave when a square is formed ===
   const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; color: string }>>([]);
+  const boardRef = useRef<HTMLDivElement>(null);
   const [activeSquareEvent, setActiveSquareEvent] = useState<{ eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] } | null>(null);
   const handledSquareEventRef = useRef<number | null>(null);
 
@@ -133,6 +135,7 @@ export function OnlineGameScreen() {
   }
 
   const players = state.players;
+  const reactionBoardRect = boardRef.current?.getBoundingClientRect() ?? null;
   const current = players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myId;
   const amHost = state.hostId === myId;
@@ -444,6 +447,7 @@ export function OnlineGameScreen() {
 
   // === PLAYING ===
   return (
+    <>
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6">
       {/* Top bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -584,7 +588,7 @@ export function OnlineGameScreen() {
 
           {/* Board */}
           <div className="mx-auto w-full max-w-[min(560px,calc(100vw-1.5rem))]">
-            <div className="relative rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1.5 shadow-2xl sm:p-2">
+            <div ref={boardRef} className="relative rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1.5 shadow-2xl sm:p-2">
               <div className="relative z-20 grid gap-1 rounded-xl bg-[oklch(0.18_0.02_22)] sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {
@@ -701,34 +705,6 @@ export function OnlineGameScreen() {
                 </AnimatePresence>
               </div>
 
-              {/* Floating reactions */}
-              <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden rounded-3xl">
-                <AnimatePresence>
-                  {reactions.map((r) => {
-                    const xOffset = ((r.timestamp % 80) - 40);
-                    return (
-                      <motion.div
-                        key={r.id}
-                        initial={{ opacity: 0, top: "88%", scale: 0.5 }}
-                        animate={{
-                          opacity: [0, 1, 1, 0],
-                          top: ["88%", "72%", "50%", "50%"],
-                          scale: [0.5, 1.3, 1, 0.8],
-                          x: xOffset,
-                        }}
-                        exit={{ opacity: 0, scale: 0.5 }}
-                        transition={{ duration: 3, ease: "easeOut" }}
-                        className="absolute left-1/2 -translate-x-1/2"
-                      >
-                        <span className="text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-                          {r.emoji}
-                        </span>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
-
               {/* Not-your-turn overlay */}
               {!isMyTurn && state.phase === "playing" && !state.resolving && !state.isPaused && (
                 <div className="pointer-events-none absolute inset-0 flex items-end justify-center rounded-3xl bg-black/30 p-4">
@@ -767,5 +743,34 @@ export function OnlineGameScreen() {
           </div>
       </div>
     </div>
+    {typeof document !== "undefined" && reactionBoardRect && reactions.length > 0 && createPortal(
+      <div className="pointer-events-none fixed inset-0" style={{ zIndex: 10000 }}>
+        <AnimatePresence>
+          {reactions.map((reaction) => {
+            const startTop = reactionBoardRect.top + reactionBoardRect.height * 0.88;
+            const middleTop = reactionBoardRect.top + reactionBoardRect.height * 0.5;
+            const centerLeft = reactionBoardRect.left + reactionBoardRect.width / 2 + (reaction.timestamp % 80) - 40;
+            return (
+              <motion.div
+                key={reaction.id}
+                initial={{ opacity: 0, top: startTop, left: centerLeft, scale: 0.5 }}
+                animate={{
+                  opacity: [0, 1, 1, 0],
+                  top: [startTop, reactionBoardRect.top + reactionBoardRect.height * 0.72, middleTop, middleTop],
+                  scale: [0.5, 1.3, 1, 0.8],
+                }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ duration: 3, ease: "easeOut" }}
+                className="absolute -ml-6 -mt-6 text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+              >
+                {reaction.emoji}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }
