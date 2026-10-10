@@ -585,7 +585,7 @@ export function OnlineGameScreen() {
           {/* Board */}
           <div className="mx-auto w-full max-w-[min(560px,calc(100vw-1.5rem))]">
             <div className="relative rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1.5 shadow-2xl sm:p-2">
-              <div className="relative z-20 grid gap-1 sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
+              <div className="relative z-20 grid gap-1 rounded-xl bg-[oklch(0.18_0.02_22)] sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {
                     const cellVal = state.grid[row][col];
@@ -741,12 +741,12 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Reaction bar */}
-          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-2 py-1 sm:flex-nowrap sm:gap-3 sm:px-3 sm:py-2">
+          <div className="flex w-full flex-nowrap items-center justify-between gap-0 px-1 py-1 sm:justify-center sm:gap-3 sm:px-3 sm:py-2">
             {REACTION_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
                 onClick={() => sendReactionAction(emoji)}
-                className="rounded-full px-1 py-0 text-lg leading-none transition-transform hover:scale-125 active:scale-95 sm:px-1.5 sm:text-xl"
+                className="shrink-0 rounded-full px-0 py-0 text-base leading-none transition-transform hover:scale-125 active:scale-95 sm:px-1.5 sm:text-xl"
                 title={`Réagir avec ${emoji}`}
               >
                 {emoji}

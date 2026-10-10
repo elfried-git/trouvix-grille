@@ -38,7 +38,7 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
       {/* Board */}
       <div className="relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2">
         <div
-          className="grid gap-0.5 sm:gap-1.5"
+          className="relative z-10 grid gap-0.5 rounded-xl bg-[oklch(0.18_0.02_22)] sm:gap-1.5"
           style={{
             gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
           }}
