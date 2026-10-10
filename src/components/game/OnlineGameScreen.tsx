@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
@@ -67,6 +67,40 @@ export function OnlineGameScreen() {
       if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     };
   }, [state?.currentPlayerIndex, state?.resolving, state?.isPaused, state?.phase, myId]);
+
+  // === Ripple shockwave when a square is formed ===
+  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; color: string }>>([]);
+  const prevSquareKeyRef = useRef<string>("");
+
+  const removeRipple = useCallback((id: number) => {
+    setRipples((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  useEffect(() => {
+    if (!state) return;
+    const cells = state.lastSquareCells;
+    const key = cells?.map((c) => `${c.row},${c.col}`).sort().join("|") ?? "";
+    if (key && key !== prevSquareKeyRef.current) {
+      // Compute center of the square in percentage of the grid
+      const avgRow = cells!.reduce((s, c) => s + c.row, 0) / cells!.length;
+      const avgCol = cells!.reduce((s, c) => s + c.col, 0) / cells!.length;
+      const centerX = ((avgCol + 0.5) / COLS) * 100;
+      const centerY = ((avgRow + 0.5) / ROWS) * 100;
+      // Find the color of the player who owns these cells
+      const ownerId = cells![0] ? state.grid[cells![0].row][cells![0].col] : null;
+      const owner = state.players.find((p) => p.id === ownerId);
+      const color = vividColor(owner?.color ?? "#f59e0b");
+      const now = Date.now();
+      // Spawn 3 concentric ripple rings with staggered timing
+      setRipples((prev) => [
+        ...prev,
+        { id: now, x: centerX, y: centerY, color },
+        { id: now + 1, x: centerX, y: centerY, color },
+        { id: now + 2, x: centerX, y: centerY, color },
+      ]);
+    }
+    prevSquareKeyRef.current = key;
+  }, [state?.lastSquareCells, state?.grid, state?.players]);
 
   if (!state) {
     return (
@@ -586,6 +620,41 @@ export function OnlineGameScreen() {
                     );
                   })
                 )}
+              </div>
+
+              {/* Ripple shockwave overlay */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-30">
+                <AnimatePresence>
+                  {ripples.map((ripple, i) => {
+                    // Stagger: ring index is ripple.id % 3 gives 0, 1, 2
+                    const ringIndex = ripple.id % 3;
+                    const delay = ringIndex * 0.15;
+                    return (
+                      <motion.div
+                        key={ripple.id}
+                        className="absolute rounded-full"
+                        style={{
+                          left: `${ripple.x}%`,
+                          top: `${ripple.y}%`,
+                          width: 30,
+                          height: 30,
+                          marginLeft: -15,
+                          marginTop: -15,
+                          border: `${3 - ringIndex * 0.5}px solid ${ripple.color}`,
+                          boxShadow: `0 0 ${20 - ringIndex * 4}px ${ripple.color}aa, 0 0 ${50 - ringIndex * 10}px ${ripple.color}44`,
+                        }}
+                        initial={{ scale: 0.3, opacity: 1 }}
+                        animate={{ scale: 18, opacity: 0 }}
+                        transition={{
+                          duration: 1.0 + ringIndex * 0.15,
+                          delay,
+                          ease: "easeOut",
+                        }}
+                        onAnimationComplete={() => removeRipple(ripple.id)}
+                      />
+                    );
+                  })}
+                </AnimatePresence>
               </div>
 
               {/* Floating reactions */}
