@@ -156,6 +156,14 @@ export function OnlineGameScreen() {
   }
 
   const players = state.players;
+  const currentBoardRect = boardRef.current?.getBoundingClientRect();
+  const reactionBounds = typeof window === "undefined"
+    ? null
+    : currentBoardRect && currentBoardRect.width > 0 && currentBoardRect.height > 0
+      ? currentBoardRect
+      : reactionBoardRect && reactionBoardRect.width > 0 && reactionBoardRect.height > 0
+        ? reactionBoardRect
+        : { left: 0, top: window.innerHeight * 0.1, width: window.innerWidth, height: window.innerHeight * 0.65 };
   const current = players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myId;
   const amHost = state.hostId === myId;
@@ -763,20 +771,20 @@ export function OnlineGameScreen() {
           </div>
       </div>
     </div>
-    {typeof document !== "undefined" && reactionBoardRect && reactions.length > 0 && createPortal(
+    {typeof document !== "undefined" && reactionBounds && reactions.length > 0 && createPortal(
       <div className="pointer-events-none fixed inset-0" style={{ zIndex: 2147483647 }}>
         <AnimatePresence>
           {reactions.map((reaction) => {
-            const startTop = reactionBoardRect.top + reactionBoardRect.height * 0.88;
-            const middleTop = reactionBoardRect.top + reactionBoardRect.height * 0.5;
-            const centerLeft = reactionBoardRect.left + reactionBoardRect.width / 2 + (reaction.timestamp % 80) - 40;
+            const startTop = reactionBounds.top + reactionBounds.height * 0.88;
+            const middleTop = reactionBounds.top + reactionBounds.height * 0.5;
+            const centerLeft = reactionBounds.left + reactionBounds.width / 2 + (reaction.timestamp % 80) - 40;
             return (
               <motion.div
                 key={reaction.id}
                 initial={{ opacity: 0, top: startTop, left: centerLeft, scale: 0.5 }}
                 animate={{
                   opacity: [0, 1, 1, 0],
-                  top: [startTop, reactionBoardRect.top + reactionBoardRect.height * 0.72, middleTop, middleTop],
+                  top: [startTop, reactionBounds.top + reactionBounds.height * 0.72, middleTop, middleTop],
                   scale: [0.5, 1.3, 1, 0.8],
                 }}
                 exit={{ opacity: 0, scale: 0.5 }}
