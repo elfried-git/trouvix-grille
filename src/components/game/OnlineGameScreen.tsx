@@ -84,8 +84,29 @@ export function OnlineGameScreen() {
   // === Ripple shockwave when a square is formed ===
   const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; color: string }>>([]);
   const boardRef = useRef<HTMLDivElement>(null);
+  const [reactionBoardRect, setReactionBoardRect] = useState<DOMRect | null>(null);
   const [activeSquareEvent, setActiveSquareEvent] = useState<{ eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] } | null>(null);
   const handledSquareEventRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) {
+      setReactionBoardRect(null);
+      return;
+    }
+
+    const updateBoardRect = () => setReactionBoardRect(board.getBoundingClientRect());
+    updateBoardRect();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateBoardRect) : null;
+    observer?.observe(board);
+    window.addEventListener("resize", updateBoardRect);
+    window.addEventListener("scroll", updateBoardRect, true);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateBoardRect);
+      window.removeEventListener("scroll", updateBoardRect, true);
+    };
+  }, [state?.phase]);
 
   const removeRipple = useCallback((id: number) => {
     setRipples((prev) => prev.filter((r) => r.id !== id));
@@ -135,7 +156,6 @@ export function OnlineGameScreen() {
   }
 
   const players = state.players;
-  const reactionBoardRect = boardRef.current?.getBoundingClientRect() ?? null;
   const current = players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myId;
   const amHost = state.hostId === myId;
@@ -744,7 +764,7 @@ export function OnlineGameScreen() {
       </div>
     </div>
     {typeof document !== "undefined" && reactionBoardRect && reactions.length > 0 && createPortal(
-      <div className="pointer-events-none fixed inset-0" style={{ zIndex: 10000 }}>
+      <div className="pointer-events-none fixed inset-0" style={{ zIndex: 2147483647 }}>
         <AnimatePresence>
           {reactions.map((reaction) => {
             const startTop = reactionBoardRect.top + reactionBoardRect.height * 0.88;
