@@ -462,8 +462,8 @@ export function OnlineGameScreen() {
                     <Avatar
                       avatar={p.emoji}
                       color={p.color}
-                      size={28}
-                      emojiSize="text-sm"
+                      size={44}
+                      emojiSize="text-xl"
                       ring={false}
                       className={isActive ? "ring-2" : "ring-2 ring-white/20"}
                       style={
@@ -628,7 +628,7 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Reaction bar */}
-          <div className="glass-card flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5 rounded-2xl px-2 py-1 sm:flex-nowrap sm:gap-1.5 sm:px-3 sm:py-2.5">
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-2 py-1 sm:flex-nowrap sm:gap-3 sm:px-3 sm:py-2">
             {REACTION_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
