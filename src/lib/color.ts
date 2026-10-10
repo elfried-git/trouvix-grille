@@ -70,3 +70,50 @@ export function playerBarGradient(hex: string): string {
   const base = parseHex(hex) ? hex : FALLBACK;
   return `linear-gradient(90deg, ${darken(base, 0.28)}, ${base}, ${lighten(base, 0.4)})`;
 }
+
+/**
+ * Return a vivid, high-saturation version of the player's color.
+ *
+ * Player colors can be pale (pastel) which makes the turn timer bar hard to
+ * read against the dark board. This boosts saturation (and ensures a minimum
+ * value) while keeping the exact hue, so the bar stays the player's own color
+ * — solid and clearly identifiable — for the whole turn (no gradient).
+ */
+export function vividColor(hex: string): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return FALLBACK;
+  const [r0, g0, b0] = rgb;
+  const max = Math.max(r0, g0, b0);
+  const min = Math.min(r0, g0, b0);
+  const v = max / 255; // HSV value in [0, 1]
+  const s = max === 0 ? 0 : (max - min) / max; // HSV saturation in [0, 1]
+
+  // Push saturation up (keep already-vivid colors as-is)
+  const s2 = Math.min(1, Math.max(s, Math.min(1, s * 1.35 + 0.2)));
+  // Ensure a minimum brightness so the bar is clearly visible on the dark board
+  const v2 = Math.max(v, 0.85);
+
+  // HSV -> RGB
+  const c = v2 * s2;
+  const hh = (() => {
+    if (max === min) return 0;
+    if (max === r0) return ((g0 - b0) / (max - min)) % 6;
+    if (max === g0) return (b0 - r0) / (max - min) + 2;
+    return (r0 - g0) / (max - min) + 4;
+  })();
+  const h6 = ((hh % 6) + 6) % 6;
+  const x = c * (1 - Math.abs((h6 % 2) - 1));
+  const m = v2 - c;
+  const seg = Math.floor(h6);
+  let rp = 0;
+  let gp = 0;
+  let bp = 0;
+  if (seg === 0) [rp, gp, bp] = [c, x, 0];
+  else if (seg === 1) [rp, gp, bp] = [x, c, 0];
+  else if (seg === 2) [rp, gp, bp] = [0, c, x];
+  else if (seg === 3) [rp, gp, bp] = [0, x, c];
+  else if (seg === 4) [rp, gp, bp] = [x, 0, c];
+  else [rp, gp, bp] = [c, 0, x];
+
+  return toHex([(rp + m) * 255, (gp + m) * 255, (bp + m) * 255]);
+}

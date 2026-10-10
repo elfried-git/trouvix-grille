@@ -6,7 +6,7 @@ import { Grid } from "./Grid";
 import { Avatar } from "./Avatar";
 import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import { findBestMove } from "@/lib/ai";
-import { playerBarGradient } from "@/lib/color";
+import { vividColor } from "@/lib/color";
 import { Button } from "@/components/ui/button";
 import { Flag, Home, Timer, ScrollText, Pause, Play } from "lucide-react";
 import {
@@ -83,6 +83,8 @@ export function GameScreen() {
     Math.min(100, (turnTimeLeft / GAME_CONSTANTS.TURN_SECONDS) * 100)
   );
   const urgent = turnTimeLeft <= 3 && !resolving && !isPaused;
+  // Vivid, high-saturation color of the current player — same color the whole turn
+  const turnColor = vividColor(current?.color ?? "#f59e0b");
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6">
@@ -143,33 +145,52 @@ export function GameScreen() {
         {/* Professional score counter & players list — above the grid */}
         <div className="glass-card rounded-2xl p-3 sm:p-4 space-y-3">
           {/* Players list with live scores and active turn highlight */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none sm:flex-wrap">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
             {players.map((p) => {
               const isActive = p.id === current?.id;
               return (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition-all shrink-0 ${
+                  style={
                     isActive
-                      ? "bg-amber-500/20 border-2 border-amber-400/80 shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)] ring-1 ring-amber-300/50"
-                      : "bg-card/40 border border-border/40 opacity-80"
+                      ? {
+                          borderColor: p.color,
+                          backgroundColor: `${p.color}28`,
+                          boxShadow: `0 0 18px -2px ${p.color}80`,
+                        }
+                      : undefined
+                  }
+                  className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1.5 py-1.5 text-center transition-all ${
+                    isActive
+                      ? "border-2 ring-1 ring-white/30 scale-[1.02]"
+                      : "bg-card/40 border-border/40 opacity-75"
                   }`}
                 >
-                  <Avatar avatar={p.emoji} color={p.color} size={28} emojiSize="text-sm" />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className={`text-xs font-bold truncate max-w-[90px] sm:max-w-[120px] ${isActive ? "text-amber-100" : "text-foreground"}`}>
+                  <Avatar
+                    avatar={p.emoji}
+                    color={p.color}
+                    size={28}
+                    emojiSize="text-sm"
+                    ring={false}
+                    className={isActive ? "ring-2" : "ring-2 ring-white/20"}
+                    style={
+                      isActive
+                        ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 12px 2px ${p.color}cc` }
+                        : undefined
+                    }
+                  />
+                    <div className="flex min-w-0 w-full flex-col items-center">
+                      <span className={`w-full truncate text-[11px] font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                         {p.name}
                       </span>
                       {p.isAI && (
-                        <span className="rounded bg-violet-400/20 px-1 py-0.2 text-[9px] font-semibold text-violet-200">
+                        <span className="mt-0.5 rounded bg-violet-400/20 px-1 text-[8px] font-semibold text-violet-200">
                           IA
                         </span>
                       )}
                     </div>
-                  </div>
-                  <span className={`font-display text-xs sm:text-sm font-black pl-1 ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
-                    {p.score} <span className="text-[10px] font-normal text-muted-foreground">pts</span>
+                  <span className={`font-display text-lg font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                    {p.score} <span className="text-[9px] font-normal text-muted-foreground">pts</span>
                   </span>
                 </div>
               );
@@ -180,13 +201,8 @@ export function GameScreen() {
           <div className="space-y-1.5 pt-1 border-t border-border/30">
             <div className="flex items-center justify-end">
               <div
-                className={`flex items-center gap-1 font-display text-sm sm:text-base font-black tabular-nums ${
-                  isPaused
-                    ? "text-emerald-300"
-                    : urgent
-                      ? "text-rose-400"
-                      : "text-amber-200"
-                }`}
+                className="flex items-center gap-1 font-display text-sm sm:text-base font-black tabular-nums"
+                style={{ color: isPaused ? "#34d399" : turnColor }}
               >
                 {isPaused ? (
                   <>
@@ -194,21 +210,20 @@ export function GameScreen() {
                   </>
                 ) : (
                   <>
-                    <Timer className={`h-4 w-4 ${urgent ? "animate-pulse" : ""}`} />
+                    <Timer className="h-4 w-4" />
                     {turnTimeLeft.toFixed(1)}s
                   </>
                 )}
               </div>
             </div>
 
-            {/* Countdown progress bar */}
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
+            {/* Countdown progress bar — solid, vivid player color (no gradient) */}
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
               <motion.div
-                className="h-full rounded-full"
+                className="h-full rounded-full transition-all"
                 style={{
-                  background: urgent
-                    ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
-                    : playerBarGradient(current?.color ?? "#f59e0b"),
+                  backgroundColor: turnColor,
+                  boxShadow: `0 0 14px ${turnColor}`,
                 }}
                 animate={{ width: `${timePct}%` }}
                 transition={{ duration: 0.1, ease: "linear" }}

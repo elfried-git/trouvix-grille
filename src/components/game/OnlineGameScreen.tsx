@@ -7,7 +7,7 @@ import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
-import { playerBarGradient } from "@/lib/color";
+import { vividColor } from "@/lib/color";
 import { Flag, Home, Timer, Pause, Play, Crown, WifiOff, Swords, RotateCcw, Plus } from "lucide-react";
 
 // ===== Reaction emojis =====
@@ -98,6 +98,8 @@ export function OnlineGameScreen() {
 
   const timePct = Math.max(0, Math.min(100, (state.turnTimeLeft / 10) * 100));
   const urgent = state.turnTimeLeft <= 3 && !state.resolving && !state.isPaused;
+  // Vivid, high-saturation color of the current player — same color the whole turn
+  const turnColor = vividColor(current?.color ?? "#f59e0b");
 
   const handleQuit = () => {
     leaveRoomAction();
@@ -398,9 +400,6 @@ export function OnlineGameScreen() {
             <span className="text-red-gradient">Trouv</span>
             <span className="text-gold-gradient">ix</span>
           </span>
-          <span className="rounded-full border border-amber-400/30 bg-amber-500/5 px-2 py-0.5 text-[10px] uppercase tracking-widest text-amber-200/80">
-            Salon {state.roomCode}
-          </span>
         </div>
         <div className="flex items-center gap-2">
           {amHost && (
@@ -437,7 +436,7 @@ export function OnlineGameScreen() {
           {/* Professional score counter & players list — above the grid */}
           <div className="glass-card rounded-2xl p-3 sm:p-4 space-y-3">
             {/* Players list with live scores and active turn highlight */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none sm:flex-wrap">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {players.map((p) => {
                 const isActive = p.id === current?.id;
                 const isMe = p.id === myId;
@@ -445,32 +444,51 @@ export function OnlineGameScreen() {
                 return (
                   <div
                     key={p.id}
-                    className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition-all shrink-0 ${
+                    style={
                       isActive
-                        ? "bg-amber-500/20 border-2 border-amber-400/80 shadow-[0_0_15px_-3px_rgba(245,158,11,0.4)] ring-1 ring-amber-300/50"
-                        : "bg-card/40 border border-border/40 opacity-80"
+                        ? {
+                            borderColor: p.color,
+                            backgroundColor: `${p.color}28`,
+                            boxShadow: `0 0 18px -2px ${p.color}80`,
+                          }
+                        : undefined
+                    }
+                    className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1.5 py-1.5 text-center transition-all ${
+                      isActive
+                        ? "border-2 ring-1 ring-white/30 scale-[1.02]"
+                        : "bg-card/40 border-border/40 opacity-75"
                     } ${isDisconnected ? "opacity-40 line-through" : ""}`}
                   >
-                    <Avatar avatar={p.emoji} color={p.color} size={28} emojiSize="text-sm" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
-                        <span className={`text-xs font-bold truncate max-w-[90px] sm:max-w-[120px] ${isActive ? "text-amber-100" : "text-foreground"}`}>
-                          {p.name}
+                    <Avatar
+                      avatar={p.emoji}
+                      color={p.color}
+                      size={28}
+                      emojiSize="text-sm"
+                      ring={false}
+                      className={isActive ? "ring-2" : "ring-2 ring-white/20"}
+                      style={
+                        isActive
+                          ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 12px 2px ${p.color}cc` }
+                          : undefined
+                      }
+                    />
+                    <div className="flex min-w-0 w-full flex-col items-center">
+                      <span className={`w-full truncate text-[11px] font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
+                        {p.name}
+                      </span>
+                      {isMe && (
+                        <span className="mt-0.5 rounded bg-amber-400/20 px-1 text-[8px] font-semibold text-amber-200">
+                          Toi
                         </span>
-                        {isMe && (
-                          <span className="rounded bg-amber-400/20 px-1 py-0.2 text-[9px] font-semibold text-amber-200">
-                            Toi
-                          </span>
-                        )}
-                        {p.isAI && (
-                          <span className="rounded bg-violet-400/20 px-1 py-0.2 text-[9px] font-semibold text-violet-200">
-                            IA
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      {p.isAI && (
+                        <span className="mt-0.5 rounded bg-violet-400/20 px-1 text-[8px] font-semibold text-violet-200">
+                          IA
+                        </span>
+                      )}
                     </div>
-                    <span className={`font-display text-xs sm:text-sm font-black pl-1 ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
-                      {p.score} <span className="text-[10px] font-normal text-muted-foreground">pts</span>
+                    <span className={`font-display text-lg font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                      {p.score} <span className="text-[9px] font-normal text-muted-foreground">pts</span>
                     </span>
                   </div>
                 );
@@ -481,9 +499,8 @@ export function OnlineGameScreen() {
             <div className="space-y-1.5 pt-1 border-t border-border/30">
               <div className="flex items-center justify-end">
                 <div
-                  className={`flex items-center gap-1 font-display text-sm sm:text-base font-black tabular-nums ${
-                    state.isPaused ? "text-emerald-300" : urgent ? "text-rose-400" : "text-amber-200"
-                  }`}
+                  className="flex items-center gap-1 font-display text-sm sm:text-base font-black tabular-nums"
+                  style={{ color: state.isPaused ? "#34d399" : turnColor }}
                 >
                   {state.isPaused ? (
                     <>
@@ -491,21 +508,20 @@ export function OnlineGameScreen() {
                     </>
                   ) : (
                     <>
-                      <Timer className={`h-4 w-4 ${urgent ? "animate-pulse" : ""}`} />
+                      <Timer className="h-4 w-4" />
                       {state.turnTimeLeft.toFixed(1)}s
                     </>
                   )}
                 </div>
               </div>
 
-              {/* Countdown progress bar */}
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
+              {/* Countdown progress bar — solid, vivid player color (no gradient) */}
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
                 <motion.div
-                  className="h-full rounded-full"
+                  className="h-full rounded-full transition-all"
                   style={{
-                    background: urgent
-                      ? "linear-gradient(90deg, #f43f5e, #f59e0b)"
-                      : playerBarGradient(current?.color ?? "#f59e0b"),
+                    backgroundColor: turnColor,
+                    boxShadow: `0 0 14px ${turnColor}`,
                   }}
                   animate={{ width: `${timePct}%` }}
                   transition={{ duration: 0.25, ease: "linear" }}
@@ -612,12 +628,12 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Reaction bar */}
-          <div className="glass-card flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl px-3 py-2 sm:flex-nowrap sm:gap-1.5 sm:px-3 sm:py-2.5">
+          <div className="glass-card flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5 rounded-2xl px-2 py-1 sm:flex-nowrap sm:gap-1.5 sm:px-3 sm:py-2.5">
             {REACTION_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
                 onClick={() => sendReactionAction(emoji)}
-                className="rounded-full px-1.5 py-0.5 text-2xl transition-transform hover:scale-125 active:scale-95 sm:text-xl"
+                className="rounded-full px-1 py-0 text-lg leading-none transition-transform hover:scale-125 active:scale-95 sm:px-1.5 sm:text-xl"
                 title={`Réagir avec ${emoji}`}
               >
                 {emoji}
@@ -626,7 +642,7 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Quit button */}
-          <div className="flex justify-center pt-2">
+          <div className="flex justify-center pt-1">
             <Button
               variant="ghost"
               size="sm"

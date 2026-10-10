@@ -9,6 +9,7 @@ interface AvatarProps {
   emojiSize?: string; // tailwind text size class for emoji (default text-lg)
   ring?: boolean; // show white ring (default true)
   className?: string;
+  style?: React.CSSProperties; // extra inline styles (e.g. colored focus glow)
 }
 
 export function Avatar({
@@ -18,6 +19,7 @@ export function Avatar({
   emojiSize = "text-lg",
   ring = true,
   className = "",
+  style,
 }: AvatarProps) {
   const isPhoto = isPhotoAvatar(avatar);
   const isEmpty = !avatar; // plain colored bubble, no photo, no emoji
@@ -26,7 +28,7 @@ export function Avatar({
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full ${
         ring ? "ring-2 ring-white/20" : ""
       } ${className}`}
-      style={{ backgroundColor: color, width: size, height: size }}
+      style={{ backgroundColor: color, width: size, height: size, ...style }}
     >
       {isPhoto ? (
         <img
