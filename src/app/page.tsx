@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useGameStore } from "@/store/game-store";
 import { HomeScreen } from "@/components/game/HomeScreen";
 import { SetupScreen } from "@/components/game/SetupScreen";
@@ -12,6 +13,20 @@ import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 
 export default function Home() {
   const phase = useGameStore((s) => s.phase);
+  const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
+
+  // A shared ?salon=CODE URL opens the online lobby flow directly.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const roomCode = url.searchParams.get("salon")?.trim().toUpperCase();
+    if (!roomCode || !/^[A-Z0-9]{4,8}$/.test(roomCode)) return;
+
+    sessionStorage.setItem("trouvix_invite_room", roomCode);
+    sessionStorage.setItem("trouvix_invite_pending", "1");
+    url.searchParams.delete("salon");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    goToOnlineSetup();
+  }, [goToOnlineSetup]);
 
   // In-game (composition + grid), both offline and online: block page refresh
   // so a stray F5 / pull-to-refresh can't wipe the match or eject a player.

@@ -40,6 +40,17 @@ export interface AdminRoomPlayer {
   connected: boolean;
 }
 
+function persistPlayerProfile(player: SetupPlayer) {
+  try {
+    localStorage.setItem("trouvix_profile", JSON.stringify({
+      name: player.name.trim().slice(0, 18),
+      color: player.color,
+      // Avoid putting uploaded photo data URLs into localStorage.
+      emoji: player.emoji.startsWith("data:") ? "" : player.emoji.slice(0, 24),
+    }));
+  } catch {}
+}
+
 export interface AdminRoom {
   roomCode: string;
   hostName: string;
@@ -79,7 +90,7 @@ interface OnlineStore {
 
   // actions
   createRoom: (player: SetupPlayer, totalRounds: number, maxPlayers?: number) => Promise<void>;
-  joinRoom: (roomCode: string, player: SetupPlayer) => Promise<void>;
+  joinRoom: (roomCode: string, player: SetupPlayer, allowColorReassignment?: boolean) => Promise<void>;
   challengeBenchou: (player: SetupPlayer, totalRounds: number) => Promise<void>;
   registerAsBenchou: (pin: string) => Promise<boolean>;
   acceptChallenge: (challengeId: string) => Promise<void>;
@@ -329,6 +340,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
             set({ errorMessage: res.error });
           } else if (res?.roomCode && res?.playerId) {
             set({ myPlayerId: res.playerId, roomCode: res.roomCode });
+            persistPlayerProfile(player);
             try {
               localStorage.setItem("trouvix_room", res.roomCode);
               localStorage.setItem("trouvix_player", res.playerId);
@@ -340,7 +352,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     });
   },
 
-  joinRoom: async (roomCode, player) => {
+  joinRoom: async (roomCode, player, allowColorReassignment = false) => {
     const socket = getSocket();
     get().init(); // ensure listeners
     const upperCode = roomCode.toUpperCase();
@@ -368,14 +380,15 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
       socket.emit(
         "join-room",
-        { roomCode: upperCode, player },
-        (res: { playerId?: string; error?: string }) => {
+        { roomCode: upperCode, player, allowColorReassignment },
+        (res: { playerId?: string; color?: string; error?: string }) => {
           clearTimeout(timeout);
           set({ pendingAction: false });
           if (res?.error) {
             set({ errorMessage: res.error, roomCode: null });
           } else if (res?.playerId) {
             set({ myPlayerId: res.playerId, roomCode: upperCode });
+            persistPlayerProfile({ ...player, color: res.color ?? player.color });
             try {
               localStorage.setItem("trouvix_room", upperCode);
               localStorage.setItem("trouvix_player", res.playerId);

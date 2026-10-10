@@ -22,7 +22,9 @@ export function OnlineRouter() {
     try {
       const savedRoom = localStorage.getItem("trouvix_room");
       const savedPlayer = localStorage.getItem("trouvix_player");
-      if (savedRoom && savedPlayer) {
+      const inviteRoom = sessionStorage.getItem("trouvix_invite_room");
+      const invitePending = sessionStorage.getItem("trouvix_invite_pending");
+      if (!inviteRoom && !invitePending && savedRoom && savedPlayer) {
         online.tryReconnect();
       }
     } catch {}

@@ -30,6 +30,7 @@ import {
   UserMinus,
   Gamepad2,
   Trash2,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,7 +85,9 @@ export function OnlineSetupScreen() {
   const [rounds, setRounds] = useState(10);
   const [maxPlayers, setMaxPlayers] = useState(6); // host defines max players (2-6)
   const [joinCode, setJoinCode] = useState("");
+  const [inviteRoomCode, setInviteRoomCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [confirmRoomDelete, setConfirmRoomDelete] = useState<string | null>(null);
   const [confirmDestroyRoom, setConfirmDestroyRoom] = useState(false);
   const [benchouPin, setBenchouPin] = useState("");
@@ -100,6 +103,38 @@ export function OnlineSetupScreen() {
   // (overrides the local tab state so create/join success naturally lands in lobby).
   const inLobby = !!onlineRoomCode && !!onlineMyPlayerId;
   const activeTab: Tab = inLobby ? "lobby" : tab;
+
+  // Invitation URLs prefill the room code. Returning players join directly
+  // with their saved profile; first-time visitors only need to enter a name.
+  useEffect(() => {
+    const roomCode = sessionStorage.getItem("trouvix_invite_room");
+    if (!roomCode) return;
+    sessionStorage.removeItem("trouvix_invite_room");
+    window.setTimeout(() => sessionStorage.removeItem("trouvix_invite_pending"), 0);
+    setInviteRoomCode(roomCode);
+    setJoinCode(roomCode);
+    setTab("join");
+
+    try {
+      const savedProfile = JSON.parse(localStorage.getItem("trouvix_profile") || "null") as {
+        name?: string;
+        color?: string;
+        emoji?: string;
+      } | null;
+      if (!savedProfile?.name?.trim()) return;
+      const profile = {
+        name: savedProfile.name.trim(),
+        color: COLOR_PALETTE.includes(savedProfile.color ?? "") ? savedProfile.color! : COLOR_PALETTE[0],
+        emoji: savedProfile.emoji ?? "",
+      };
+      setName(profile.name);
+      setColor(profile.color);
+      setEmoji(profile.emoji);
+      void onlineJoinRoom(roomCode, profile, true);
+    } catch {
+      // Invalid saved profile: keep the invitation code prefilled for manual join.
+    }
+  }, [onlineJoinRoom]);
 
   // Request the public room list when on the menu tab (refresh every 5s)
   useEffect(() => {
@@ -167,6 +202,41 @@ export function OnlineSetupScreen() {
       setCopied(true);
       toast.success("Code copié !");
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const shareRoomInvite = async () => {
+    if (!onlineRoomCode) return;
+    const inviteUrl = new URL("/", window.location.origin);
+    inviteUrl.searchParams.set("salon", onlineRoomCode);
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Invitation à jouer à Trouvix Grille",
+          text: `Rejoins mon salon ${onlineRoomCode} sur Trouvix Grille.`,
+          url: inviteUrl.toString(),
+        });
+      } else {
+        await navigator.clipboard.writeText(inviteUrl.toString());
+        toast.success("Lien d’invitation copié !");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      toast.error("Impossible de partager le lien. Réessaie.");
+    }
+  };
+
+  const copyRoomInvite = async () => {
+    if (!onlineRoomCode) return;
+    const inviteUrl = new URL("/", window.location.origin);
+    inviteUrl.searchParams.set("salon", onlineRoomCode);
+    try {
+      await navigator.clipboard.writeText(inviteUrl.toString());
+      setInviteCopied(true);
+      window.setTimeout(() => setInviteCopied(false), 1800);
+      toast.success("Lien d’invitation copié !");
+    } catch {
+      toast.error("Impossible de copier le lien. Réessaie.");
     }
   };
 
@@ -799,6 +869,11 @@ export function OnlineSetupScreen() {
                   maxLength={6}
                   className="mt-1 bg-background/60 font-display text-lg tracking-[0.3em] uppercase"
                 />
+                {inviteRoomCode && (
+                  <p className="mt-2 text-xs text-emerald-200/80">
+                    Invitation reçue : le code du salon est déjà renseigné.
+                  </p>
+                )}
               </div>
             )}
 
@@ -852,6 +927,34 @@ export function OnlineSetupScreen() {
               <p className="mt-2 text-xs text-muted-foreground">
                 Partage ce code avec tes amis pour qu'ils te rejoignent.
               </p>
+              {amHost && serverState.phase === "lobby" && !isBenchouChallengeRoom && (
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    onClick={shareRoomInvite}
+                    disabled={roomFull}
+                    className="flex-1 gap-2 bg-gradient-to-r from-emerald-700 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-500 disabled:opacity-50"
+                  >
+                    <Share2 className="h-4 w-4" /> {roomFull ? "Salon complet" : "Envoyer le lien d’invitation"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={copyRoomInvite}
+                    disabled={roomFull}
+                    variant="outline"
+                    size="icon"
+                    title="Copier le lien d’invitation"
+                    aria-label="Copier le lien d’invitation"
+                    className="h-10 w-10 shrink-0 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50"
+                  >
+                    {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              )}
+              {amHost && serverState.phase === "lobby" && !isBenchouChallengeRoom && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Tes amis ouvriront directement ce salon. Les places restent limitées à {roomMaxPlayers} joueurs.
+                </p>
+              )}
             </div>
 
             {/* Players */}

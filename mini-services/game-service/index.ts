@@ -16,6 +16,10 @@ const TICK_DT = TICK_MS / 1000 // 0.5 seconds
 const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000 // 10 minutes
 const MAX_PLAYERS = 8 // hard server ceiling
 const DEFAULT_MAX_PLAYERS = 6 // default when the host doesn't specify a capacity
+const ROOM_PLAYER_COLORS = [
+  '#9f1239', '#b8860b', '#0f766e', '#a16207', '#6d28d9', '#0e7490', '#be185d', '#166534',
+  '#1e3a8a', '#7c2d12', '#4a044e', '#0c4a6e', '#854d0e', '#155e75', '#9d174d', '#365314',
+]
 const PORT = parseInt(process.env.PORT || '3003', 10)
 
 // ====== Types ======
@@ -904,7 +908,7 @@ io.on('connection', (socket) => {
   // ---- join-room ----
   socket.on(
     'join-room',
-    (payload: { roomCode: string; player: SetupPlayer }, ack?: (res: any) => void) => {
+    (payload: { roomCode: string; player: SetupPlayer; allowColorReassignment?: boolean }, ack?: (res: any) => void) => {
       try {
         const code = (payload?.roomCode || '').toUpperCase()
         const room = findRoom(code)
@@ -929,19 +933,25 @@ io.on('connection', (socket) => {
           return
         }
         const color = payload.player?.color
-        if (color && room.state.players.some((p) => p.color === color)) {
+        const colorTaken = !!color && room.state.players.some((p) => p.color === color)
+        if (colorTaken && !payload.allowColorReassignment) {
           if (ack) ack({ error: 'Couleur déjà prise' })
           else socket.emit('error', { message: 'Couleur déjà prise' })
           return
         }
         const player = makePlayer(payload.player)
+        if (colorTaken) {
+          const takenColors = new Set(room.state.players.map((p) => p.color))
+          const availableColor = ROOM_PLAYER_COLORS.find((candidate) => !takenColors.has(candidate))
+          if (availableColor) player.color = availableColor
+        }
         room.state.players.push(player)
         socket.join(code)
         socketBindings.set(socket.id, { roomCode: code, playerId: player.id })
         cancelEmptyTimer(room)
         room.state.statusMessage = `${player.name} a rejoint le salon. (${room.state.players.length}/${room.maxPlayers})`
         console.log(`[room ${code}] ${player.name} (${player.id}) joined`)
-        if (ack) ack({ playerId: player.id })
+        if (ack) ack({ playerId: player.id, color: player.color })
         // Notify others, then full state to everyone
         socket.to(code).emit('player-joined', { player })
         broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
