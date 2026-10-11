@@ -84,6 +84,9 @@ interface Room {
   // null while at least one player is connected. When set, the room is kept
   // alive for EMPTY_ROOM_TTL_MS so people can rejoin, then it is destroyed.
   emptySince: number | null
+  voiceSpeakerId?: string
+  voiceChunkWindowAt?: number
+  voiceChunkCount?: number
   state: GameState
 }
 
@@ -400,6 +403,13 @@ const io = new Server(httpServer, {
   pingInterval: 25000,
 })
 
+function releaseRoomVoice(room: Room, playerId?: string): void {
+  const speakerId = room.voiceSpeakerId
+  if (!speakerId || (playerId && speakerId !== playerId)) return
+  room.voiceSpeakerId = undefined
+  io.to(room.roomCode).emit('voice-ended', { roomCode: room.roomCode, playerId: speakerId })
+}
+
 // ====== Admin helpers ======
 interface AdminRoomInfo {
   roomCode: string
@@ -619,6 +629,7 @@ io.on('connection', (socket) => {
       return
     }
     const targetName = target.name
+    releaseRoomVoice(room, playerId)
     // Notify the kicked player's socket and detach it from the room
     for (const [sockId, b] of socketBindings.entries()) {
       if (b.roomCode === room.roomCode && b.playerId === playerId) {
@@ -650,6 +661,7 @@ io.on('connection', (socket) => {
       if (ack) ack({ error: 'Salon introuvable.' })
       return
     }
+    releaseRoomVoice(room, playerId)
     // Find the player's socket via socketBindings
     let kickedSocket: any = null
     for (const [sockId, binding] of socketBindings.entries()) {
@@ -1218,6 +1230,7 @@ io.on('connection', (socket) => {
     if (s.phase !== 'playing' || s.resolving) return
     const next = !s.isPaused
     s.isPaused = next
+    if (next) releaseRoomVoice(room)
     s.statusMessage = next
       ? '⏸️ Partie en pause.'
       : `${s.players[s.currentPlayerIndex]?.name ?? ''} reprend. ⏱️`
@@ -1322,6 +1335,56 @@ io.on('connection', (socket) => {
     broadcastState(room); broadcastAdminRoomList()
   })
 
+  // ---- voice chat (push-to-talk, relayed through the existing game server) ----
+  socket.on('voice-start', (_payload: any, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    const room = binding ? findRoom(binding.roomCode) : undefined
+    const player = room?.state.players.find((p) => p.id === binding?.playerId)
+    if (!binding || !room || !player) {
+      if (ack) ack({ ok: false, error: 'Tu ne fais partie d’aucun salon.' })
+      return
+    }
+    if (room.state.phase !== 'playing' || room.state.isPaused) {
+      if (ack) ack({ ok: false, error: 'Le talkie-walkie est disponible pendant une partie en cours.' })
+      return
+    }
+    if (player.isAI || player.connected === false) {
+      if (ack) ack({ ok: false, error: 'Ce joueur ne peut pas utiliser le micro.' })
+      return
+    }
+    if (room.voiceSpeakerId && room.voiceSpeakerId !== player.id) {
+      if (ack) ack({ ok: false, error: 'Un autre joueur parle déjà. Réessaie dans un instant.' })
+      return
+    }
+
+    room.voiceSpeakerId = player.id
+    if (ack) ack({ ok: true })
+    io.to(room.roomCode).emit('voice-started', { roomCode: room.roomCode, playerId: player.id })
+  })
+
+  socket.on('voice-audio', (chunk: any) => {
+    const binding = socketBindings.get(socket.id)
+    const room = binding ? findRoom(binding.roomCode) : undefined
+    if (!binding || !room || room.voiceSpeakerId !== binding.playerId || room.state.phase !== 'playing' || room.state.isPaused) return
+    const isBinary = chunk instanceof ArrayBuffer || ArrayBuffer.isView(chunk)
+    const byteLength = chunk?.byteLength
+    if (!isBinary || typeof byteLength !== 'number' || byteLength < 2 || byteLength > 8192 || byteLength % 2 !== 0) return
+    const now = Date.now()
+    if (!room.voiceChunkWindowAt || now - room.voiceChunkWindowAt >= 1000) {
+      room.voiceChunkWindowAt = now
+      room.voiceChunkCount = 0
+    }
+    if ((room.voiceChunkCount ?? 0) >= 30) return
+    room.voiceChunkCount = (room.voiceChunkCount ?? 0) + 1
+    socket.to(room.roomCode).emit('voice-audio', { roomCode: room.roomCode, playerId: binding.playerId, chunk })
+  })
+
+  socket.on('voice-stop', () => {
+    const binding = socketBindings.get(socket.id)
+    const room = binding ? findRoom(binding.roomCode) : undefined
+    if (room && binding) releaseRoomVoice(room, binding.playerId)
+  })
+
   // ---- send-reaction ----
   // Relay a floating emoji reaction to everyone in the same room (sender included,
   // so the sender sees their own reaction animate). Purely cosmetic: no state change.
@@ -1396,6 +1459,7 @@ function handleLeave(socket: any, binding: SocketBinding, intentional = false): 
   socket.leave(code)
   const room = findRoom(code)
   if (!room) return
+  releaseRoomVoice(room, playerId)
   // HOST leaves VOLUNTARILY ("Quitter le salon") in the LOBBY → the room does NOT
   // die instantly anymore. It stays reachable for EMPTY_ROOM_TTL_MS so the host
   // and the other players can come back with the same code. The host keeps his

@@ -7,6 +7,7 @@ import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
+import { OnlineWalkieTalkie } from "./OnlineWalkieTalkie";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
 import { Flag, Home, Timer, Pause, Play, Crown, WifiOff, Swords, RotateCcw, Plus } from "lucide-react";
@@ -757,6 +758,13 @@ export function OnlineGameScreen() {
               </button>
             ))}
           </div>
+
+          {state.phase === "playing" && myId && (
+            <OnlineWalkieTalkie
+              roomCode={state.roomCode}
+              playerId={myId}
+            />
+          )}
 
           {/* Quit button */}
           <div className="flex justify-center pt-1">
