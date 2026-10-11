@@ -316,19 +316,42 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     get().init();
     set({ errorMessage: null, pendingAction: true, squareEvent: null });
 
-    // Wait for socket connection before emitting
-    if (!socket.connected) {
-      await new Promise<void>((resolve) => {
-        const t = setTimeout(() => resolve(), 5000);
-        socket.once("connect", () => { clearTimeout(t); resolve(); });
+    // A sleeping production service may take 10–30 seconds to wake. Start the
+    // health request and wait for a real Socket.IO connection before emitting;
+    // emitting while disconnected only buffers the request and causes false
+    // timeouts (and duplicate rooms when the host retries).
+    void wakeGameService();
+    const connected = socket.connected || await new Promise<boolean>((resolve) => {
+      let settled = false;
+      const finish = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        socket.off("connect", onConnect);
+        resolve(result);
+      };
+      const onConnect = () => finish(true);
+      const timer = setTimeout(() => finish(false), 45_000);
+      socket.once("connect", onConnect);
+      socket.connect();
+    });
+
+    if (!connected) {
+      set({
+        pendingAction: false,
+        errorMessage: "Le serveur de jeu met trop de temps à démarrer. Vérifie ta connexion puis réessaie.",
       });
+      return;
     }
 
     return new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        set({ pendingAction: false, errorMessage: "Le serveur ne répond pas. Réessaie." });
+        set({
+          pendingAction: false,
+          errorMessage: "La création du salon n’a pas été confirmée. Vérifie si le salon apparaît avant de réessayer.",
+        });
         resolve();
-      }, 8000);
+      }, 20_000);
 
       socket.emit(
         "create-room",
@@ -339,7 +362,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           if (res?.error) {
             set({ errorMessage: res.error });
           } else if (res?.roomCode && res?.playerId) {
-            set({ myPlayerId: res.playerId, roomCode: res.roomCode });
+            set({ myPlayerId: res.playerId, roomCode: res.roomCode, errorMessage: null });
             persistPlayerProfile(player);
             try {
               localStorage.setItem("trouvix_room", res.roomCode);
