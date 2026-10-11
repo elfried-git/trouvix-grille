@@ -927,34 +927,28 @@ export function OnlineSetupScreen() {
               <p className="mt-2 text-xs text-muted-foreground">
                 Partage ce code avec tes amis pour qu'ils te rejoignent.
               </p>
-              {amHost && serverState.phase === "lobby" && !isBenchouChallengeRoom && (
-                <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex gap-2">
                   <Button
                     onClick={shareRoomInvite}
-                    disabled={roomFull}
-                    className="flex-1 gap-2 bg-gradient-to-r from-emerald-700 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-500 disabled:opacity-50"
+                    className="flex-1 gap-2 bg-gradient-to-r from-emerald-700 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-500"
                   >
-                    <Share2 className="h-4 w-4" /> {roomFull ? "Salon complet" : "Envoyer le lien d’invitation"}
+                    <Share2 className="h-4 w-4" /> Envoyer le lien d’invitation
                   </Button>
                   <Button
                     type="button"
                     onClick={copyRoomInvite}
-                    disabled={roomFull}
                     variant="outline"
                     size="icon"
                     title="Copier le lien d’invitation"
                     aria-label="Copier le lien d’invitation"
-                    className="h-10 w-10 shrink-0 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50"
+                    className="h-10 w-10 shrink-0 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10"
                   >
                     {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
-                </div>
-              )}
-              {amHost && serverState.phase === "lobby" && !isBenchouChallengeRoom && (
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Tes amis ouvriront directement ce salon. Les places restent limitées à {roomMaxPlayers} joueurs.
-                </p>
-              )}
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Partage ce lien pour ouvrir directement ce salon. L’accès dépend des places disponibles et de l’état de la partie.
+              </p>
             </div>
 
             {/* Players */}

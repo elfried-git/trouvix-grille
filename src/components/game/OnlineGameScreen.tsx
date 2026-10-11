@@ -537,7 +537,7 @@ export function OnlineGameScreen() {
                           }
                         : undefined
                     }
-                    className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1.5 py-1.5 text-center transition-all ${
+                    className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-2 text-center transition-all ${
                       isActive
                         ? "border-2 ring-1 ring-white/30 scale-[1.02]"
                         : "bg-card/40 border-border/40 opacity-75"
@@ -557,7 +557,7 @@ export function OnlineGameScreen() {
                       }
                     />
                     <div className="flex min-w-0 w-full flex-col items-center">
-                      <span className={`w-full truncate text-[11px] font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
+                      <span className={`w-full truncate text-xs font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                         {p.name}
                       </span>
                       {isMe && (
