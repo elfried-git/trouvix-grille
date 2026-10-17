@@ -1,5 +1,5 @@
 # Trouvix Grille — Game Service Dockerfile
-# For Railway / Render / Fly.io / any Docker host
+# For Koyeb / Render / Railway / any Docker host
 
 FROM oven/bun:1 AS base
 WORKDIR /app
@@ -14,7 +14,7 @@ COPY index.ts ./
 # The Benchou Ferrari photo is served by the Next.js frontend (Vercel)
 # The game service only references it as a URL path — no need to copy it here.
 
-# Expose port (Railway/Render/Fly.io will set PORT env var)
+# Koyeb and other container hosts route traffic to the configured PORT.
 ENV PORT=3003
 EXPOSE 3003
 

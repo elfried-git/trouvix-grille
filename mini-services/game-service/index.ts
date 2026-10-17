@@ -377,8 +377,8 @@ function destroyRoom(code: string, reason: string): void {
 
 // ====== HTTP + Socket.io setup ======
 const httpServer = createServer((req, res) => {
-  // Health check endpoint — Railway uses this to verify the service is alive,
-  // and the web client pings it to wake a sleeping service before connecting.
+  // Health check endpoint — the hosting platform uses this to verify that the
+  // service is alive, and the web client pings it before connecting.
   if (req.url === '/health' || req.url === '/') {
     res.writeHead(200, {
       'Content-Type': 'application/json',
@@ -1624,7 +1624,7 @@ setInterval(() => {
 }, 15000)
 
 // ====== Boot ======
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Trouvix game service on port ${PORT}`)
 })
 

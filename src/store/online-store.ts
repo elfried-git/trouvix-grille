@@ -149,7 +149,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     if (socket.connected) set({ connected: true, connecting: false });
     else set({ connecting: true });
     socket.on("connect", () => {
+      const wasInRoom = Boolean(get().roomCode && get().myPlayerId);
       set({ connected: true, connecting: false });
+      if (wasInRoom) get().tryReconnect();
       // Auto-fetch public rooms immediately on connect (reactivity)
       socket.emit("list-public-rooms", {}, (res: { rooms?: PublicRoom[] }) => {
         if (res?.rooms) set({ publicRooms: res.rooms });

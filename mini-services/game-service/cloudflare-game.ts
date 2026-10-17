@@ -1,0 +1,1702 @@
+import { SocketIOServerCompat } from './cloudflare-io'
+
+let BENCHOU_PIN = '331991'
+let APP_URL = 'https://trouvix.vercel.app'
+
+// ====== Game constants (must match the client store exactly) ======
+const ROWS = 10
+const COLS = 10
+const TURN_SECONDS = 10
+const RESOLVE_MS = 850 // short celebration lock after a square
+const BOARD_FULL_RESOLVE_MS = 1200
+// How long an empty room (nobody connected) is kept alive before it self-destructs.
+// An empty room stays reachable with its code for this long so the host and the
+// players can come back and keep playing; after that it is obsolete and deleted.
+const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const MAX_PLAYERS = 8 // hard server ceiling
+const DEFAULT_MAX_PLAYERS = 6 // default when the host doesn't specify a capacity
+const ROOM_PLAYER_COLORS = [
+  '#9f1239', '#b8860b', '#0f766e', '#a16207', '#6d28d9', '#0e7490', '#be185d', '#166534',
+  '#1e3a8a', '#7c2d12', '#4a044e', '#0c4a6e', '#854d0e', '#155e75', '#9d174d', '#365314',
+]
+const io = new SocketIOServerCompat()
+
+// ====== Types ======
+type GridCell = string | null
+type Phase = 'lobby' | 'playing' | 'gameover'
+
+interface Player {
+  id: string
+  name: string
+  color: string
+  emoji: string // emoji string OR data URL (uploaded photo) OR public asset URL
+  score: number
+  alignments: number
+  isAI?: boolean
+  connected?: boolean // false when the player has disconnected mid-game (kept for score tracking)
+}
+
+interface SetupPlayer {
+  name: string
+  color: string
+  emoji: string
+}
+
+interface CellCoord {
+  row: number
+  col: number
+}
+
+interface FormedSquare {
+  cells: CellCoord[]
+  playerId: string
+}
+
+interface GameState {
+  phase: Phase
+  players: Player[]
+  currentPlayerIndex: number
+  grid: GridCell[][]
+  turnTimeLeft: number
+  turnDeadlineAt: number | null
+  statusMessage: string
+  winnerId: string | null
+  lastSquareCells: CellCoord[] | null
+  lastSquareerId: string | null
+  squareEventId: number | null
+  formedSquares: FormedSquare[]
+  resolving: boolean
+  isPaused: boolean
+  totalRounds: number
+  currentRound: number
+  lastDelta: { playerId: string; delta: number } | null
+  initialPlayers: Player[]
+}
+
+interface Room {
+  roomCode: string
+  hostId: string
+  totalRounds: number
+  maxPlayers: number // host-defined capacity (2-6), clamped to [2, MAX_PLAYERS]
+  createdAt: number
+  isBenchouChallenge?: boolean // true if created via "Jouer avec Benchou Ferrari" (private 1v1)
+  // Timestamp when the room last became empty (no connected player).
+  // null while at least one player is connected. When set, the room is kept
+  // alive for EMPTY_ROOM_TTL_MS so people can rejoin, then it is destroyed.
+  emptySince: number | null
+  voiceSpeakerId?: string
+  voiceChunkWindowAt?: number
+  voiceChunkCount?: number
+  resolveAt?: number
+  resolveKind?: 'square' | 'board-full'
+  state: GameState
+}
+
+// socket.id -> { roomCode, playerId }
+interface SocketBinding {
+  roomCode: string
+  playerId: string
+}
+
+// ====== In-memory stores ======
+const rooms = new Map<string, Room>()
+const socketBindings = new Map<string, SocketBinding>()
+
+function setSocketAttachment(socket: any, patch: Record<string, unknown>): void {
+  if (typeof socket.setAttachment !== 'function') return
+  const attachment = typeof socket.getAttachment === 'function' ? socket.getAttachment() ?? {} : {}
+  socket.setAttachment({ ...attachment, ...patch, id: socket.id })
+}
+
+function bindSocket(socket: any, binding: SocketBinding | null): void {
+  if (binding) socketBindings.set(socket.id, binding)
+  else socketBindings.delete(socket.id)
+  setSocketAttachment(socket, binding ? { binding } : { binding: undefined })
+}
+
+// ====== Challenge system (Benchou Ferrari notifications) ======
+interface Challenge {
+  id: string
+  roomCode: string
+  challengerName: string
+  challengerColor: string
+  challengerEmoji: string
+  totalRounds: number
+  createdAt: number
+  status: 'pending' | 'accepted' | 'expired'
+}
+const challenges = new Map<string, Challenge>()
+let benchouSocketId: string | null = null // socket.id of the connected Benchou Ferrari
+
+export function serializeGameState(): string {
+  return JSON.stringify({ rooms: [...rooms.values()], challenges: [...challenges.values()] })
+}
+
+export function restoreGameState(snapshot?: string): void {
+  rooms.clear()
+  socketBindings.clear()
+  challenges.clear()
+  benchouSocketId = null
+  if (!snapshot) return
+
+  try {
+    const saved = JSON.parse(snapshot) as { rooms?: Room[]; challenges?: Challenge[] }
+    const now = Date.now()
+    for (const room of saved.rooms ?? []) {
+      room.voiceSpeakerId = undefined
+      room.voiceChunkWindowAt = undefined
+      room.voiceChunkCount = undefined
+      room.state.players = room.state.players.map((player) => ({ ...player, connected: false }))
+      if (room.state.phase === 'playing' && !room.state.isPaused && room.state.turnDeadlineAt == null) {
+        room.state.turnDeadlineAt = now + Math.max(0, room.state.turnTimeLeft) * 1000
+      }
+      if (!hasConnectedPlayers(room) && room.emptySince === null) room.emptySince = now
+      rooms.set(room.roomCode, room)
+    }
+    for (const challenge of saved.challenges ?? []) challenges.set(challenge.id, challenge)
+  } catch (error) {
+    console.error('[game] unable to restore saved game state:', error)
+  }
+}
+
+// ====== Helpers ======
+function makeId(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
+}
+
+function emptyGrid(): GridCell[][] {
+  return Array.from({ length: ROWS }, () =>
+    Array.from({ length: COLS }, () => null as GridCell)
+  )
+}
+
+function inBounds(r: number, c: number): boolean {
+  return r >= 0 && r < ROWS && c >= 0 && c < COLS
+}
+
+// Check the 4 possible 2x2 blocks the freshly placed pawn could belong to.
+function checkSquare(
+  grid: GridCell[][],
+  row: number,
+  col: number,
+  playerId: string
+): CellCoord[] | null {
+  const offsets: [number, number][] = [
+    [0, 0],   // pawn is top-left
+    [0, -1],  // pawn is top-right
+    [-1, 0],  // pawn is bottom-left
+    [-1, -1], // pawn is bottom-right
+  ]
+  for (const [dr, dc] of offsets) {
+    const r0 = row + dr
+    const c0 = col + dc
+    if (!inBounds(r0, c0) || !inBounds(r0 + 1, c0 + 1)) continue
+    const cells = [
+      { row: r0, col: c0 },
+      { row: r0, col: c0 + 1 },
+      { row: r0 + 1, col: c0 },
+      { row: r0 + 1, col: c0 + 1 },
+    ]
+    if (cells.every((cell) => grid[cell.row][cell.col] === playerId)) {
+      return cells
+    }
+  }
+  return null
+}
+
+function isBoardFull(grid: GridCell[][]): boolean {
+  return grid.every((row) => row.every((c) => c !== null))
+}
+
+function canAnyPlayerFormSquare(grid: GridCell[][], players: Player[]): boolean {
+  const activePlayers = players.filter((p) => p.connected !== false)
+  if (activePlayers.length === 0) return false
+  const activeIds = new Set(activePlayers.map((p) => p.id))
+  for (let r0 = 0; r0 <= ROWS - 2; r0++) {
+    for (let c0 = 0; c0 <= COLS - 2; c0++) {
+      const cells = [
+        grid[r0][c0],
+        grid[r0][c0 + 1],
+        grid[r0 + 1][c0],
+        grid[r0 + 1][c0 + 1],
+      ]
+      const filled = cells.filter((c) => c !== null) as string[]
+      if (filled.length === 0) return true // empty 2x2: any player can form it
+      if (filled.length === 4) continue // already filled (either completed square or blocked)
+      const owner = filled[0]
+      // Check if all filled cells in this 2x2 belong to the SAME owner who is still active
+      if (activeIds.has(owner) && filled.every((c) => c === owner)) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+function computeWinner(players: Player[]): string | null {
+  if (players.length === 0) return null
+  let best = players[0]
+  for (const p of players) if (p.score > best.score) best = p
+  return best.id
+}
+
+// 6 uppercase alphanumeric chars, no confusing chars (0/O/1/I)
+const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+function generateRoomCode(): string {
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += ROOM_ALPHABET[Math.floor(Math.random() * ROOM_ALPHABET.length)]
+  }
+  return code
+}
+
+function uniqueRoomCode(): string {
+  let code = generateRoomCode()
+  while (rooms.has(code)) code = generateRoomCode()
+  return code
+}
+
+// Clamp a host-provided capacity to the server limits ([2, MAX_PLAYERS]).
+function normalizeMaxPlayers(value: unknown): number {
+  const n = typeof value === 'number' ? Math.floor(value) : NaN
+  if (!Number.isFinite(n)) return DEFAULT_MAX_PLAYERS
+  return Math.min(MAX_PLAYERS, Math.max(2, n))
+}
+
+function makePlayer(setup: SetupPlayer): Player {
+  return {
+    id: makeId(),
+    name: (setup.name || '').trim() || `Joueur ${Math.floor(Math.random() * 100)}`,
+    color: setup.color,
+    emoji: setup.emoji || '',
+    score: 0,
+    alignments: 0,
+    isAI: (setup as any).isAI ?? false,
+    connected: true,
+  }
+}
+
+function freshState(): GameState {
+  return {
+    phase: 'lobby',
+    players: [],
+    currentPlayerIndex: 0,
+    grid: emptyGrid(),
+    turnTimeLeft: TURN_SECONDS,
+    turnDeadlineAt: null,
+    statusMessage: '',
+    winnerId: null,
+    lastSquareCells: null,
+    lastSquareerId: null,
+    squareEventId: null,
+    formedSquares: [],
+    resolving: false,
+    isPaused: false,
+    totalRounds: 10,
+    currentRound: 0,
+    lastDelta: null,
+    initialPlayers: [],
+  }
+}
+
+function startTurnTimer(state: GameState, now = Date.now()): void {
+  state.turnTimeLeft = TURN_SECONDS
+  state.turnDeadlineAt = now + TURN_SECONDS * 1000
+}
+
+// Shape broadcast to clients.
+// Lightweight clone: only clone what changes between ticks (grid, players, formedSquares)
+function publicState(room: Room): any {
+  const s = room.state
+  const currentTurnTimeLeft = s.phase === 'playing' && !s.isPaused && s.turnDeadlineAt !== null
+    ? Math.max(0, (s.turnDeadlineAt - Date.now()) / 1000)
+    : s.turnTimeLeft
+  let tiedPlayerIds: string[] = []
+  if (s.phase === 'gameover' && s.players.length > 0) {
+    const connected = s.players.filter((p) => p.connected !== false)
+    if (connected.length > 0) {
+      const maxScore = Math.max(...connected.map((p) => p.score))
+      tiedPlayerIds = connected.filter((p) => p.score === maxScore).map((p) => p.id)
+    }
+  }
+  return {
+    roomCode: room.roomCode,
+    hostId: room.hostId,
+    totalRounds: room.totalRounds,
+    maxPlayers: room.maxPlayers,
+    isBenchouChallenge: room.isBenchouChallenge ?? false,
+    phase: s.phase,
+    players: s.players.map((p) => ({ ...p })),
+    currentPlayerIndex: s.currentPlayerIndex,
+    grid: s.grid.map((row) => [...row]),
+    turnTimeLeft: Math.round(currentTurnTimeLeft * 10) / 10,
+    turnDeadlineAt: s.turnDeadlineAt,
+    statusMessage: s.statusMessage,
+    winnerId: s.winnerId,
+    tiedPlayerIds: [...tiedPlayerIds],
+    lastSquareCells: s.lastSquareCells ? s.lastSquareCells.map((c) => ({ ...c })) : null,
+    lastSquareerId: s.lastSquareerId,
+    squareEventId: s.squareEventId,
+    formedSquares: s.formedSquares.map((sq) => ({ cells: sq.cells, playerId: sq.playerId })),
+    resolving: s.resolving,
+    isPaused: s.isPaused,
+    currentRound: s.currentRound,
+    lastDelta: s.lastDelta ? { ...s.lastDelta } : null,
+  }
+}
+
+function broadcastState(room: Room): void {
+  io.to(room.roomCode).emit('state-update', { state: publicState(room) })
+}
+
+function findRoom(roomCode: string): Room | undefined {
+  return rooms.get(roomCode)
+}
+
+function reassignHost(room: Room): void {
+  if (room.state.players.length === 0) {
+    room.hostId = ''
+    return
+  }
+  // Only reassign when the host is genuinely GONE from the roster.
+  // A host who merely disconnected (still listed with connected=false) keeps
+  // his status, so he can come back and still be the host.
+  if (!room.state.players.some((p) => p.id === room.hostId)) {
+    room.hostId = room.state.players[0].id
+    console.log(`[room ${room.roomCode}] host reassigned to ${room.hostId}`)
+  }
+}
+
+function removePlayerFromRoom(room: Room, playerId: string): boolean {
+  const idx = room.state.players.findIndex((p) => p.id === playerId)
+  if (idx === -1) return false
+  room.state.players.splice(idx, 1)
+  // Fix currentPlayerIndex if needed
+  if (room.state.players.length === 0) {
+    room.state.currentPlayerIndex = 0
+  } else if (idx < room.state.currentPlayerIndex) {
+    room.state.currentPlayerIndex -= 1
+  } else if (room.state.currentPlayerIndex >= room.state.players.length) {
+    room.state.currentPlayerIndex = room.state.currentPlayerIndex % room.state.players.length
+  }
+  reassignHost(room)
+  return true
+}
+
+function nextPlayerIndex(room: Room): number {
+  const n = room.state.players.length
+  if (n === 0) return 0
+  return (room.state.currentPlayerIndex + 1) % n
+}
+
+// True when at least one player in the room is still connected.
+function hasConnectedPlayers(room: Room): boolean {
+  return room.state.players.some((p) => p.connected !== false)
+}
+
+// If nobody is connected, start (or keep) the countdown that will destroy the
+// room after EMPTY_ROOM_TTL_MS. The room stays fully usable in the meantime:
+// anyone (host included) can rejoin with its code and cancel the countdown.
+function armEmptyTimer(room: Room): void {
+  if (hasConnectedPlayers(room)) return
+  if (room.emptySince === null) {
+    room.emptySince = Date.now()
+    console.log(`[room ${room.roomCode}] empty — will self-destruct in ${EMPTY_ROOM_TTL_MS / 60000} min if nobody rejoins`)
+  }
+}
+
+// A player is back: the room is no longer empty, cancel any pending expiry.
+function cancelEmptyTimer(room: Room): void {
+  if (room.emptySince !== null) {
+    room.emptySince = null
+    console.log(`[room ${room.roomCode}] someone rejoined — expiry cancelled`)
+  }
+}
+
+// Destroy a room entirely: notify everyone inside, detach them, drop the room
+// and expire its pending challenges. Used when the host leaves (the room dies
+// with him) and by the admin-delete-room handler.
+function destroyRoom(code: string, reason: string): void {
+  const room = rooms.get(code)
+  if (!room) return
+  io.to(code).emit('room-destroyed', { reason })
+  io.in(code).socketsLeave(code)
+  rooms.delete(code)
+  for (const [, ch] of challenges.entries()) {
+    if (ch.roomCode === code) ch.status = 'expired'
+  }
+  console.log(`[room ${code}] destroyed (${reason})`)
+  broadcastAdminRoomList()
+  broadcastPublicRoomList()
+}
+
+// WebSocket listeners are attached by the Durable Object in worker.ts.
+
+function releaseRoomVoice(room: Room, playerId?: string): void {
+  const speakerId = room.voiceSpeakerId
+  if (!speakerId || (playerId && speakerId !== playerId)) return
+  room.voiceSpeakerId = undefined
+  io.to(room.roomCode).emit('voice-ended', { roomCode: room.roomCode, playerId: speakerId })
+}
+
+// ====== Admin helpers ======
+interface AdminRoomInfo {
+  roomCode: string
+  hostName: string
+  hostId: string
+  playerCount: number
+  maxPlayers: number
+  phase: string
+  totalRounds: number
+  currentRound: number
+  isBenchouChallenge?: boolean
+  players: { id: string; name: string; color: string; emoji: string; score: number; connected: boolean; isAI: boolean }[]
+  createdAt: number
+}
+
+function getAdminRoomList(): AdminRoomInfo[] {
+  return Array.from(rooms.values()).map((room) => ({
+    roomCode: room.roomCode,
+    hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
+    hostId: room.hostId,
+    playerCount: room.state.players.filter((p) => p.connected !== false).length,
+    maxPlayers: room.maxPlayers,
+    phase: room.state.phase,
+    totalRounds: room.totalRounds,
+    currentRound: room.state.currentRound,
+    isBenchouChallenge: room.isBenchouChallenge ?? false,
+    players: room.state.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      emoji: p.emoji,
+      score: p.score,
+      connected: p.connected !== false,
+      isAI: p.isAI ?? false,
+    })),
+    createdAt: room.createdAt ?? Date.now(),
+  }))
+}
+
+function sendAdminRoomList(socket: any): void {
+  socket.emit('admin-rooms-update', { rooms: getAdminRoomList() })
+}
+
+// Broadcast admin room list to Benchou if online
+function broadcastAdminRoomList(): void {
+  if (benchouSocketId) {
+    sendAdminRoomList(io.sockets.sockets.get(benchouSocketId))
+  }
+}
+
+// ====== Public room list helpers ======
+// Lightweight projection shown to EVERYONE on the online menu: the room code,
+// the host's identity (name/emoji/color), the number of waiting players, the
+// capacity, and the match length. No secrets, no in-game state.
+interface PublicRoomInfo {
+  roomCode: string
+  hostName: string
+  hostEmoji: string
+  hostColor: string
+  playerCount: number
+  maxPlayers: number
+  isFull: boolean
+  totalRounds: number
+  phase: string
+  createdAt: number
+}
+
+function getPublicRoomList(): PublicRoomInfo[] {
+  return Array.from(rooms.values())
+    .filter((room) => !room.isBenchouChallenge)
+    .map((room) => {
+      const host = room.state.players.find((p) => p.id === room.hostId)
+      const playerCount = room.state.players.filter((p) => p.connected !== false).length
+      return {
+        roomCode: room.roomCode,
+        hostName: host?.name ?? 'Inconnu',
+        hostEmoji: host?.emoji ?? '',
+        hostColor: host?.color ?? '#9f1239',
+        playerCount,
+        maxPlayers: room.maxPlayers,
+        isFull: playerCount >= room.maxPlayers,
+        totalRounds: room.totalRounds,
+        phase: room.state.phase,
+        createdAt: room.createdAt ?? Date.now(),
+      }
+    })
+}
+
+// Broadcast the public room list to every connected client (reactivity).
+function broadcastPublicRoomList(): void {
+  io.emit('public-rooms', { rooms: getPublicRoomList() })
+}
+
+// ====== Connection handling ======
+io.on('connection', (socket) => {
+  console.log(`[socket] connected: ${socket.id}`)
+  const savedAttachment = socket.getAttachment?.()
+  if (savedAttachment?.binding) {
+    const room = findRoom(savedAttachment.binding.roomCode)
+    const player = room?.state.players.find((candidate) => candidate.id === savedAttachment.binding.playerId)
+    if (room && player) {
+      player.connected = true
+      bindSocket(socket, savedAttachment.binding)
+      socket.join(room.roomCode)
+      cancelEmptyTimer(room)
+    }
+  }
+  if (savedAttachment?.isBenchou) {
+    benchouSocketId = socket.id
+    ;(socket as any).__isBenchou = true
+  }
+
+  // ---- create-room ----
+  socket.on(
+    'create-room',
+    (payload: { player: SetupPlayer; totalRounds: number; maxPlayers?: number }, ack?: (res: any) => void) => {
+      try {
+        const totalRounds = payload?.totalRounds
+        if (![5, 10, 15].includes(totalRounds)) {
+          if (ack) ack({ error: 'Le nombre de rounds doit être 5, 10 ou 15' })
+          else socket.emit('error', { message: 'Le nombre de rounds doit être 5, 10 ou 15' })
+          return
+        }
+        const maxPlayers = normalizeMaxPlayers(payload?.maxPlayers)
+        const player = makePlayer(payload.player)
+        const roomCode = uniqueRoomCode()
+        const room: Room = {
+          roomCode,
+          hostId: player.id,
+          totalRounds,
+          maxPlayers,
+          createdAt: Date.now(),
+          emptySince: null,
+          state: freshState(),
+        }
+        room.state.totalRounds = totalRounds
+        room.state.players.push(player)
+        room.state.statusMessage = `Salon créé. En attente de joueurs... (hôte: ${player.name})`
+        rooms.set(roomCode, room)
+        socket.join(roomCode)
+        bindSocket(socket, { roomCode, playerId: player.id })
+        console.log(`[room ${roomCode}] created by ${player.name} (${player.id}), totalRounds=${totalRounds}, maxPlayers=${maxPlayers}`)
+        if (ack) ack({ roomCode, playerId: player.id })
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+      } catch (err) {
+        console.error('[create-room] error', err)
+        if (ack) ack({ error: 'Erreur interne' })
+        else socket.emit('error', { message: 'Erreur interne' })
+      }
+    }
+  )
+
+  // ---- register-as-benchou ----
+  // Benchou Ferrari identifies himself with a secret PIN to receive challenge notifications + admin access.
+  socket.on('register-as-benchou', (payload: { pin?: string }, ack?: (res: any) => void) => {
+    const pin = payload?.pin
+    if (!pin || pin !== BENCHOU_PIN) {
+      console.log(`[benchou] Failed registration attempt — wrong PIN from socket ${socket.id}`)
+      if (ack) ack({ error: 'Code PIN incorrect. Accès refusé.' })
+      return
+    }
+    benchouSocketId = socket.id
+    ;(socket as any).__isBenchou = true
+    setSocketAttachment(socket, { isBenchou: true })
+    console.log(`[benchou] Benchou Ferrari authenticated & online (socket ${socket.id})`)
+    // Send all pending challenges
+    const pending = Array.from(challenges.values()).filter((c) => c.status === 'pending')
+    if (ack) ack({ ok: true, pendingChallenges: pending })
+    pending.forEach((c) => {
+      socket.emit('benchou-challenge', { challenge: c })
+    })
+    // Send admin room list
+    sendAdminRoomList(socket)
+  })
+
+  // ---- admin-list-rooms ----
+  // Benchou Ferrari requests the full list of active rooms.
+  socket.on('admin-list-rooms', (_payload: any, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé. PIN requis.' })
+      return
+    }
+    if (ack) ack({ rooms: getAdminRoomList() })
+  })
+
+  // ---- admin-delete-room ----
+  // Benchou Ferrari deletes a room. The room code becomes invalid immediately.
+  socket.on('admin-delete-room', (payload: { roomCode: string }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const code = (payload?.roomCode || '').toUpperCase()
+    const room = rooms.get(code)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    destroyRoom(code, 'admin-deleted')
+    if (ack) ack({ ok: true, rooms: getAdminRoomList() })
+  })
+
+  // ---- kick-player (host only) ----
+  // The host removes a player from their own room (lobby only).
+  socket.on('kick-player', (payload: { playerId: string }, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) {
+      if (ack) ack({ error: "Vous n'êtes pas dans un salon." })
+      return
+    }
+    const room = findRoom(binding.roomCode)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    // Only the host may kick, and only while the game hasn't started
+    if (room.hostId !== binding.playerId) {
+      if (ack) ack({ error: "Seul l'hôte peut retirer un joueur." })
+      return
+    }
+    if (room.state.phase !== 'lobby') {
+      if (ack) ack({ error: 'Impossible de retirer un joueur en pleine partie.' })
+      return
+    }
+    const playerId = payload?.playerId
+    if (!playerId || playerId === room.hostId) {
+      if (ack) ack({ error: 'Joueur invalide.' })
+      return
+    }
+    const target = room.state.players.find((p) => p.id === playerId)
+    if (!target) {
+      if (ack) ack({ error: 'Joueur introuvable.' })
+      return
+    }
+    const targetName = target.name
+    releaseRoomVoice(room, playerId)
+    // Notify the kicked player's socket and detach it from the room
+    for (const [sockId, b] of socketBindings.entries()) {
+      if (b.roomCode === room.roomCode && b.playerId === playerId) {
+        io.to(sockId).emit('kicked', { roomCode: room.roomCode, reason: 'removed-by-host' })
+        const sock = io.sockets.sockets.get(sockId)
+        if (sock) {
+          sock.leave(room.roomCode)
+          bindSocket(sock, null)
+        } else {
+          socketBindings.delete(sockId)
+        }
+        break
+      }
+    }
+    room.state.players = room.state.players.filter((p) => p.id !== playerId)
+    room.state.statusMessage = `${targetName} a été retiré du salon par l'hôte. (${room.state.players.length}/${room.maxPlayers})`
+    console.log(`[room ${room.roomCode}] ${targetName} kicked by host`)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    if (ack) ack({ ok: true })
+  })
+
+  // ---- admin-kick-player ----
+  // Benchou Ferrari kicks a player from a room.
+  socket.on('admin-kick-player', (payload: { roomCode: string; playerId: string }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const code = (payload?.roomCode || '').toUpperCase()
+    const playerId = payload?.playerId
+    const room = rooms.get(code)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    releaseRoomVoice(room, playerId)
+    // Find the player's socket via socketBindings
+    let kickedSocket: any = null
+    for (const [sockId, binding] of socketBindings.entries()) {
+      if (binding.roomCode === code && binding.playerId === playerId) {
+        kickedSocket = sockId
+        break
+      }
+    }
+    if (kickedSocket) {
+      // Emit kick event to the player
+      io.to(kickedSocket).emit('kicked', { roomCode: code, message: 'Vous avez été expulsé du salon par l\'administrateur.' })
+      // Remove from room
+      const sock = io.sockets.sockets.get(kickedSocket)
+      if (sock) sock.leave(code)
+    }
+    // Mark player as disconnected in the room state
+    const player = room.state.players.find((p) => p.id === playerId)
+    if (player) {
+      player.connected = false
+      // If lobby phase, remove entirely
+      if (room.state.phase === 'lobby') {
+        room.state.players = room.state.players.filter((p) => p.id !== playerId)
+      }
+    }
+    room.state.statusMessage = `Un joueur a été expulsé par l'administrateur.`
+    console.log(`[admin] Player ${playerId} kicked from room ${code} by Benchou Ferrari`)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    if (ack) ack({ ok: true, rooms: getAdminRoomList() })
+  })
+
+  // ---- admin-join-room ----
+  // Benchou Ferrari joins a room directly (as a player, not as host).
+  socket.on('admin-join-room', (payload: { roomCode: string }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const code = (payload?.roomCode || '').toUpperCase()
+    const room = rooms.get(code)
+    if (!room) {
+      if (ack) ack({ error: 'Salon introuvable.' })
+      return
+    }
+    if (room.state.phase !== 'lobby') {
+      if (ack) ack({ error: 'La partie a déjà commencé' })
+      return
+    }
+    if (room.state.players.length >= room.maxPlayers) {
+      if (ack) ack({ error: 'Le salon est complet' })
+      return
+    }
+    // Check if Benchou is already in the room
+    if (room.state.players.some((p) => p.name === 'Benchou Ferrari')) {
+      if (ack) ack({ error: 'Benchou Ferrari est déjà dans ce salon.' })
+      return
+    }
+    const BENCHOU_COLORS = ['#b8860b', '#0f766e', '#6d28d9', '#0e7490', '#166534', '#1e3a8a']
+    const taken = new Set(room.state.players.map((p) => p.color))
+    const benchouColor = BENCHOU_COLORS.find((c) => !taken.has(c)) ?? '#b8860b'
+    const benchou: Player = {
+      id: makeId(),
+      name: 'Benchou Ferrari',
+      color: benchouColor,
+      emoji: '/benchou-ferrari-small.jpg',
+      score: 0,
+      alignments: 0,
+      isAI: false,
+      connected: true,
+    }
+    room.state.players.push(benchou)
+    socket.join(code)
+    bindSocket(socket, { roomCode: code, playerId: benchou.id })
+    room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/${MAX_PLAYERS})`
+    console.log(`[admin] Benchou Ferrari joined room ${code}`)
+    if (ack) ack({ ok: true, roomCode: code, playerId: benchou.id })
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+  })
+
+  // ---- list-public-rooms ----
+  // Anyone can see the list of public rooms (room code + host identity + player count).
+  // Joining still requires the correct code.
+  socket.on('list-public-rooms', (_payload: any, ack?: (res: any) => void) => {
+    if (ack) ack({ rooms: getPublicRoomList() })
+  })
+
+  // ---- public-list-rooms (legacy alias) ----
+  // Keep the old event name working for any client still emitting it.
+  socket.on('public-list-rooms', (_payload: any, ack?: (res: any) => void) => {
+    if (ack) ack({ rooms: getPublicRoomList() })
+  })
+
+  // ---- challenge-benchou ----
+  // A player challenges Benchou Ferrari to a game. Creates a room + sends notification.
+  socket.on(
+    'challenge-benchou',
+    (payload: { player: SetupPlayer; totalRounds: number }, ack?: (res: any) => void) => {
+      try {
+        const totalRounds = payload?.totalRounds
+        if (![5, 10, 15].includes(totalRounds)) {
+          if (ack) ack({ error: 'Le nombre de rounds doit être 5, 10 ou 15' })
+          return
+        }
+        const player = makePlayer(payload.player)
+        const roomCode = uniqueRoomCode()
+        const room: Room = {
+          roomCode,
+          hostId: player.id,
+          totalRounds,
+          maxPlayers: 2, // 1 vs 1 match
+          isBenchouChallenge: true,
+          createdAt: Date.now(),
+          emptySince: null,
+          state: freshState(),
+        }
+        room.state.totalRounds = totalRounds
+        room.state.players.push(player)
+        room.state.statusMessage = `En attente de Benchou Ferrari pour un duel 1 vs 1... (hôte: ${player.name})`
+        rooms.set(roomCode, room)
+        socket.join(roomCode)
+        bindSocket(socket, { roomCode, playerId: player.id })
+
+        // Create the challenge
+        const challenge: Challenge = {
+          id: makeId(),
+          roomCode,
+          challengerName: player.name,
+          challengerColor: player.color,
+          challengerEmoji: player.emoji,
+          totalRounds,
+          createdAt: Date.now(),
+          status: 'pending',
+        }
+        challenges.set(challenge.id, challenge)
+
+        console.log(`[challenge] ${player.name} challenged Benchou Ferrari — room ${roomCode}`)
+
+        // Notify Benchou in real-time if online
+        if (benchouSocketId) {
+          io.to(benchouSocketId).emit('benchou-challenge', { challenge })
+          console.log(`[challenge] notification sent to Benchou (online)`)
+        }
+
+        // Call the email/webhook API (fire-and-forget)
+        const appUrl = APP_URL
+        fetch(`${appUrl}/api/notify-benchou`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            challengerName: player.name,
+            roomCode,
+            totalRounds,
+            challengeId: challenge.id,
+          }),
+        }).catch(() => {}) // ignore errors — email is best-effort
+
+        if (ack) ack({ roomCode, playerId: player.id, challengeId: challenge.id })
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+      } catch (err) {
+        console.error('[challenge-benchou] error', err)
+        if (ack) ack({ error: 'Erreur interne' })
+      }
+    }
+  )
+
+  // ---- accept-challenge ----
+  // Benchou Ferrari accepts a challenge and joins the room.
+  socket.on(
+    'accept-challenge',
+    (payload: { challengeId: string }, ack?: (res: any) => void) => {
+      try {
+        const challenge = challenges.get(payload?.challengeId)
+        if (!challenge) {
+          if (ack) ack({ error: 'Défi introuvable' })
+          return
+        }
+        if (challenge.status !== 'pending') {
+          if (ack) ack({ error: 'Défi déjà ' + (challenge.status === 'accepted' ? 'accepté' : 'expiré') })
+          return
+        }
+        const room = findRoom(challenge.roomCode)
+        if (!room) {
+          if (ack) ack({ error: "Le salon n'existe plus" })
+          challenge.status = 'expired'
+          return
+        }
+        if (room.state.phase !== 'lobby') {
+          if (ack) ack({ error: 'La partie a déjà commencé' })
+          return
+        }
+        // Pick Benchou's color (gold by default, fallback to first free)
+        const BENCHOU_COLORS = ['#b8860b', '#0f766e', '#6d28d9', '#0e7490', '#166534', '#1e3a8a']
+        const taken = new Set(room.state.players.map((p) => p.color))
+        const benchouColor = BENCHOU_COLORS.find((c) => !taken.has(c)) ?? '#b8860b'
+        const benchou: Player = {
+          id: makeId(),
+          name: 'Benchou Ferrari',
+          color: benchouColor,
+          emoji: '/benchou-ferrari-small.jpg',
+          score: 0,
+          alignments: 0,
+          isAI: false, // Benchou is a REAL person, not an AI!
+        }
+        room.isBenchouChallenge = true
+        room.maxPlayers = 2 // Lock capacity to 2 for 1v1 Benchou match
+        room.state.players.push(benchou)
+        socket.join(room.roomCode)
+        bindSocket(socket, { roomCode: room.roomCode, playerId: benchou.id })
+        challenge.status = 'accepted'
+        room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! Le duel 1 vs 1 peut commencer. (2/2)`
+        console.log(`[challenge] Benchou Ferrari accepted challenge — room ${room.roomCode}`)
+        if (ack) ack({ ok: true, roomCode: room.roomCode, playerId: benchou.id })
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+      } catch (err) {
+        console.error('[accept-challenge] error', err)
+        if (ack) ack({ error: 'Erreur interne' })
+      }
+    }
+  )
+
+  // ---- decline-challenge ----
+  // Benchou Ferrari declines a challenge. The challenger is notified.
+  socket.on(
+    'decline-challenge',
+    (payload: { challengeId: string }, ack?: (res: any) => void) => {
+      try {
+        const challenge = challenges.get(payload?.challengeId)
+        if (!challenge) {
+          if (ack) ack({ error: 'Défi introuvable' })
+          return
+        }
+        challenge.status = 'expired'
+        console.log(`[challenge] Benchou Ferrari DECLINED challenge from ${challenge.challengerName}`)
+
+        // Notify the challenger that the challenge was declined
+        // Find the challenger's socket via the room
+        const room = findRoom(challenge.roomCode)
+        if (room) {
+          // Emit to the room — the challenger will receive it
+          io.to(challenge.roomCode).emit('challenge-declined', {
+            challengeId: challenge.id,
+            challengerName: challenge.challengerName,
+          })
+          // Update room status message
+          room.state.statusMessage = `Benchou Ferrari a décliné le défi. Tu peux quitter le salon.`
+          broadcastState(room); broadcastAdminRoomList()
+        }
+
+        if (ack) ack({ ok: true })
+      } catch (err) {
+        console.error('[decline-challenge] error', err)
+        if (ack) ack({ error: 'Erreur interne' })
+      }
+    }
+  )
+
+  // ---- join-room ----
+  socket.on(
+    'join-room',
+    (payload: { roomCode: string; player: SetupPlayer; allowColorReassignment?: boolean }, ack?: (res: any) => void) => {
+      try {
+        const code = (payload?.roomCode || '').toUpperCase()
+        const room = findRoom(code)
+        if (!room) {
+          if (ack) ack({ error: 'Salon introuvable' })
+          else socket.emit('error', { message: 'Salon introuvable' })
+          return
+        }
+        if (room.state.phase !== 'lobby') {
+          if (ack) ack({ error: 'La partie a déjà commencé' })
+          else socket.emit('error', { message: 'La partie a déjà commencé' })
+          return
+        }
+        if (room.isBenchouChallenge) {
+          if (ack) ack({ error: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
+          else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
+          return
+        }
+        if (room.state.players.length >= room.maxPlayers) {
+          if (ack) ack({ error: 'Le salon est complet' })
+          else socket.emit('error', { message: 'Le salon est complet' })
+          return
+        }
+        const color = payload.player?.color
+        const colorTaken = !!color && room.state.players.some((p) => p.color === color)
+        if (colorTaken && !payload.allowColorReassignment) {
+          if (ack) ack({ error: 'Couleur déjà prise' })
+          else socket.emit('error', { message: 'Couleur déjà prise' })
+          return
+        }
+        const player = makePlayer(payload.player)
+        if (colorTaken) {
+          const takenColors = new Set(room.state.players.map((p) => p.color))
+          const availableColor = ROOM_PLAYER_COLORS.find((candidate) => !takenColors.has(candidate))
+          if (availableColor) player.color = availableColor
+        }
+        room.state.players.push(player)
+        socket.join(code)
+        bindSocket(socket, { roomCode: code, playerId: player.id })
+        cancelEmptyTimer(room)
+        room.state.statusMessage = `${player.name} a rejoint le salon. (${room.state.players.length}/${room.maxPlayers})`
+        console.log(`[room ${code}] ${player.name} (${player.id}) joined`)
+        if (ack) ack({ playerId: player.id, color: player.color })
+        // Notify others, then full state to everyone
+        socket.to(code).emit('player-joined', { player })
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+      } catch (err) {
+        console.error('[join-room] error', err)
+        if (ack) ack({ error: 'Erreur interne' })
+        else socket.emit('error', { message: 'Erreur interne' })
+      }
+    }
+  )
+
+  // ---- rejoin-room (reconnect) ----
+  socket.on(
+    'rejoin-room',
+    (payload: { roomCode: string; playerId: string }, ack?: (res: any) => void) => {
+      try {
+        const code = (payload?.roomCode || '').toUpperCase()
+        const playerId = payload?.playerId
+        const room = findRoom(code)
+        if (!room) {
+          if (ack) ack({ ok: false, error: 'Salon introuvable' })
+          return
+        }
+        const existing = room.state.players.find((p) => p.id === playerId)
+        if (!existing) {
+          if (ack) ack({ ok: false, error: 'Player not in room' })
+          return
+        }
+        // Mark the player as back online (a host who disconnected keeps his seat).
+        existing.connected = true
+        socket.join(code)
+        bindSocket(socket, { roomCode: code, playerId })
+        // Someone is back — the room must not self-destruct.
+        cancelEmptyTimer(room)
+        // If the rejoining player is the host, make sure the host badge follows him.
+        if (playerId === room.hostId) {
+          room.state.statusMessage = `L'hôte (${existing.name}) est de retour. En attente de joueurs...`
+        }
+        console.log(`[room ${code}] player ${playerId} rejoined via socket ${socket.id}`)
+        if (ack) ack({ ok: true, isHost: playerId === room.hostId })
+        broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+      } catch (err) {
+        console.error('[rejoin-room] error', err)
+        if (ack) ack({ ok: false, error: 'Erreur interne' })
+      }
+    }
+  )
+
+  // ---- start-game (host only) ----
+  socket.on('start-game', (_payload: any, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) {
+      socket.emit('error', { message: "Vous n'êtes pas dans un salon" })
+      return
+    }
+    const room = findRoom(binding.roomCode)
+    if (!room) return
+    if (room.hostId !== binding.playerId) {
+      socket.emit('error', { message: "Seul l'hôte peut lancer la partie" })
+      return
+    }
+    if (room.state.phase !== 'lobby') {
+      socket.emit('error', { message: 'La partie a déjà commencé ou est terminée' })
+      return
+    }
+    // The room must be full before the host can start: the capacity chosen at
+    // creation (maxPlayers) is the number of players required to launch.
+    const connectedCount = room.state.players.filter((p) => p.connected !== false).length
+    if (connectedCount < 2) {
+      socket.emit('error', { message: 'Il faut au moins 2 joueurs pour commencer' })
+      if (ack) ack({ error: 'Il faut au moins 2 joueurs pour commencer' })
+      return
+    }
+    const isBenchouMatch = room.isBenchouChallenge || room.state.players.some((p) => p.name === 'Benchou Ferrari')
+    if (!isBenchouMatch && connectedCount < room.maxPlayers) {
+      const missing = room.maxPlayers - connectedCount
+      const msg = `Il manque ${missing} joueur${missing > 1 ? 's' : ''} pour compléter le salon (${connectedCount}/${room.maxPlayers}).`
+      socket.emit('error', { message: msg })
+      if (ack) ack({ error: msg })
+      return
+    }
+    room.state.phase = 'playing'
+    room.state.currentPlayerIndex = 0
+    room.state.grid = emptyGrid()
+    startTurnTimer(room.state)
+    room.state.winnerId = null
+    room.state.lastSquareCells = null
+    room.state.lastSquareerId = null
+    room.state.squareEventId = null
+    room.state.formedSquares = []
+    room.state.resolving = false
+    room.state.isPaused = false
+    room.state.currentRound = 0
+    room.state.lastDelta = null
+    room.state.initialPlayers = JSON.parse(JSON.stringify(room.state.players))
+    const first = room.state.players[0]
+    room.state.statusMessage = `${first.name} commence ! 10 secondes par coup. ⏱️`
+    console.log(`[room ${room.roomCode}] game started (${room.state.players.length} players, ${room.totalRounds} rounds)`)
+    if (ack) ack({ ok: true })
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+  })
+
+  // ---- place-pawn ----
+  socket.on('place-pawn', (payload: { row: number; col: number }, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) {
+      if (ack) ack({ error: "Vous n'êtes pas dans un salon" })
+      return
+    }
+    const room = findRoom(binding.roomCode)
+    if (!room) {
+      if (ack) ack({ error: "Le salon n'existe plus" })
+      return
+    }
+    const s = room.state
+    if (s.phase !== 'playing') {
+      if (ack) ack({ error: "La partie n'est pas en cours" })
+      return
+    }
+    if (s.resolving) {
+      if (ack) ack({ error: "Attendez la fin de la célébration" })
+      return
+    }
+    if (s.isPaused) {
+      if (ack) ack({ error: "La partie est en pause" })
+      return
+    }
+    const row = payload?.row
+    const col = payload?.col
+    if (typeof row !== 'number' || typeof col !== 'number' || !inBounds(row, col)) {
+      if (ack) ack({ error: "Case invalide" })
+      return
+    }
+    const cur = s.players[s.currentPlayerIndex]
+    if (!cur) {
+      if (ack) ack({ error: "Aucun joueur actif" })
+      return
+    }
+    // Allow the host to play on behalf of AI players
+    if (cur.id !== binding.playerId) {
+      if (cur.isAI && room.hostId === binding.playerId) {
+        // Host is playing for an AI — OK
+      } else {
+        if (ack) ack({ error: "Ce n'est pas votre tour" })
+        return
+      }
+    }
+    if (s.grid[row][col] !== null) {
+      if (ack) ack({ error: "Case déjà occupée" })
+      return
+    }
+
+    // Acknowledge success immediately — the client knows the move was accepted
+    if (ack) ack({ ok: true })
+
+    // Place pawn directly on the grid (no clone — single-threaded, safe)
+    s.grid[row][col] = cur.id
+    const square = checkSquare(s.grid, row, col, cur.id)
+
+    if (square) {
+      // Square formed: +1 score, currentRound++, brief resolve, then either gameover or next player.
+      const playerIdx = s.players.findIndex((p) => p.id === cur.id)
+      if (playerIdx >= 0) {
+        s.players[playerIdx].score += 1
+        s.players[playerIdx].alignments += 1
+      }
+      s.lastSquareCells = square
+      s.lastSquareerId = cur.id
+      s.squareEventId = Date.now()
+      s.formedSquares.push({ cells: square, playerId: cur.id })
+      s.resolving = true
+      s.turnDeadlineAt = null
+      room.resolveAt = Date.now() + RESOLVE_MS
+      room.resolveKind = 'square'
+      s.lastDelta = { playerId: cur.id, delta: 1 }
+      s.currentRound += 1
+      s.statusMessage = `🟦 ${cur.name} forme un carré ! +1 point (Carré ${s.currentRound}/${s.totalRounds})`
+      console.log(`[room ${room.roomCode}] SQUARE by ${cur.name} at (${row},${col}) — carré ${s.currentRound}/${s.totalRounds}`)
+      broadcastState(room); broadcastAdminRoomList()
+      // Cosmetic event broadcast to every socket in the room (including the
+      // player who formed the square) so every client starts the same effect.
+      io.to(room.roomCode).emit('square-formed', {
+        eventId: s.squareEventId,
+        playerId: cur.id,
+        color: cur.color,
+        cells: square.map((cell) => ({ ...cell })),
+      })
+
+      return
+    }
+
+    // No square: check board full OR no more squares possible
+    if (isBoardFull(s.grid) || !canAnyPlayerFormSquare(s.grid, s.players)) {
+      s.resolving = true
+      s.turnDeadlineAt = null
+      room.resolveAt = Date.now() + BOARD_FULL_RESOLVE_MS
+      room.resolveKind = 'board-full'
+      const isFull = isBoardFull(s.grid)
+      s.statusMessage = isFull ? 'Plateau plein ! Fin du match.' : 'Plus aucun carré possible sur la grille ! Fin du match.'
+      broadcastState(room); broadcastAdminRoomList()
+      return
+    }
+
+    // No square, board not full: next player
+    const nextIndex = nextPlayerIndex(room)
+    const next = s.players[nextIndex]
+    s.currentPlayerIndex = nextIndex
+    startTurnTimer(s)
+    s.statusMessage = `À ${next?.name ?? '?'} de jouer. ⏱️`
+    broadcastState(room); broadcastAdminRoomList()
+  })
+
+  // ---- toggle-pause (host only) ----
+  socket.on('toggle-pause', () => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) return
+    const room = findRoom(binding.roomCode)
+    if (!room) return
+    if (room.hostId !== binding.playerId) {
+      socket.emit('error', { message: "Seul l'hôte peut mettre en pause" })
+      return
+    }
+    const s = room.state
+    if (s.phase !== 'playing' || s.resolving) return
+    const next = !s.isPaused
+    if (next && s.turnDeadlineAt !== null) {
+      s.turnTimeLeft = Math.max(0, (s.turnDeadlineAt - Date.now()) / 1000)
+      s.turnDeadlineAt = null
+    } else if (!next) {
+      s.turnDeadlineAt = Date.now() + Math.max(0, s.turnTimeLeft) * 1000
+    }
+    s.isPaused = next
+    if (next) releaseRoomVoice(room)
+    s.statusMessage = next
+      ? '⏸️ Partie en pause.'
+      : `${s.players[s.currentPlayerIndex]?.name ?? ''} reprend. ⏱️`
+    broadcastState(room); broadcastAdminRoomList()
+  })
+
+  // ---- end-game (host only) ----
+  socket.on('end-game', () => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) return
+    const room = findRoom(binding.roomCode)
+    if (!room) return
+    if (room.hostId !== binding.playerId) {
+      socket.emit('error', { message: "Seul l'hôte peut terminer la partie" })
+      return
+    }
+    const s = room.state
+    s.phase = 'gameover'
+    s.turnDeadlineAt = null
+    room.resolveAt = undefined
+    room.resolveKind = undefined
+    s.winnerId = computeWinner(s.players)
+    s.resolving = false
+    s.isPaused = false
+    s.statusMessage = 'Partie terminée !'
+    console.log(`[room ${room.roomCode}] game ended by host, winner=${s.winnerId}`)
+    broadcastState(room); broadcastAdminRoomList()
+  })
+
+  // ---- restart (host only) ----
+  socket.on('restart', () => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) return
+    const room = findRoom(binding.roomCode)
+    if (!room) return
+    if (room.hostId !== binding.playerId) {
+      socket.emit('error', { message: "Seul l'hôte peut relancer" })
+      return
+    }
+    const connectedCount = room.state.players.filter((p) => p.connected !== false).length
+    if (connectedCount < 2) {
+      socket.emit('error', { message: "Il n'y a plus assez de joueurs connectés pour relancer." })
+      return
+    }
+    // Keep initial players, reset everything else, start playing again.
+    const keptPlayers = room.state.initialPlayers.map((p) => ({
+      ...p,
+      score: 0,
+      alignments: 0,
+    }))
+    room.state = freshState()
+    room.state.phase = 'playing'
+    startTurnTimer(room.state)
+    room.state.players = keptPlayers
+    room.state.initialPlayers = JSON.parse(JSON.stringify(keptPlayers))
+    room.state.totalRounds = room.totalRounds
+    room.state.statusMessage = `${keptPlayers[0]?.name ?? 'Le premier joueur'} commence ! 10 secondes par coup. ⏱️`
+    console.log(`[room ${room.roomCode}] restarted to playing (${keptPlayers.length} players kept)`)
+    broadcastState(room); broadcastAdminRoomList()
+  })
+
+  // ---- rematch-tied (host only) ----
+  // Restarts the game with ONLY the tied players (those sharing the max score).
+  // Eliminated players are dropped. Repeat until a single winner emerges.
+  socket.on('rematch-tied', () => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) return
+    const room = findRoom(binding.roomCode)
+    if (!room) return
+    if (room.hostId !== binding.playerId) {
+      socket.emit('error', { message: "Seul l'hôte peut lancer le challenge décisif" })
+      return
+    }
+    const s = room.state
+    if (s.phase !== 'gameover') {
+      socket.emit('error', { message: "La partie n'est pas terminée" })
+      return
+    }
+    if (s.players.length === 0) return
+    const maxScore = Math.max(...s.players.map((p) => p.score))
+    const tied = s.players.filter((p) => p.score === maxScore)
+    const connectedTied = tied.filter((p) => p.connected !== false)
+    if (connectedTied.length <= 1) {
+      socket.emit('error', { message: 'Les autres joueurs à égalité ont quitté le salon.' })
+      return
+    }
+    // Keep only tied players, reset their scores, start a new game
+    const keptTied = tied.map((p) => ({ ...p, score: 0, alignments: 0 }))
+    room.state.phase = 'playing'
+    room.state.players = keptTied
+    room.state.currentPlayerIndex = 0
+    room.state.grid = emptyGrid()
+    startTurnTimer(room.state)
+    room.state.winnerId = null
+    room.state.lastSquareCells = null
+    room.state.lastSquareerId = null
+    room.state.squareEventId = null
+    room.state.formedSquares = []
+    room.state.resolving = false
+    room.state.isPaused = false
+    room.state.currentRound = 0
+    room.state.lastDelta = null
+    const first = keptTied[0]
+    room.state.statusMessage = `Challenge décisif ! À ${first?.name ?? '?'} de jouer. ⏱️`
+    console.log(`[room ${room.roomCode}] TIEBREAKER: ${keptTied.length} tied players (${keptTied.map((p) => p.name).join(', ')})`)
+    broadcastState(room); broadcastAdminRoomList()
+  })
+
+  // ---- voice chat (push-to-talk, relayed through the existing game server) ----
+  socket.on('voice-start', (_payload: any, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    const room = binding ? findRoom(binding.roomCode) : undefined
+    const player = room?.state.players.find((p) => p.id === binding?.playerId)
+    if (!binding || !room || !player) {
+      if (ack) ack({ ok: false, error: 'Tu ne fais partie d’aucun salon.' })
+      return
+    }
+    if (room.state.phase !== 'playing' || room.state.isPaused) {
+      if (ack) ack({ ok: false, error: 'Le talkie-walkie est disponible pendant une partie en cours.' })
+      return
+    }
+    if (player.isAI || player.connected === false) {
+      if (ack) ack({ ok: false, error: 'Ce joueur ne peut pas utiliser le micro.' })
+      return
+    }
+    if (room.voiceSpeakerId && room.voiceSpeakerId !== player.id) {
+      if (ack) ack({ ok: false, error: 'Un autre joueur parle déjà. Réessaie dans un instant.' })
+      return
+    }
+
+    room.voiceSpeakerId = player.id
+    if (ack) ack({ ok: true })
+    io.to(room.roomCode).emit('voice-started', { roomCode: room.roomCode, playerId: player.id })
+  })
+
+  socket.on('voice-audio', (chunk: any) => {
+    const binding = socketBindings.get(socket.id)
+    const room = binding ? findRoom(binding.roomCode) : undefined
+    if (!binding || !room || room.voiceSpeakerId !== binding.playerId || room.state.phase !== 'playing' || room.state.isPaused) return
+    const isBinary = chunk instanceof ArrayBuffer || ArrayBuffer.isView(chunk)
+    const byteLength = chunk?.byteLength
+    if (!isBinary || typeof byteLength !== 'number' || byteLength < 2 || byteLength > 8192 || byteLength % 2 !== 0) return
+    const now = Date.now()
+    if (!room.voiceChunkWindowAt || now - room.voiceChunkWindowAt >= 1000) {
+      room.voiceChunkWindowAt = now
+      room.voiceChunkCount = 0
+    }
+    if ((room.voiceChunkCount ?? 0) >= 30) return
+    room.voiceChunkCount = (room.voiceChunkCount ?? 0) + 1
+    socket.to(room.roomCode).emit('voice-audio', { roomCode: room.roomCode, playerId: binding.playerId, chunk })
+  })
+
+  socket.on('voice-stop', () => {
+    const binding = socketBindings.get(socket.id)
+    const room = binding ? findRoom(binding.roomCode) : undefined
+    if (room && binding) releaseRoomVoice(room, binding.playerId)
+  })
+
+  // ---- send-reaction ----
+  // Relay a floating emoji reaction to everyone in the same room (sender included,
+  // so the sender sees their own reaction animate). Purely cosmetic: no state change.
+  socket.on('send-reaction', (payload: { emoji?: string }) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) return // not in a room
+    const emoji = payload?.emoji
+    if (!emoji || typeof emoji !== 'string' || emoji.length > 16) return
+    io.to(binding.roomCode).emit('reaction-received', {
+      playerId: binding.playerId,
+      emoji,
+      timestamp: Date.now(),
+    })
+  })
+
+  // ---- destroy-room (HOST only) ----
+  // The host explicitly closes the room: it is destroyed immediately and every
+  // player still inside is sent home. A non-host cannot do this — their own
+  // departure only frees a seat (and, if nobody remains, starts the empty-room
+  // countdown). This is the only way to destroy a room on purpose.
+  socket.on('destroy-room', (_payload: any, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) {
+      if (ack) ack({ error: 'Tu n\'es dans aucun salon.' })
+      return
+    }
+    const room = findRoom(binding.roomCode)
+    if (!room) {
+      if (ack) ack({ ok: true })
+      return
+    }
+    if (room.hostId !== binding.playerId) {
+      if (ack) ack({ error: "Seul l'hôte peut détruire le salon." })
+      else socket.emit('error', { message: "Seul l'hôte peut détruire le salon." })
+      return
+    }
+    console.log(`[room ${room.roomCode}] destroyed by host ${binding.playerId}`)
+    if (ack) ack({ ok: true })
+    destroyRoom(room.roomCode, 'host-destroyed')
+  })
+
+  // ---- leave-room ----
+  // Voluntary departure (host/player clicked "leave"): the player is removed
+  // from the roster for good and the host may be reassigned.
+  socket.on('leave-room', () => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) return
+    handleLeave(socket, binding, true)
+  })
+
+  // ---- disconnect ----
+  socket.on('disconnect', () => {
+    const binding = socketBindings.get(socket.id)
+    console.log(`[socket] disconnected: ${socket.id}`)
+    if (benchouSocketId === socket.id) {
+      benchouSocketId = null
+      console.log(`[benchou] Benchou Ferrari went offline`)
+    }
+    if (!binding) return
+    handleLeave(socket, binding)
+  })
+
+  socket.on('error', (err: any) => {
+    console.error(`[socket ${socket.id}] error:`, err)
+  })
+})
+
+function handleLeave(socket: any, binding: SocketBinding, intentional = false): void {
+  const code = binding.roomCode
+  const playerId = binding.playerId
+  bindSocket(socket, null)
+  socket.leave(code)
+  const room = findRoom(code)
+  if (!room) return
+  releaseRoomVoice(room, playerId)
+  // HOST leaves VOLUNTARILY ("Quitter le salon") in the LOBBY → the room does NOT
+  // die instantly anymore. It stays reachable for EMPTY_ROOM_TTL_MS so the host
+  // and the other players can come back with the same code. The host keeps his
+  // seat (marked offline) so he can reclaim his role on rejoin. The room is only
+  // scheduled for self-destruction if nobody is connected (see armEmptyTimer).
+  if (intentional && playerId === room.hostId && room.state.phase === 'lobby') {
+    const host = room.state.players.find((p) => p.id === playerId)
+    if (host) host.connected = false
+    room.state.statusMessage = `L'hôte (${host?.name ?? '?'}) a quitté le salon. Le salon reste ouvert ${EMPTY_ROOM_TTL_MS / 60000} min pour un retour.`
+    console.log(`[room ${code}] HOST ${playerId} left voluntarily — room kept alive for ${EMPTY_ROOM_TTL_MS / 60000} min`)
+    socket.to(code).emit('player-left', { playerId, playerName: host?.name })
+    armEmptyTimer(room)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    return
+  }
+  // HOST leaves VOLUNTARILY during a GAME → end the match (as before) but keep the
+  // room alive so everyone can see the result / rematch within the grace window.
+  if (intentional && playerId === room.hostId) {
+    console.log(`[room ${code}] HOST ${playerId} left mid-game — ending the match`)
+    const host = room.state.players.find((p) => p.id === playerId)
+    if (host) host.connected = false
+    room.state.phase = 'gameover'
+    room.state.turnDeadlineAt = null
+    room.resolveAt = undefined
+    room.resolveKind = undefined
+    room.state.resolving = false
+    room.state.winnerId = computeWinner(room.state.players)
+    room.state.statusMessage = `L'hôte (${host?.name ?? '?'}) a quitté la partie.`
+    socket.to(code).emit('player-left', { playerId, playerName: host?.name, gameOver: true })
+    armEmptyTimer(room)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    return
+  }
+
+  // During a game (playing/gameover): DON'T delete the player — mark as disconnected.
+  // This preserves scores, grid pawns, and indices. The game continues with remaining players.
+  if (room.state.phase === 'playing' || room.state.phase === 'gameover') {
+    const player = room.state.players.find((p) => p.id === playerId)
+    if (player) {
+      player.connected = false
+      console.log(`[room ${code}] player ${player.name} disconnected mid-game (marked inactive)`)
+
+      // Count still-connected players
+      const connectedPlayers = room.state.players.filter((p) => p.connected !== false)
+
+      if (room.state.phase === 'playing') {
+        if (connectedPlayers.length <= 1) {
+          // Only 1 (or 0) player left → end the game
+          const winnerId = connectedPlayers.length === 1 ? connectedPlayers[0].id : computeWinner(room.state.players)
+          room.state.phase = 'gameover'
+          room.state.turnDeadlineAt = null
+          room.resolveAt = undefined
+          room.resolveKind = undefined
+          room.state.winnerId = winnerId
+          room.state.resolving = false
+          room.state.statusMessage = `${player.name} a quitté la partie. Fin du match.`
+          console.log(`[room ${code}] GAME OVER — ${player.name} left, ${connectedPlayers.length} connected player(s) remaining`)
+          socket.to(code).emit('player-left', { playerId, playerName: player.name, gameOver: true })
+          broadcastState(room); broadcastAdminRoomList()
+          return
+        } else {
+          // 2+ players still connected → game continues
+          // If it was the disconnected player's turn, pass to the next connected player
+          const cur = room.state.players[room.state.currentPlayerIndex]
+          if (cur && (cur.id === playerId || cur.connected === false)) {
+            // Find next connected player
+            let nextIdx = room.state.currentPlayerIndex
+            for (let i = 0; i < room.state.players.length; i++) {
+              nextIdx = (nextIdx + 1) % room.state.players.length
+              if (room.state.players[nextIdx].connected !== false) break
+            }
+            room.state.currentPlayerIndex = nextIdx
+            startTurnTimer(room.state)
+            const next = room.state.players[nextIdx]
+            room.state.statusMessage = `${player.name} a quitté. À ${next?.name ?? '?'} de jouer. ⏱️`
+          } else {
+            room.state.statusMessage = `${player.name} a quitté la partie. Le jeu continue.`
+          }
+          socket.to(code).emit('player-left', { playerId, playerName: player.name, gameOver: false })
+          broadcastState(room); broadcastAdminRoomList()
+          return
+        }
+      }
+      // gameover phase: just mark disconnected, broadcast
+      if (!hasConnectedPlayers(room)) armEmptyTimer(room)
+      socket.to(code).emit('player-left', { playerId, playerName: player.name })
+      broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+      return
+    }
+  }
+
+  // Lobby phase.
+  const leavingPlayer = room.state.players.find((p) => p.id === playerId)
+  // An UNINTENTIONAL disconnect of the HOST (closed tab, lost network) must not
+  // cost him his host status: keep him in the roster marked offline (like a
+  // mid-game disconnect) so that if he comes back he is still the host.
+  if (!intentional && leavingPlayer && playerId === room.hostId) {
+    leavingPlayer.connected = false
+    room.state.statusMessage = `L'hôte (${leavingPlayer.name}) s'est déconnecté. Le salon l'attend ${EMPTY_ROOM_TTL_MS / 60000} min...`
+    console.log(`[room ${code}] HOST ${leavingPlayer.name} disconnected in lobby — kept as host`)
+    socket.to(code).emit('player-left', { playerId, playerName: leavingPlayer.name })
+    armEmptyTimer(room)
+    broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+    return
+  }
+  // Voluntary leave (or a non-host disconnecting): remove the player entirely.
+  const removedPlayer = room.state.players.find((p) => p.id === playerId)
+  const removed = removePlayerFromRoom(room, playerId)
+  if (removed) {
+    console.log(`[room ${code}] player ${playerId} left (${room.state.players.length} remaining)`)
+    socket.to(code).emit('player-left', { playerId, playerName: removedPlayer?.name })
+  }
+  // Nobody connected anymore → don't delete right away: keep the room reachable
+  // for EMPTY_ROOM_TTL_MS so the host and players can rejoin, then it expires.
+  if (!hasConnectedPlayers(room)) {
+    armEmptyTimer(room)
+  }
+  broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
+}
+
+// Run only at game deadlines or room-expiration times. The Durable Object
+// schedules these with alarms, so it can hibernate between events.
+export function runScheduledMaintenance(now = Date.now()): { nextAt: number | null; changed: boolean } {
+  let nextAt = Number.POSITIVE_INFINITY
+  let changed = false
+
+  for (const [code, room] of [...rooms.entries()]) {
+    const s = room.state
+
+    if (room.resolveAt !== undefined) {
+      if (room.resolveAt > now) {
+        nextAt = Math.min(nextAt, room.resolveAt)
+      } else {
+        const resolveKind = room.resolveKind
+        room.resolveAt = undefined
+        room.resolveKind = undefined
+        s.resolving = false
+        s.lastSquareCells = null
+
+        if (s.phase === 'playing' && resolveKind === 'square') {
+          if (s.currentRound >= s.totalRounds) {
+            s.phase = 'gameover'
+            s.turnDeadlineAt = null
+            s.winnerId = computeWinner(s.players)
+            s.statusMessage = `Match terminé après ${s.totalRounds} carrés ! 🏆`
+          } else if (!canAnyPlayerFormSquare(s.grid, s.players)) {
+            s.phase = 'gameover'
+            s.turnDeadlineAt = null
+            s.winnerId = computeWinner(s.players)
+            s.statusMessage = 'Plus aucun carré possible sur la grille ! Fin du match. 🏆'
+          } else {
+            s.currentPlayerIndex = nextPlayerIndex(room)
+            startTurnTimer(s, now)
+            s.statusMessage = `Carré ${s.currentRound}/${s.totalRounds} — à ${s.players[s.currentPlayerIndex]?.name ?? '?'} ! ⏱️`
+          }
+        } else if (s.phase === 'playing' && resolveKind === 'board-full') {
+          s.phase = 'gameover'
+          s.turnDeadlineAt = null
+          s.winnerId = computeWinner(s.players)
+          s.statusMessage = isBoardFull(s.grid)
+            ? 'Plateau plein — match terminé ! 🏆'
+            : 'Plus aucun carré possible — match terminé ! 🏆'
+        }
+
+        console.log(`[room ${code}] resolve completed (${resolveKind ?? 'unknown'})`)
+        broadcastState(room)
+        broadcastAdminRoomList()
+        changed = true
+      }
+    }
+
+    if (room.emptySince !== null) {
+      if (hasConnectedPlayers(room)) {
+        room.emptySince = null
+        changed = true
+      } else {
+        const expiresAt = room.emptySince + EMPTY_ROOM_TTL_MS
+        if (expiresAt <= now) {
+          console.log(`[room ${code}] empty for ${EMPTY_ROOM_TTL_MS / 60000} min — auto-destroying`)
+          destroyRoom(code, 'expired-empty')
+          changed = true
+          continue
+        }
+        nextAt = Math.min(nextAt, expiresAt)
+      }
+    }
+
+    if (s.phase === 'playing' && !s.isPaused && !s.resolving && s.players.length > 0) {
+      if (s.turnDeadlineAt === null) {
+        startTurnTimer(s, now)
+        changed = true
+      }
+      if (s.turnDeadlineAt !== null && s.turnDeadlineAt <= now) {
+        let nextIndex = s.currentPlayerIndex
+        for (let i = 0; i < s.players.length; i++) {
+          nextIndex = (nextIndex + 1) % s.players.length
+          if (s.players[nextIndex].connected !== false) break
+        }
+        s.currentPlayerIndex = nextIndex
+        startTurnTimer(s, now)
+        s.statusMessage = `Temps écoulé ! À ${s.players[nextIndex]?.name ?? '?'} de jouer. ⏱️`
+        broadcastState(room)
+        broadcastAdminRoomList()
+        changed = true
+      }
+      if (s.turnDeadlineAt !== null) nextAt = Math.min(nextAt, s.turnDeadlineAt)
+    }
+  }
+
+  return {
+    nextAt: Number.isFinite(nextAt) ? Math.max(now + 50, nextAt) : null,
+    changed,
+  }
+}
+
+export function configureGame(options: { benchouPin?: string; appUrl?: string }) {
+  BENCHOU_PIN = options.benchouPin || '331991'
+  APP_URL = options.appUrl || 'https://trouvix.vercel.app'
+}
+
+export { io }

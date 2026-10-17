@@ -20,6 +20,12 @@ const COLS = 10;
 
 export function OnlineGameScreen() {
   const state = useOnlineStore((s) => s.state);
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!state || state.phase !== "playing" || state.isPaused || state.turnDeadlineAt == null) return;
+    const timer = window.setInterval(() => setClockNow(Date.now()), 100);
+    return () => window.clearInterval(timer);
+  }, [state?.phase, state?.isPaused, state?.turnDeadlineAt]);
   const myId = useOnlineStore((s) => s.myPlayerId);
   const placePawnAction = useOnlineStore((s) => s.placePawn);
   const togglePauseAction = useOnlineStore((s) => s.togglePause);
@@ -157,6 +163,9 @@ export function OnlineGameScreen() {
   }
 
   const players = state.players;
+  const turnTimeLeft = state.turnDeadlineAt != null && state.phase === "playing" && !state.isPaused
+    ? Math.max(0, (state.turnDeadlineAt - clockNow) / 1000)
+    : state.turnTimeLeft;
   const currentBoardRect = boardRef.current?.getBoundingClientRect();
   const reactionBounds = typeof window === "undefined"
     ? null
@@ -177,8 +186,8 @@ export function OnlineGameScreen() {
     !!state.lastSquareCells?.some((cell) => cell.row === r && cell.col === c) ||
     !!activeSquareEvent?.cells.some((cell) => cell.row === r && cell.col === c);
 
-  const timePct = Math.max(0, Math.min(100, (state.turnTimeLeft / 10) * 100));
-  const urgent = state.turnTimeLeft <= 3 && !state.resolving && !state.isPaused;
+  const timePct = Math.max(0, Math.min(100, (turnTimeLeft / 10) * 100));
+  const urgent = turnTimeLeft <= 3 && !state.resolving && !state.isPaused;
   // Vivid, high-saturation color of the current player — same color the whole turn
   const turnColor = vividColor(current?.color ?? "#f59e0b");
   const squareHighlightColor = vividColor(
@@ -594,7 +603,7 @@ export function OnlineGameScreen() {
                   ) : (
                     <>
                       <Timer className="h-4 w-4" />
-                      {state.turnTimeLeft.toFixed(1)}s
+                      {turnTimeLeft.toFixed(1)}s
                     </>
                   )}
                 </div>
