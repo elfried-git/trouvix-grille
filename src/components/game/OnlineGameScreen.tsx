@@ -759,12 +759,12 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Reaction bar */}
-          <div className="grid w-full min-w-0 shrink-0 grid-cols-10 items-center gap-0 px-0 py-0.5 sm:flex sm:justify-center sm:gap-3 sm:px-3 sm:py-2">
+          <div className="mx-auto grid w-full min-w-0 max-w-[340px] shrink-0 grid-cols-5 items-center gap-1 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:max-w-[390px] sm:gap-2 sm:p-2">
             {REACTION_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
                 onClick={() => sendReactionAction(emoji)}
-                className="flex h-8 w-full min-w-0 items-center justify-center rounded-full text-lg leading-none transition-transform hover:scale-110 active:scale-95 sm:h-11 sm:w-11 sm:text-2xl"
+                className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-105 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-2xl"
                 title={`Réagir avec ${emoji}`}
               >
                 {emoji}
