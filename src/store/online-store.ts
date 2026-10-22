@@ -541,7 +541,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     const { state, myPlayerId, optimisticPawn: pendingPawn } = get();
     const currentPlayer = state?.players[state.currentPlayerIndex];
     if (
-      !socket.connected || !state || !myPlayerId || pendingPawn || state.phase !== "playing" ||
+      !state || !myPlayerId || pendingPawn || state.phase !== "playing" ||
       state.isPaused || state.resolving || !currentPlayer ||
       state.grid[row]?.[col] != null ||
       (currentPlayer.id !== myPlayerId && !(currentPlayer.isAI && state.hostId === myPlayerId))
@@ -553,6 +553,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       if (get().optimisticPawn === optimisticPawn) set({ optimisticPawn: null });
     }, 4000);
 
+    // Emit even while reconnecting: Socket.IO and the production WebSocket
+    // adapter queue packets until the connection is available. The pawn is
+    // already visible locally and will be rolled back if the server rejects it.
     socket.emit("place-pawn", { row, col }, (res: { ok?: boolean; error?: string }) => {
       if (res?.error) {
         if (get().optimisticPawn === optimisticPawn) set({ optimisticPawn: null });

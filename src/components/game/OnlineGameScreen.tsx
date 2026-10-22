@@ -658,13 +658,13 @@ export function OnlineGameScreen() {
                       >
                         {filled ? (
                           <motion.div
-                            initial={isFresh ? { scale: 1, opacity: 1 } : { scale: 0.82, opacity: 0.9 }}
+                            initial={false}
                             animate={isFresh
                               ? { scale: [1, 1.2, 1], opacity: 1, filter: ["brightness(1)", "brightness(1.7)", "brightness(1)"] }
                               : { scale: 1, opacity: 1 }}
                             transition={isFresh
                               ? { duration: 0.32, repeat: 1, ease: "easeInOut" }
-                              : { duration: 0.1, ease: "easeOut" }}
+                              : { duration: 0 }}
                             className={`absolute inset-[1px] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] sm:text-xl ${
                               isFresh
                                 ? "z-20 scale-105 ring-4 ring-white ring-offset-2 ring-offset-[#17100f]"
