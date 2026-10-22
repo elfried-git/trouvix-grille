@@ -364,7 +364,13 @@ export function SetupScreen() {
                         aria-pressed={aiProfiles[1] === option.id}
                         className={`group relative min-h-[4.5rem] overflow-hidden rounded-xl border px-4 py-3 text-left text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${option.color} ${option.border} ${aiProfiles[1] === option.id ? `${option.selectedColor} ring-2 ring-white/80 shadow-lg` : "hover:brightness-125"}`}
                       >
-                        <span className="block font-display text-base font-bold tracking-wide">{option.name}</span>
+                        {aiProfiles[1] === option.id && (
+                          <span
+                            aria-hidden="true"
+                            className="ai-selection-border-blink pointer-events-none absolute inset-0 rounded-xl border-2 border-amber-200"
+                          />
+                        )}
+                        <span className="relative z-10 block font-display text-base font-bold tracking-wide">{option.name}</span>
                       </button>
                     ))}
                   </div>

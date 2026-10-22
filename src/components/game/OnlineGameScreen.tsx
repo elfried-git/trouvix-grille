@@ -19,6 +19,7 @@ const COLS = 10;
 
 export function OnlineGameScreen() {
   const state = useOnlineStore((s) => s.state);
+  const optimisticPawn = useOnlineStore((s) => s.optimisticPawn);
   const [clockNow, setClockNow] = useState(() => Date.now());
   useEffect(() => {
     if (!state || state.phase !== "playing" || state.isPaused || state.turnDeadlineAt == null) return;
@@ -41,7 +42,7 @@ export function OnlineGameScreen() {
 
   // The game state is the source of truth. The dedicated socket event is only
   // an optimization for starting the celebration immediately.
-  const stateSquareEvent = useMemo(() => state?.squareEventId != null && state.lastSquareCells?.length === 4
+  const stateSquareEvent = useMemo(() => state?.squareEventId != null && (state.lastSquareCells?.length ?? 0) >= 4
     ? {
         eventId: state.squareEventId,
         playerId: state.lastSquareerId ?? "",
@@ -122,7 +123,7 @@ export function OnlineGameScreen() {
     const event = squareEvent ?? stateSquareEvent;
     if (!event || event.eventId === handledSquareEventRef.current) return;
     const cells = event.cells;
-    if (cells.length === 4) {
+    if (cells.length >= 4) {
       setActiveSquareEvent(event);
       setTimeout(() => {
         setActiveSquareEvent((active) => active?.eventId === event.eventId ? null : active);
@@ -630,7 +631,11 @@ export function OnlineGameScreen() {
               <div className="relative z-20 grid gap-1 rounded-xl bg-[oklch(0.18_0.02_22)] sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {
-                    const cellVal = state.grid[row][col];
+                    const cellVal = state.grid[row][col] ?? (
+                      optimisticPawn?.roomCode === state.roomCode && optimisticPawn.row === row && optimisticPawn.col === col
+                        ? optimisticPawn.playerId
+                        : null
+                    );
                     const filled = cellVal !== null;
                     const isSquareCell = inAnySquare(row, col);
                     const isFresh = inLastSquare(row, col);
@@ -653,13 +658,13 @@ export function OnlineGameScreen() {
                       >
                         {filled ? (
                           <motion.div
-                            initial={isFresh ? { scale: 1, opacity: 1 } : { scale: 0.3, opacity: 0 }}
+                            initial={isFresh ? { scale: 1, opacity: 1 } : { scale: 0.82, opacity: 0.9 }}
                             animate={isFresh
                               ? { scale: [1, 1.2, 1], opacity: 1, filter: ["brightness(1)", "brightness(1.7)", "brightness(1)"] }
                               : { scale: 1, opacity: 1 }}
                             transition={isFresh
                               ? { duration: 0.32, repeat: 1, ease: "easeInOut" }
-                              : { type: "spring", stiffness: 360, damping: 18 }}
+                              : { duration: 0.1, ease: "easeOut" }}
                             className={`absolute inset-[1px] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] sm:text-xl ${
                               isFresh
                                 ? "z-20 scale-105 ring-4 ring-white ring-offset-2 ring-offset-[#17100f]"

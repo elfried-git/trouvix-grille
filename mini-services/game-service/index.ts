@@ -5,7 +5,7 @@ import { Server } from 'socket.io'
 const ROWS = 10
 const COLS = 10
 const TURN_SECONDS = 10
-const RESOLVE_MS = 850 // short celebration lock after a square
+const RESOLVE_MS = 1700 // match the local game's square celebration
 const BOARD_FULL_RESOLVE_MS = 1200
 const BENCHOU_PIN = process.env.BENCHOU_PIN || '331991' // Secret PIN (override via env in production)
 const TICK_MS = 500 // 500ms = good balance between smoothness and memory
@@ -126,19 +126,20 @@ function inBounds(r: number, c: number): boolean {
   return r >= 0 && r < ROWS && c >= 0 && c < COLS
 }
 
-// Check the 4 possible 2x2 blocks the freshly placed pawn could belong to.
-function checkSquare(
+// Return every 2x2 square completed by the freshly placed pawn.
+function findCompletedSquares(
   grid: GridCell[][],
   row: number,
   col: number,
   playerId: string
-): CellCoord[] | null {
+): CellCoord[][] {
   const offsets: [number, number][] = [
     [0, 0],   // pawn is top-left
     [0, -1],  // pawn is top-right
     [-1, 0],  // pawn is bottom-left
     [-1, -1], // pawn is bottom-right
   ]
+  const squares: CellCoord[][] = []
   for (const [dr, dc] of offsets) {
     const r0 = row + dr
     const c0 = col + dc
@@ -150,10 +151,10 @@ function checkSquare(
       { row: r0 + 1, col: c0 + 1 },
     ]
     if (cells.every((cell) => grid[cell.row][cell.col] === playerId)) {
-      return cells
+      squares.push(cells)
     }
   }
-  return null
+  return squares
 }
 
 function isBoardFull(grid: GridCell[][]): boolean {
@@ -1109,24 +1110,30 @@ io.on('connection', (socket) => {
 
     // Place pawn directly on the grid (no clone — single-threaded, safe)
     s.grid[row][col] = cur.id
-    const square = checkSquare(s.grid, row, col, cur.id)
+    const squares = findCompletedSquares(s.grid, row, col, cur.id)
 
-    if (square) {
-      // Square formed: +1 score, currentRound++, brief resolve, then either gameover or next player.
+    if (squares.length > 0) {
+      // A single move can complete multiple adjacent squares, just like local play.
+      const points = squares.length
       const playerIdx = s.players.findIndex((p) => p.id === cur.id)
       if (playerIdx >= 0) {
-        s.players[playerIdx].score += 1
-        s.players[playerIdx].alignments += 1
+        s.players[playerIdx].score += points
+        s.players[playerIdx].alignments += points
       }
-      s.lastSquareCells = square
+      s.lastSquareCells = Array.from(
+        new Set(squares.flatMap((square) => square.map((cell) => `${cell.row},${cell.col}`)))
+      ).map((coord) => {
+        const [cellRow, cellCol] = coord.split(",")
+        return { row: Number(cellRow), col: Number(cellCol) }
+      })
       s.lastSquareerId = cur.id
       s.squareEventId = Date.now()
-      s.formedSquares.push({ cells: square, playerId: cur.id })
+      s.formedSquares.push(...squares.map((cells) => ({ cells, playerId: cur.id })))
       s.resolving = true
-      s.lastDelta = { playerId: cur.id, delta: 1 }
-      s.currentRound += 1
-      s.statusMessage = `🟦 ${cur.name} forme un carré ! +1 point (Carré ${s.currentRound}/${s.totalRounds})`
-      console.log(`[room ${room.roomCode}] SQUARE by ${cur.name} at (${row},${col}) — carré ${s.currentRound}/${s.totalRounds}`)
+      s.lastDelta = { playerId: cur.id, delta: points }
+      s.currentRound += points
+      s.statusMessage = `🟦 ${cur.name} forme ${points === 1 ? "un carré" : `${points} carrés`} ! +${points} point${points > 1 ? "s" : ""} (Carré ${s.currentRound}/${s.totalRounds})`
+      console.log(`[room ${room.roomCode}] ${points} SQUARE(S) by ${cur.name} at (${row},${col}) — carré ${s.currentRound}/${s.totalRounds}`)
       broadcastState(room); broadcastAdminRoomList()
       // Cosmetic event broadcast to every socket in the room (including the
       // player who formed the square) so every client starts the same effect.
@@ -1134,7 +1141,7 @@ io.on('connection', (socket) => {
         eventId: s.squareEventId,
         playerId: cur.id,
         color: cur.color,
-        cells: square.map((cell) => ({ ...cell })),
+        cells: s.lastSquareCells.map((cell) => ({ ...cell })),
       })
 
       setTimeout(() => {

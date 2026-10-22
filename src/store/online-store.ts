@@ -72,6 +72,7 @@ interface OnlineStore {
   myPlayerId: string | null;
   roomCode: string | null;
   state: OnlineGameState | null;
+  optimisticPawn: { row: number; col: number; playerId: string; roomCode: string } | null;
   errorMessage: string | null;
   pendingAction: boolean;
   challenges: Challenge[]; // pending challenges for Benchou Ferrari
@@ -122,6 +123,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   myPlayerId: null,
   roomCode: null,
   state: null,
+  optimisticPawn: null,
   errorMessage: null,
   pendingAction: false,
   challenges: [],
@@ -168,19 +170,25 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       // Always set a NEW object reference so Zustand detects the change
       // (socket.io may reuse the same parsed object in some edge cases)
       const nextState = { ...payload.state };
+      const optimisticPawn = get().optimisticPawn;
       const formingPlayer = nextState.players.find((p) => p.id === nextState.lastSquareerId);
       const eventId = nextState.squareEventId;
       const currentEvent = get().squareEvent;
       set({
         state: nextState,
+        optimisticPawn: optimisticPawn && (
+          optimisticPawn.roomCode !== nextState.roomCode ||
+          nextState.phase !== "playing" ||
+          nextState.grid[optimisticPawn.row]?.[optimisticPawn.col] != null
+        ) ? null : optimisticPawn,
         roomCode: payload.state.roomCode,
-        ...(eventId && nextState.lastSquareCells?.length === 4 && formingPlayer && currentEvent?.eventId !== eventId
+        ...(eventId && (nextState.lastSquareCells?.length ?? 0) >= 4 && formingPlayer && currentEvent?.eventId !== eventId
           ? { squareEvent: { eventId, playerId: formingPlayer.id, color: formingPlayer.color, cells: nextState.lastSquareCells } }
           : {}),
       });
     });
     socket.on("square-formed", (payload: { eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] }) => {
-      if (!payload || !Number.isFinite(payload.eventId) || typeof payload.playerId !== "string" || typeof payload.color !== "string" || !Array.isArray(payload.cells) || payload.cells.length !== 4) return;
+      if (!payload || !Number.isFinite(payload.eventId) || typeof payload.playerId !== "string" || typeof payload.color !== "string" || !Array.isArray(payload.cells) || payload.cells.length < 4) return;
       if (get().squareEvent?.eventId !== payload.eventId) {
         set({ squareEvent: { eventId: payload.eventId, playerId: payload.playerId, color: payload.color, cells: payload.cells } });
       }
@@ -240,6 +248,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         myPlayerId: null,
         roomCode: null,
         state: null,
+        optimisticPawn: null,
         errorMessage: payload?.reason === "removed-by-admin" ? "Tu as été retiré par l'administrateur." : "Tu as été retiré du salon par l'hôte.",
       });
       try {
@@ -271,6 +280,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         myPlayerId: null,
         roomCode: null,
         state: null,
+        optimisticPawn: null,
         kicked: true,
         kickedToOnline: reason === "host-destroyed" || reason === "new-game",
         errorMessage:
@@ -300,6 +310,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       myPlayerId: null,
       roomCode: null,
       state: null,
+      optimisticPawn: null,
       errorMessage: null,
       pendingAction: false,
       challenges: [],
@@ -527,13 +538,29 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   placePawn: (row, col) => {
     const socket = getSocket();
-    if (socket.connected) {
-      socket.emit("place-pawn", { row, col }, (res: { ok?: boolean; error?: string }) => {
-        if (res?.error && process.env.NODE_ENV !== "production") {
+    const { state, myPlayerId, optimisticPawn: pendingPawn } = get();
+    const currentPlayer = state?.players[state.currentPlayerIndex];
+    if (
+      !socket.connected || !state || !myPlayerId || pendingPawn || state.phase !== "playing" ||
+      state.isPaused || state.resolving || !currentPlayer ||
+      state.grid[row]?.[col] != null ||
+      (currentPlayer.id !== myPlayerId && !(currentPlayer.isAI && state.hostId === myPlayerId))
+    ) return;
+
+    const optimisticPawn = { row, col, playerId: currentPlayer.id, roomCode: state.roomCode };
+    set({ optimisticPawn });
+    window.setTimeout(() => {
+      if (get().optimisticPawn === optimisticPawn) set({ optimisticPawn: null });
+    }, 4000);
+
+    socket.emit("place-pawn", { row, col }, (res: { ok?: boolean; error?: string }) => {
+      if (res?.error) {
+        if (get().optimisticPawn === optimisticPawn) set({ optimisticPawn: null });
+        if (process.env.NODE_ENV !== "production") {
           console.log("[place-pawn] server error:", res.error);
         }
-      });
-    }
+      }
+    });
   },
 
   togglePause: () => {
@@ -578,6 +605,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       myPlayerId: null,
       roomCode: null,
       state: null,
+      optimisticPawn: null,
       errorMessage: null,
       challenges: [],
       isBenchou: false,
