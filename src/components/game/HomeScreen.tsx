@@ -102,18 +102,18 @@ export function HomeScreen() {
               transition={{ delay: 0.4 + i * 0.08 }}
               className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
             >
-              <f.icon className={`h-9 w-9 sm:h-7 sm:w-7 ${f.color}`} />
-              <p className="font-display text-base font-semibold sm:text-sm">{f.label}</p>
-              <p className="text-xs text-muted-foreground sm:text-[11px]">{f.desc}</p>
+              <f.icon className={`h-10 w-10 ${f.color}`} />
+              <p className="font-display text-base font-semibold">{f.label}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
             </motion.div>
           ))}
         </div>
 
         {/* Stats */}
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2"><Grid3x3 className="h-4 w-4 text-rose-300" /> Grille 10×10</span>
-          <span className="flex items-center gap-2"><Timer className="h-4 w-4 text-amber-300" /> 10s par coup</span>
-          <span className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> 2 à 6 joueurs</span>
+          <span className="flex items-center gap-2 text-base"><Grid3x3 className="h-5 w-5 text-rose-300" /> Grille 10×10</span>
+          <span className="flex items-center gap-2 text-base"><Timer className="h-5 w-5 text-amber-300" /> 10s par coup</span>
+          <span className="flex items-center gap-2 text-base"><Users className="h-5 w-5 text-amber-300" /> 2 à 6 joueurs</span>
         </div>
 
         {/* Rubrique avis / suggestions */}

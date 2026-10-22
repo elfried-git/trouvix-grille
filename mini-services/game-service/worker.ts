@@ -136,7 +136,6 @@ export class GameCoordinator {
     } catch { /* ignore malformed packets; the adapter already rejects them */ }
     const isReadOnlyOrEphemeral = [
       'list-public-rooms', 'public-list-rooms', 'admin-list-rooms',
-      'voice-start', 'voice-stop', 'voice-audio',
     ].includes(eventName)
     await this.persistAndSchedule(!isReadOnlyOrEphemeral)
   }

@@ -41,17 +41,17 @@ export function WinnerScreen() {
           <motion.div
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 2.5, repeat: Infinity }}
-            className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-6xl shadow-[0_0_50px_-5px_rgba(139,92,246,0.6)] sm:h-28 sm:w-28"
+            className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-6xl shadow-[0_0_50px_-5px_rgba(139,92,246,0.6)]"
           >
             ⚖️
           </motion.div>
 
-          <p className="mt-6 font-display text-sm uppercase tracking-[0.3em] text-violet-200/80">Egalite parfaite</p>
+          <p className="mt-6 font-display text-base uppercase tracking-[0.3em] text-violet-200/80">Égalité parfaite</p>
           <h1 className="mt-2 font-display text-5xl font-black text-violet-200 sm:text-6xl">{maxScore} pts</h1>
-          <p className="mt-3 text-base text-muted-foreground">{tiedPlayers.length} joueurs sont a egalite. Un challenge decisif va les departager.</p>
+          <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{tiedPlayers.length} joueurs sont à égalité. Un challenge décisif va les départager.</p>
 
           <div className="mt-8 w-full max-w-md">
-            <p className="mb-2 font-display text-xs uppercase tracking-widest text-violet-300/80">En lice pour le challenge</p>
+            <p className="mb-2 font-display text-base uppercase tracking-widest text-violet-300/80">En lice pour le challenge</p>
             <div className="flex flex-col gap-2">
               {tiedPlayers.map((p, i) => (
                 <motion.div
@@ -59,10 +59,10 @@ export function WinnerScreen() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + i * 0.1 }}
-                  className="flex items-center gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/10 p-4 shadow-[0_0_20px_-5px_rgba(139,92,246,0.4)] sm:p-3"
+                  className="flex min-h-16 items-center gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/10 p-4 shadow-[0_0_20px_-5px_rgba(139,92,246,0.4)]"
                 >
-                  <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
-                  <span className="flex-1 text-left font-bold text-violet-100">{p.name}</span>
+                  <Avatar avatar={p.emoji} color={p.color} size={52} emojiSize="text-2xl" />
+                  <span className="flex-1 text-left text-lg font-bold text-violet-100">{p.name}</span>
                   <span className="font-display text-2xl font-bold text-violet-200 sm:text-xl">{p.score} pts</span>
                 </motion.div>
               ))}
@@ -71,13 +71,13 @@ export function WinnerScreen() {
 
           {ranked.filter((p) => p.score < maxScore).length > 0 && (
             <div className="mt-4 w-full max-w-md">
-              <p className="mb-2 font-display text-xs uppercase tracking-widest text-muted-foreground/60">Elimines</p>
+              <p className="mb-2 font-display text-base uppercase tracking-widest text-muted-foreground/60">Éliminés</p>
               <div className="flex flex-col gap-2">
                 {ranked.filter((p) => p.score < maxScore).map((p, i) => (
                   <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/20 p-3 opacity-40">
-                    <Avatar avatar={p.emoji} color={p.color} size={36} emojiSize="text-lg" />
-                    <span className="flex-1 text-left font-medium line-through">{p.name}</span>
-                    <span className="font-display text-lg font-bold">{p.score} pts</span>
+                    <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                    <span className="flex-1 text-left text-base font-medium line-through">{p.name}</span>
+                    <span className="font-display text-xl font-bold">{p.score} pts</span>
                   </div>
                 ))}
               </div>
@@ -85,18 +85,18 @@ export function WinnerScreen() {
           )}
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button onClick={rematchTied} size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
+            <Button onClick={rematchTied} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
               <Swords className="mr-2 h-5 w-5" /> Lancer le challenge decisif
             </Button>
-            <Button onClick={restart} size="lg" className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
+            <Button onClick={restart} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
               <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
             </Button>
-            <Button onClick={backHome} size="lg" variant="outline">
+            <Button onClick={backHome} size="lg" variant="outline" className="h-12 px-6 text-base">
               <Home className="mr-2 h-5 w-5" /> Accueil
             </Button>
           </div>
 
-          <p className="mt-6 text-xs text-muted-foreground">Seuls les joueurs a egalite participent au challenge. Le premier a avoir plus de points gagne.</p>
+          <p className="mt-6 text-base leading-relaxed text-muted-foreground">Seuls les joueurs à égalité participent au challenge. Le premier à avoir plus de points gagne.</p>
         </motion.div>
       </div>
     );
@@ -135,20 +135,20 @@ export function WinnerScreen() {
                 <Avatar avatar={winner!.emoji} color={winner!.color} size={120} emojiSize="text-6xl" ring={true} className="ring-8 ring-white/20" />
               </div>
               <div className="mt-3 flex flex-col items-center">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                   <h1 className="font-display text-4xl sm:text-5xl font-black text-gold-gradient drop-shadow-lg">{winner!.name}</h1>
-                  <span className="rounded-full bg-amber-400/20 px-3 py-1 text-sm font-semibold text-amber-100">Champion</span>
+                  <span className="rounded-full bg-amber-400/20 px-3 py-1 text-base font-semibold text-amber-100">Champion</span>
                 </div>
                 <div className="mt-2 flex items-center gap-3 text-amber-200">
                   <Crown className="h-6 w-6 text-amber-300 drop-shadow" />
                   <span className="text-lg font-bold">{winner!.score} pts</span>
                 </div>
               </div>
-              <div className="mt-4 flex gap-3">
-                <Button onClick={restart} size="lg" className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                <Button onClick={restart} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
                   <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
                 </Button>
-                <Button onClick={backHome} size="lg" variant="outline">
+                <Button onClick={backHome} size="lg" variant="outline" className="h-12 px-6 text-base">
                   <Home className="mr-2 h-5 w-5" /> Accueil
                 </Button>
               </div>
@@ -158,12 +158,12 @@ export function WinnerScreen() {
 
         {/* Ranking */}
         <div className="mt-8 w-full max-w-md">
-          <p className="mb-2 font-display text-xs uppercase tracking-widest text-muted-foreground">Classement</p>
+          <p className="mb-2 font-display text-base uppercase tracking-widest text-muted-foreground">Classement</p>
           <div className="flex flex-col gap-2">
             {ranked.map((p, i) => (
               <div
                 key={p.id}
-                className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${
+                className={`flex items-center gap-3 rounded-xl border p-4 ${
                   p.id === winner!.id
                     ? "border-amber-400/60 bg-gradient-to-br from-amber-500/10 to-rose-500/5 shadow-lg"
                     : "border-border/50 bg-card/40"
@@ -175,14 +175,14 @@ export function WinnerScreen() {
                     <Avatar avatar={p.emoji} color={p.color} size={64} emojiSize="text-3xl" />
                     <div>
                       <span className="flex-1 text-left font-bold text-amber-100 text-lg">{p.name}</span>
-                      <div className="mt-1 text-sm text-amber-200/90 font-display font-black">{p.score} pts</div>
+                      <div className="mt-1 text-base text-amber-200/90 font-display font-black">{p.score} pts</div>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                    <Avatar avatar={p.emoji} color={p.color} size={52} emojiSize="text-2xl" />
                     <span className="flex-1 text-left font-medium">{p.name}</span>
-                    <span className="font-display text-2xl font-bold sm:text-xl">{p.score} pts</span>
+                    <span className="font-display text-2xl font-bold">{p.score} pts</span>
                   </>
                 )}
               </div>
@@ -190,8 +190,8 @@ export function WinnerScreen() {
           </div>
         </div>
 
-        <p className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Sparkles className="h-3 w-3 text-amber-400" /> Merci d'avoir joue a Trouvix - Le Jeu du Carre
+        <p className="mt-6 flex items-center gap-2 text-base text-muted-foreground">
+          <Sparkles className="h-4 w-4 text-amber-400" /> Merci d'avoir joue a Trouvix - Le Jeu du Carre
         </p>
       </motion.div>
     </div>

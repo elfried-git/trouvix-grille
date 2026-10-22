@@ -21,7 +21,7 @@ Dans **Vercel > projet Trouvix > Settings > Environment Variables**, définis `N
 
 Le client en production utilise le WebSocket natif `/ws`. En développement local, il continue d’utiliser Socket.IO via `npm run dev:game`.
 
-Garde Render actif jusqu’à avoir vérifié deux navigateurs, la création et la reprise d’un salon, les WebSockets, les réactions et le talkie-walkie. Si tu dois revenir en arrière, remets l’ancienne URL Render dans Vercel et redéploie le front.
+Garde Render actif jusqu’à avoir vérifié deux navigateurs, la création et la reprise d’un salon, les WebSockets et les réactions. Si tu dois revenir en arrière, remets l’ancienne URL Render dans Vercel et redéploie le front.
 
 ## Offre gratuite et limites
 

@@ -80,6 +80,11 @@ function countThreats(grid: AIGrid, playerId: string): number {
   return count;
 }
 
+// Threat squares with exactly one open cell can be won on the next turn.
+function countImmediateThreats(grid: AIGrid, playerId: string): number {
+  return findWinningCells(grid, playerId).length;
+}
+
 // Count 2/4 squares (potential) for playerId: a 2x2 block with 2 of playerId and 2 empty.
 function countPotential(grid: AIGrid, playerId: string): number {
   let count = 0;
@@ -148,6 +153,10 @@ export function findBestMove(
   const empties = emptyCells(grid);
   if (empties.length === 0) return null;
 
+  // The high difficulty setting uses the same strong tactical priorities for
+  // every profile; profiles only influence positional style and tie-breaking.
+  const difficulty = 0.95;
+
   // === 1. Immediate win ===
   const myWins = findWinningCells(grid, aiPlayerId);
   if (myWins.length > 0) {
@@ -170,6 +179,7 @@ export function findBestMove(
     kimi: { block: 55000, threat: 9000, potential: 740, fork: 38000, risk: 38000, neutralize: 6500, center: 10, adjacency: 62 },
   };
   const strategy = strategies[profile] ?? strategies.gpt;
+  const threatsBefore = opponentIds.map((id) => countImmediateThreats(grid, id));
 
   for (const cell of empties) {
     const { row, col } = cell;
@@ -191,7 +201,9 @@ export function findBestMove(
 
     // === 3. Create threats ===
     const myThreatsAfter = countThreats(afterAI, aiPlayerId);
-    score += myThreatsAfter * strategy.threat;
+    score += myThreatsAfter * strategy.threat * difficulty;
+    const myImmediateThreats = countImmediateThreats(afterAI, aiPlayerId);
+    score += myImmediateThreats * 18000 * difficulty;
 
     // Potential squares (2/4)
     const myPotentialAfter = countPotential(afterAI, aiPlayerId);
@@ -199,15 +211,22 @@ export function findBestMove(
 
     // === 3b. Fork creation: if this move creates multiple immediate threats, big bonus ===
     const myForksAfter = countForks(afterAI, aiPlayerId);
-    score += myForksAfter * strategy.fork;
+    score += myForksAfter * strategy.fork * difficulty;
 
     // === 4. Anti-suicide: after AI plays, can any opponent win immediately? ===
     let oppImmediateWinCount = 0;
-    for (const oppId of opponentIds) {
-      oppImmediateWinCount += findWinningCells(afterAI, oppId).length;
+    for (let i = 0; i < opponentIds.length; i++) {
+      const oppId = opponentIds[i];
+      const winsAfter = countImmediateThreats(afterAI, oppId);
+      oppImmediateWinCount += winsAfter;
+      // Block the opponent's developing 2-of-4 patterns before they mature.
+      const oppPotentialBefore = countPotential(grid, oppId);
+      const oppPotentialAfter = countPotential(afterAI, oppId);
+      score += (oppPotentialBefore - oppPotentialAfter) * 900 * difficulty;
+      score -= Math.max(0, winsAfter - threatsBefore[i]) * 16000 * difficulty;
     }
     if (oppImmediateWinCount > 0) {
-      score -= oppImmediateWinCount > 1 ? strategy.risk * 2.8 : strategy.risk;
+      score -= oppImmediateWinCount > 1 ? strategy.risk * 4 : strategy.risk * 1.8;
     }
 
     // === 5. Reduce opponent's existing threats ===
@@ -228,8 +247,18 @@ export function findBestMove(
       opponentForks += countForks(afterAI, oppId);
     }
     if (opponentForks > 0) {
-      score -= opponentForks * 30000;
+      score -= opponentForks * 45000 * difficulty;
     }
+
+    // One-ply minimax: estimate the opponent's best tactical reply. This
+    // prevents moves that look strong locally but hand over an easy square.
+    let worstReply = 0;
+    for (const oppId of opponentIds) {
+      const replyWins = countImmediateThreats(afterAI, oppId);
+      const replyThreats = countThreats(afterAI, oppId);
+      worstReply = Math.max(worstReply, replyWins * 24000 + replyThreats * 3200);
+    }
+    score -= worstReply * difficulty;
 
     // === 6. Center preference ===
     const centerR = (AI_ROWS - 1) / 2;

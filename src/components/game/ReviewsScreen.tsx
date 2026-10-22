@@ -147,7 +147,7 @@ export function ReviewsScreen() {
             <p className="font-display text-3xl font-black text-amber-200">
               {avgRating.toFixed(1)}
             </p>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+            <p className="text-sm uppercase tracking-widest text-muted-foreground">
               Moyenne
             </p>
           </div>
@@ -156,7 +156,7 @@ export function ReviewsScreen() {
             <p className="font-display text-3xl font-black text-amber-200">
               {reviews.length}
             </p>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+            <p className="text-sm uppercase tracking-widest text-muted-foreground">
               {reviews.length > 1 ? "Avis" : "Avis"}
             </p>
           </div>
@@ -177,7 +177,7 @@ export function ReviewsScreen() {
 
         {/* Nom (optionnel) */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+          <label className="mb-1.5 block text-base font-medium text-muted-foreground">
             Ton prénom <span className="text-muted-foreground/60">(optionnel)</span>
           </label>
           <input
@@ -186,13 +186,13 @@ export function ReviewsScreen() {
             onChange={(e) => setAuthorName(e.target.value)}
             maxLength={40}
             placeholder="Anonyme"
-            className="w-full rounded-xl border border-border/50 bg-background/60 px-4 py-2.5 text-sm text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
+            className="min-h-12 w-full rounded-xl border border-border/50 bg-background/60 px-4 py-3 text-base text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
           />
         </div>
 
         {/* Étoiles */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+          <label className="mb-1.5 block text-base font-medium text-muted-foreground">
             Ta note <span className="text-rose-300">*</span>
           </label>
           <div className="flex items-center gap-1.5">
@@ -228,7 +228,7 @@ export function ReviewsScreen() {
 
         {/* Commentaire */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+          <label className="mb-1.5 block text-base font-medium text-muted-foreground">
             Ton commentaire <span className="text-rose-300">*</span>
           </label>
           <textarea
@@ -237,9 +237,9 @@ export function ReviewsScreen() {
             maxLength={500}
             rows={3}
             placeholder="Dis-nous ce que tu as aimé..."
-            className="w-full resize-none rounded-xl border border-border/50 bg-background/60 px-4 py-3 text-sm text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
+            className="min-h-32 w-full resize-y rounded-xl border border-border/50 bg-background/60 px-4 py-3 text-base leading-relaxed text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
           />
-          <p className="mt-1 text-right text-[10px] text-muted-foreground/60">
+          <p className="mt-1 text-right text-sm text-muted-foreground/80">
             {comment.length}/500
           </p>
         </div>
@@ -251,7 +251,7 @@ export function ReviewsScreen() {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
+              className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
             >
               ⚠️ {error}
             </motion.p>
@@ -261,7 +261,7 @@ export function ReviewsScreen() {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mb-3 flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
+              className="mb-3 flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200"
             >
               <Check className="h-3.5 w-3.5" /> Merci ! Ton avis a été publié.
             </motion.p>
@@ -292,7 +292,7 @@ export function ReviewsScreen() {
           <MessageSquare className="h-4 w-4 text-amber-300" />
           Avis
           {reviews.length > 0 && (
-            <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-200">
+            <span className="rounded-full bg-amber-400/20 px-2 py-1 text-sm font-bold text-amber-200">
               {reviews.length}
             </span>
           )}
@@ -328,7 +328,7 @@ export function ReviewsScreen() {
                 >
                   {/* Badge "Admin a aimé votre avis" */}
                   {r.adminLiked && (
-                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full border border-rose-500/50 bg-rose-500/15 px-2 py-0.5 text-[9px] font-bold tracking-wide text-rose-200 shadow-sm">
+                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full border border-rose-500/50 bg-rose-500/15 px-2 py-1 text-xs font-bold tracking-wide text-rose-200 shadow-sm">
                       <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500" />
                       Admin a aimé votre avis
                     </div>
@@ -351,7 +351,7 @@ export function ReviewsScreen() {
                         <p className="font-display text-sm font-semibold text-foreground">
                           {r.authorName}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           {formatDate(r.createdAt)}
                         </p>
                       </div>

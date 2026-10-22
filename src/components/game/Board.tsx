@@ -35,7 +35,7 @@ export function Board({ players, currentPlayerId }: BoardProps) {
             return (
               <div
                 key={cell.index}
-                className={`relative flex items-center justify-center rounded-md ring-1 ${style.bg} ${style.ring} text-[8px] sm:text-[10px] md:text-xs`}
+                className={`relative flex items-center justify-center rounded-md ring-1 ${style.bg} ${style.ring} text-xs sm:text-sm md:text-base`}
                 style={{
                   gridColumn: cell.col + 1,
                   gridRow: cell.row + 1,
@@ -44,7 +44,7 @@ export function Board({ players, currentPlayerId }: BoardProps) {
               >
                 <span className="leading-none">{style.emoji}</span>
                 {(isStart || isEnd) && (
-                  <span className="absolute -bottom-0.5 left-0 right-0 text-center text-[6px] font-semibold text-amber-100/80 sm:text-[8px]">
+                  <span className="absolute -bottom-0.5 left-0 right-0 text-center text-[8px] font-black text-amber-50 sm:text-[10px]">
                     {isStart ? "DÉPART" : "ARRIVÉE"}
                   </span>
                 )}
@@ -67,7 +67,7 @@ export function Board({ players, currentPlayerId }: BoardProps) {
               <h2 className="font-display text-lg font-bold tracking-wide text-gold-gradient sm:text-3xl md:text-4xl">
                 DUO DÉFI
               </h2>
-              <p className="font-display text-[10px] italic tracking-widest text-amber-200/70 sm:text-sm">
+              <p className="font-display text-sm italic tracking-wide text-amber-200 sm:text-base">
                 Culture Générale
               </p>
               <div className="mt-2 flex items-center gap-1.5 text-base sm:text-xl">
@@ -108,7 +108,7 @@ export function Board({ players, currentPlayerId }: BoardProps) {
                 }}
               >
                 <div
-                  className={`relative flex h-6 w-6 items-center justify-center rounded-full text-xs shadow-lg sm:h-8 sm:w-8 sm:text-base ${
+                  className={`relative flex h-8 w-8 items-center justify-center rounded-full text-base shadow-lg sm:h-10 sm:w-10 ${
                     isCurrent ? "ring-2 ring-amber-300 pulse-glow" : "ring-2 ring-white/30"
                   }`}
                   style={{ backgroundColor: p.color, marginLeft: `${offsetX}px` }}

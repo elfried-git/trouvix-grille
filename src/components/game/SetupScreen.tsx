@@ -13,31 +13,31 @@ import { ArrowLeft, ArrowRight, Swords, Users, Minus, Plus, Target, Check, Camer
 
 // Elegant color palette — 16 distinct deep tones (so up to 6 players always have a unique choice)
 const COLOR_PALETTE = [
-  "#9f1239", // carmin profond
-  "#b8860b", // or sombre
-  "#0f766e", // sarcelle
-  "#a16207", // ambre brûlé
-  "#6d28d9", // violet royal
-  "#0e7490", // bleu canard
-  "#be185d", // magenta foncé
-  "#166534", // émeraude forêt
-  "#1e3a8a", // bleu nuit
-  "#7c2d12", // brun cuivré
-  "#4a044e", // prune profond
-  "#0c4a6e", // bleu pétrole
-  "#854d0e", // bronze
-  "#155e75", // cyan foncé
-  "#9d174d", // framboise
-  "#365314", // olive sombre
+  "#ff1744", // rouge vif
+  "#ffc400", // jaune solaire
+  "#00c9a7", // turquoise
+  "#ff7a00", // orange pop
+  "#8b5cf6", // violet
+  "#00b8f0", // cyan
+  "#f72585", // rose
+  "#22c55e", // vert
+  "#4361ee", // bleu
+  "#f43f5e", // corail
+  "#c026d3", // magenta
+  "#0891b2", // bleu lagon
+  "#a3e635", // citron vert
+  "#14b8a6", // jade
+  "#fb7185", // rose clair
+  "#84cc16", // lime
 ];
 
-const AI_OPTIONS: { id: AIProfile; name: string; style: string }[] = [
-  { id: "gpt", name: "GPT", style: "Équilibré" },
-  { id: "gemini", name: "GEMINI", style: "Créatif" },
-  { id: "claude", name: "CLAUDE", style: "Prudent" },
-  { id: "grok", name: "GROK", style: "Offensif" },
-  { id: "copilot", name: "COPILOT", style: "Méthodique" },
-  { id: "kimi", name: "KIMI 2", style: "Tactique" },
+const AI_OPTIONS: { id: AIProfile; name: string; style: string; color: string; selectedColor: string; border: string }[] = [
+  { id: "gpt", name: "GPT", style: "Équilibré", color: "bg-blue-950/80", selectedColor: "bg-blue-800/90", border: "border-blue-400/40" },
+  { id: "gemini", name: "GEMINI", style: "Créatif", color: "bg-rose-950/80", selectedColor: "bg-rose-800/90", border: "border-rose-400/40" },
+  { id: "claude", name: "CLAUDE", style: "Prudent", color: "bg-emerald-950/80", selectedColor: "bg-emerald-800/90", border: "border-emerald-400/40" },
+  { id: "grok", name: "GROK", style: "Offensif", color: "bg-red-950/80", selectedColor: "bg-red-800/90", border: "border-red-400/40" },
+  { id: "copilot", name: "COPILOT", style: "Méthodique", color: "bg-amber-950/80", selectedColor: "bg-amber-800/90", border: "border-amber-400/40" },
+  { id: "kimi", name: "KIMI 2", style: "Tactique", color: "bg-violet-950/80", selectedColor: "bg-violet-800/90", border: "border-violet-400/40" },
 ];
 const AI_NAMES = AI_OPTIONS.map((ai) => ai.name);
 
@@ -180,7 +180,7 @@ export function SetupScreen() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-10">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-8 sm:py-10">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -191,14 +191,14 @@ export function SetupScreen() {
             variant="ghost"
             size="sm"
             onClick={backHome}
-            className="text-muted-foreground hover:text-foreground"
+            className="h-12 px-4 text-base text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="mr-1 h-4 w-4" /> Retour
+            <ArrowLeft className="mr-1 h-5 w-5" /> Retour
           </Button>
         </div>
 
-        <h2 className="font-display text-3xl font-bold text-gold-gradient sm:text-4xl">
-          Composition du jeu
+        <h2 className="font-display text-4xl font-bold text-gold-gradient sm:text-5xl">
+          Composer votre jeu
         </h2>
 
         {/* Player count */}
@@ -213,11 +213,11 @@ export function SetupScreen() {
               size="icon"
               onClick={() => setCount((c) => Math.max(2, c - 1))}
               disabled={count <= 2}
-              className="h-12 w-12 sm:h-9 sm:w-9"
+              className="h-12 w-12"
             >
-              <Minus className="h-5 w-5 sm:h-4 sm:w-4" />
+              <Minus className="h-5 w-5" />
             </Button>
-            <span className="w-10 text-center font-display text-3xl font-bold sm:w-8 sm:text-2xl">
+            <span className="w-10 text-center font-display text-3xl font-bold">
               {count}
             </span>
             <Button
@@ -225,9 +225,9 @@ export function SetupScreen() {
               size="icon"
               onClick={() => setCount((c) => Math.min(6, c + 1))}
               disabled={count >= 6}
-              className="h-12 w-12 sm:h-9 sm:w-9"
+              className="h-12 w-12"
             >
-              <Plus className="h-5 w-5 sm:h-4 sm:w-4" />
+              <Plus className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -245,7 +245,7 @@ export function SetupScreen() {
                 variant={rounds === r ? "default" : "outline"}
                 size="sm"
                 onClick={() => setRounds(r)}
-                className={`h-12 text-sm sm:h-8 sm:text-xs ${
+                className={`h-12 text-base ${
                   rounds === r
                     ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white"
                     : ""
@@ -266,7 +266,7 @@ export function SetupScreen() {
             return (
             <div
               key={i}
-              className={`rounded-xl border p-4 transition sm:p-3 ${
+              className={`rounded-xl border p-4 transition ${
                 nameMissing
                   ? "border-rose-400/40 bg-card/40"
                   : isAI[i]
@@ -284,7 +284,7 @@ export function SetupScreen() {
                   />
                 </div>
                 <div className="flex-1">
-                  <Label htmlFor={`name-${i}`} className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Label htmlFor={`name-${i}`} className="flex items-center gap-1 text-base text-muted-foreground">
                     Joueur {i + 1}
                     <span className="text-rose-400" title="Obligatoire">*</span>
                   </Label>
@@ -295,7 +295,7 @@ export function SetupScreen() {
                     placeholder="Saisis ton nom"
                     maxLength={18}
                     disabled={isAI[i]}
-                    className={`mt-1 h-12 text-base bg-background/60 sm:h-10 sm:text-sm ${
+                    className={`mt-1 h-14 text-lg bg-background/60 ${
                       isAI[i]
                         ? "cursor-not-allowed opacity-60"
                         : nameMissing
@@ -311,7 +311,7 @@ export function SetupScreen() {
                 <button
                   onClick={() => toggleAI(i)}
                   disabled={isAI[i]}
-                  className={`flex h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition sm:h-7 sm:gap-1 sm:px-2.5 sm:text-[11px] ${
+                  className={`flex h-12 items-center gap-2 rounded-full border px-4 text-base font-medium transition ${
                     isAI[i]
                       ? "border-violet-400/60 bg-violet-500/20 text-violet-200 cursor-not-allowed"
                       : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/60"
@@ -322,16 +322,16 @@ export function SetupScreen() {
                       : "Activer l'IA (joue automatiquement)"
                   }
                 >
-                  <Bot className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                  <Bot className="h-5 w-5" />
                   {isAI[i] ? "IA active" : "IA"}
                 </button>
                 {/* Upload photo button (hidden for AI players) — photo is optional */}
                 {!isAI[i] && (
                   <label
-                    className="flex h-11 cursor-pointer items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-sm font-medium text-amber-200 transition hover:bg-amber-500/20 sm:h-7 sm:gap-1 sm:px-2.5 sm:text-[11px]"
+                    className="flex h-12 cursor-pointer items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
                     title="Téléverser une photo (optionnel)"
                   >
-                    <Camera className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                  <Camera className="h-5 w-5" />
                     {isPhoto ? "Photo ✓" : "Photo"}
                     <input
                       type="file"
@@ -345,16 +345,16 @@ export function SetupScreen() {
                 {!isAI[i] && isPhoto && (
                   <button
                     onClick={() => clearPhoto(i)}
-                    className="flex h-11 items-center gap-1.5 rounded-full border border-rose-400/40 bg-rose-500/10 px-4 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 sm:h-7 sm:px-2.5 sm:text-[11px]"
+                    className="flex h-12 items-center gap-2 rounded-full border border-rose-400/40 bg-rose-500/10 px-4 text-base font-medium text-rose-200 transition hover:bg-rose-500/20"
                     title="Retirer la photo"
                   >
-                    <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                  <X className="h-5 w-5" />
                   </button>
                 )}
               </div>
               {count === 2 && i === 1 && isAI[i] && (
                 <div className="mt-4 rounded-lg border border-violet-400/20 bg-violet-950/20 p-3">
-                  <p className="mb-2 text-xs font-semibold text-violet-100">Choisis ton adversaire IA</p>
+                  <p className="mb-2 text-base font-semibold text-violet-100">Choisis ton adversaire IA</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {AI_OPTIONS.map((option) => (
                       <button
@@ -362,9 +362,9 @@ export function SetupScreen() {
                         type="button"
                         onClick={() => chooseAiProfile(option.id)}
                         aria-pressed={aiProfiles[1] === option.id}
-                        className={`rounded-lg border px-2.5 py-2 text-left transition ${aiProfiles[1] === option.id ? "border-violet-300 bg-violet-500/25 ring-1 ring-violet-300/50" : "border-border/60 bg-background/40 hover:border-violet-300/40"}`}
+                        className={`group relative min-h-[4.5rem] overflow-hidden rounded-xl border px-4 py-3 text-left text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${option.color} ${option.border} ${aiProfiles[1] === option.id ? `${option.selectedColor} ring-2 ring-white/80 shadow-lg` : "hover:brightness-125"}`}
                       >
-                        <span className="block text-xs font-bold">🤖 {option.name}</span>
+                        <span className="block font-display text-base font-bold tracking-wide">{option.name}</span>
                       </button>
                     ))}
                   </div>
@@ -382,12 +382,12 @@ export function SetupScreen() {
                       key={color}
                       onClick={() => setColor(i, color)}
                       disabled={isAI[i] || (usedByOther && !selected)}
-                      className={`relative h-10 w-10 rounded-full ring-2 transition sm:h-7 sm:w-7 ${
+                      className={`relative h-12 w-12 rounded-full border border-white/30 shadow-md transition duration-200 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         selected
-                          ? "ring-white scale-110"
+                          ? "scale-110 ring-4 ring-white ring-offset-2 ring-offset-background shadow-lg"
                           : usedByOther
                             ? "ring-transparent opacity-30"
-                            : "ring-white/30 hover:ring-white/60"
+                            : "ring-black/20 hover:ring-2 hover:ring-white/80"
                       } ${isAI[i] ? "cursor-not-allowed opacity-50" : ""}`}
                       style={{ backgroundColor: color }}
                       title={
@@ -399,7 +399,7 @@ export function SetupScreen() {
                       }
                     >
                       {selected && (
-                        <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow sm:h-3.5 sm:w-3.5" />
+                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow" />
                       )}
                     </button>
                   );

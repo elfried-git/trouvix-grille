@@ -91,7 +91,7 @@ export function GameScreen() {
       {/* Top bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="font-display text-xl font-black sm:text-2xl">
+          <span className="font-display text-2xl font-black">
             <span className="text-red-gradient">Trouv</span>
             <span className="text-gold-gradient">ix</span>
           </span>
@@ -103,20 +103,20 @@ export function GameScreen() {
             size="sm"
             onClick={togglePause}
             disabled={resolving}
-            className={`h-10 gap-1.5 sm:h-8 ${
+            className={`h-12 gap-2 px-4 text-base ${
               isPaused
                 ? "border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/10"
                 : "border-amber-400/40 text-amber-200 hover:bg-amber-500/10"
             }`}
           >
             {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-            <span className="hidden sm:inline">{isPaused ? "Reprendre" : "Pause"}</span>
+            <span>{isPaused ? "Reprendre" : "Pause"}</span>
           </Button>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-10 gap-1.5 sm:h-8">
+              <Button variant="outline" size="sm" className="h-12 gap-2 px-4 text-base">
                 <ScrollText className="h-4 w-4" />
-                <span className="hidden sm:inline">Règles</span>
+                <span>Règles</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-h-[80vh] overflow-y-auto scroll-romantic">
@@ -132,10 +132,10 @@ export function GameScreen() {
             variant="outline"
             size="sm"
             onClick={endGameNow}
-            className="h-10 gap-1.5 border-rose-400/40 text-rose-200 hover:bg-rose-500/10 sm:h-8"
+            className="h-12 gap-2 border-rose-400/40 px-4 text-base text-rose-200 hover:bg-rose-500/10"
           >
             <Flag className="h-4 w-4" />
-            <span className="hidden sm:inline">Terminer</span>
+            <span>Terminer</span>
           </Button>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function GameScreen() {
         {/* Professional score counter & players list — above the grid */}
         <div className="glass-card rounded-2xl p-3 sm:p-4 space-y-3">
           {/* Players list with live scores and active turn highlight */}
-          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {players.map((p) => {
               const isActive = p.id === current?.id;
               return (
@@ -160,7 +160,7 @@ export function GameScreen() {
                         }
                       : undefined
                   }
-                  className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-2 text-center transition-all ${
+                  className={`flex min-w-0 flex-col items-center gap-2 rounded-xl border px-3 py-3 text-center transition-all ${
                     isActive
                       ? "border-2 ring-1 ring-white/30 scale-[1.02]"
                       : "bg-card/40 border-border/40 opacity-75"
@@ -169,7 +169,7 @@ export function GameScreen() {
                   <Avatar
                     avatar={p.emoji}
                     color={p.color}
-                    size={44}
+                    size={48}
                     emojiSize="text-xl"
                     ring={false}
                     className={isActive ? "ring-2" : "ring-2 ring-white/20"}
@@ -180,17 +180,17 @@ export function GameScreen() {
                     }
                   />
                     <div className="flex min-w-0 w-full flex-col items-center">
-                      <span className={`w-full truncate text-xs font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
+                      <span className={`w-full truncate text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                         {p.name}
                       </span>
                       {p.isAI && (
-                        <span className="mt-0.5 rounded bg-violet-400/20 px-1 text-[8px] font-semibold text-violet-200">
+                        <span className="mt-0.5 rounded bg-violet-400/20 px-1.5 py-0.5 text-xs font-semibold text-violet-200">
                           IA
                         </span>
                       )}
                     </div>
-                  <span className={`font-display text-lg font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
-                    {p.score} <span className="text-[9px] font-normal text-muted-foreground">pts</span>
+                  <span className={`font-display text-xl font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                    {p.score} <span className="text-sm font-normal text-muted-foreground">pts</span>
                   </span>
                 </div>
               );
@@ -201,7 +201,7 @@ export function GameScreen() {
           <div className="space-y-1.5 pt-1 border-t border-border/30">
             <div className="flex items-center justify-end">
               <div
-                className="flex items-center gap-1 font-display text-sm sm:text-base font-black tabular-nums"
+                className="flex items-center gap-1 font-display text-lg font-black tabular-nums"
                 style={{ color: isPaused ? "#34d399" : turnColor }}
               >
                 {isPaused ? (
@@ -218,7 +218,7 @@ export function GameScreen() {
             </div>
 
             {/* Countdown progress bar — solid, vivid player color (no gradient) */}
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
+            <div className="h-4 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
               <motion.div
                 className="h-full rounded-full transition-all"
                 style={{
@@ -245,7 +245,7 @@ export function GameScreen() {
             variant="ghost"
             size="sm"
             onClick={backHome}
-            className="text-muted-foreground hover:text-foreground"
+            className="h-12 px-4 text-base text-muted-foreground hover:text-foreground"
           >
             <Home className="mr-1.5 h-4 w-4" /> Quitter la partie
           </Button>
@@ -257,9 +257,9 @@ export function GameScreen() {
 
 function RulesContent({ totalRounds }: { totalRounds: number }) {
   return (
-    <div className="space-y-4 text-sm text-muted-foreground">
+    <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
       <section>
-        <h3 className="font-display text-base font-semibold text-foreground">Le but</h3>
+        <h3 className="font-display text-lg font-semibold text-foreground">Le but</h3>
         <p className="mt-1">
           Place tes pions <span className="font-semibold text-amber-200">où tu le souhaites</span> dans
           la grille. Forme un <span className="font-semibold text-amber-200">carré de 4 pions</span> de
@@ -268,7 +268,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
         </p>
       </section>
       <section>
-        <h3 className="font-display text-base font-semibold text-foreground">
+        <h3 className="font-display text-lg font-semibold text-foreground">
           Placement libre
         </h3>
         <ul className="mt-1 list-disc space-y-1 pl-5">
@@ -278,7 +278,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
         </ul>
       </section>
       <section>
-        <h3 className="font-display text-base font-semibold text-foreground">
+        <h3 className="font-display text-lg font-semibold text-foreground">
           Le chrono (10 s)
         </h3>
         <ul className="mt-1 list-disc space-y-1 pl-5">
@@ -293,7 +293,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
         </ul>
       </section>
       <section>
-        <h3 className="font-display text-base font-semibold text-foreground">
+        <h3 className="font-display text-lg font-semibold text-foreground">
           Le carré (2×2)
         </h3>
         <p className="mt-1">
@@ -312,10 +312,10 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs italic">Exemple de carré gagnant.</p>
+        <p className="mt-2 text-sm italic">Exemple de carré gagnant.</p>
       </section>
       <section>
-        <h3 className="font-display text-base font-semibold text-foreground">
+        <h3 className="font-display text-lg font-semibold text-foreground">
           Fin de partie
         </h3>
         <ul className="mt-1 list-disc space-y-1 pl-5">

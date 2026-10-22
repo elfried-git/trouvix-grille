@@ -34,12 +34,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// 16 elegant distinct colors (matches SetupScreen palette)
+// Palette vive et distincte, partagée avec le mode local.
 const COLOR_PALETTE = [
-  "#9f1239", "#b8860b", "#0f766e", "#a16207",
-  "#6d28d9", "#0e7490", "#be185d", "#166534",
-  "#1e3a8a", "#7c2d12", "#4a044e", "#0c4a6e",
-  "#854d0e", "#155e75", "#9d174d", "#365314",
+  "#ff1744", "#ffc400", "#00c9a7", "#ff7a00",
+  "#8b5cf6", "#00b8f0", "#f72585", "#22c55e",
+  "#4361ee", "#f43f5e", "#c026d3", "#0891b2",
+  "#a3e635", "#14b8a6", "#fb7185", "#84cc16",
 ];
 const ROUND_OPTIONS = [5, 10, 15];
 
@@ -83,7 +83,7 @@ export function OnlineSetupScreen() {
   const [color, setColor] = useState(COLOR_PALETTE[0]);
   const [emoji, setEmoji] = useState(""); // data URL or empty
   const [rounds, setRounds] = useState(10);
-  const [maxPlayers, setMaxPlayers] = useState(6); // host defines max players (2-6)
+  const [maxPlayers, setMaxPlayers] = useState(2); // default room size is 1v1; host can choose 2-6
   const [joinCode, setJoinCode] = useState("");
   const [inviteRoomCode, setInviteRoomCode] = useState("");
   const [copied, setCopied] = useState(false);
@@ -258,7 +258,7 @@ export function OnlineSetupScreen() {
     players.some((p) => p.name === "Benchou Ferrari");
   const roomMaxPlayers = isBenchouChallengeRoom
     ? 2
-    : serverState?.maxPlayers || 6;
+    : serverState?.maxPlayers || 2;
   const connectedCount = players.filter((p) => p.connected !== false).length;
   const roomFull = connectedCount >= roomMaxPlayers;
 
@@ -270,7 +270,7 @@ export function OnlineSetupScreen() {
         className="glass-card rounded-3xl p-6 sm:p-8"
       >
         {/* Header — single context-aware back button */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <Button
             variant="ghost"
             size="sm"
@@ -288,13 +288,13 @@ export function OnlineSetupScreen() {
                 setTab("menu");
               }
             }}
-            className="text-muted-foreground hover:text-foreground"
+            className="h-11 px-3 text-base text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="mr-1 h-4 w-4" />
             {activeTab === "lobby" ? "Quitter le salon" : activeTab === "menu" ? "Retour" : "Menu"}
           </Button>
           <span
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+            className={`flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-base font-medium ${
               onlineConnected
                 ? "bg-emerald-500/10 text-emerald-300"
                 : onlineConnecting
@@ -303,11 +303,11 @@ export function OnlineSetupScreen() {
             }`}
           >
             {onlineConnected ? (
-              <Wifi className="h-3 w-3" />
+              <Wifi className="h-4 w-4" />
             ) : onlineConnecting ? (
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300/30 border-t-amber-300" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-amber-300/30 border-t-amber-300" />
             ) : (
-              <WifiOff className="h-3 w-3" />
+              <WifiOff className="h-4 w-4" />
             )}
             {onlineConnected ? "Connecté" : onlineConnecting ? "Connexion…" : "Hors ligne"}
           </span>
@@ -330,17 +330,17 @@ export function OnlineSetupScreen() {
         {/* === MENU TAB === */}
         {activeTab === "menu" && (
           <div>
-            <h2 className="text-center font-display text-3xl font-bold text-gold-gradient sm:text-4xl">
+            <h2 className="text-center font-display text-4xl font-bold text-gold-gradient sm:text-5xl">
               Jouer en ligne
             </h2>
 
             {/* Compact profile — name + color, shared with create/benchou */}
-            <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-4 sm:p-3">
-              <Label className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-5">
+              <Label className="flex items-center gap-1 text-base text-muted-foreground">
                 Ton profil <span className="text-rose-400">*</span>
               </Label>
               <div className="mt-2 flex items-center gap-3">
-                <Avatar avatar={emoji} color={color} size={44} emojiSize="text-xl" />
+                <Avatar avatar={emoji} color={color} size={56} emojiSize="text-2xl" />
                 <div className="flex-1">
                   <Input
                     ref={nameInputRef}
@@ -348,16 +348,16 @@ export function OnlineSetupScreen() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Saisis ton prénom"
                     maxLength={18}
-                    className={`h-11 bg-background/60 sm:h-10 ${
+                    className={`h-14 bg-background/60 text-lg ${
                       !name.trim() ? "border-rose-400/60" : "border-border/60"
                     }`}
                   />
                 </div>
                 <label
-                  className="flex h-11 cursor-pointer items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20 sm:h-10 sm:px-2.5"
+                  className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
                   title="Téléverser une photo (optionnel)"
                 >
-                  <Camera className="h-4 w-4" />
+                  <Camera className="h-5 w-5" />
                   <input
                     type="file"
                     accept="image/*"
@@ -367,23 +367,23 @@ export function OnlineSetupScreen() {
                 </label>
               </div>
               {/* Compact color picker */}
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {COLOR_PALETTE.map((c) => {
                   const selected = color === c;
                   return (
                     <button
                       key={c}
                       onClick={() => setColor(c)}
-                      className={`relative h-7 w-7 rounded-full ring-2 transition ${
+                      className={`relative h-11 w-11 rounded-full border border-white/30 shadow-md transition duration-200 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         selected
-                          ? "ring-white scale-110"
-                          : "ring-white/20 hover:ring-white/50"
+                          ? "scale-110 ring-4 ring-white ring-offset-2 ring-offset-background shadow-lg"
+                          : "ring-black/20 hover:ring-2 hover:ring-white/80"
                       }`}
                       style={{ backgroundColor: c }}
                       title="Choisir"
                     >
                       {selected && (
-                        <Check className="absolute inset-0 m-auto h-3 w-3 text-white drop-shadow" />
+                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow" />
                       )}
                     </button>
                   );
@@ -392,31 +392,31 @@ export function OnlineSetupScreen() {
             </div>
 
             {/* Action cards */}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {/* Join by code — the JOIN card */}
               <button
                 onClick={() => setTab("join")}
-                className="group rounded-2xl border-emerald-400/30 bg-emerald-500/5 p-6 text-left transition hover:border-emerald-400/60 hover:bg-emerald-500/10"
+                className="group min-h-40 rounded-2xl border-emerald-400/30 bg-emerald-500/5 p-6 text-left transition hover:border-emerald-400/60 hover:bg-emerald-500/10"
               >
-                <LogIn className="mb-3 h-8 w-8 text-emerald-300" />
-                <p className="font-display text-lg font-bold text-foreground">Rejoindre un salon</p>
-                <p className="mt-1 text-xs text-muted-foreground">Saisis le code du salon cree par l'hote pour entrer directement dedans.</p>
+                <LogIn className="mb-3 h-9 w-9 text-emerald-300" />
+                <p className="font-display text-xl font-bold text-foreground">Rejoindre un salon</p>
+                <p className="mt-2 text-base leading-relaxed text-muted-foreground">Entre le code du salon pour rejoindre tes amis.</p>
               </button>
               <button
                 onClick={() => setTab("create")}
-                className="group rounded-2xl border border-amber-400/30 bg-amber-500/5 p-6 text-left transition hover:border-amber-400/60 hover:bg-amber-500/10"
+                className="group min-h-40 rounded-2xl border border-amber-400/30 bg-amber-500/5 p-6 text-left transition hover:border-amber-400/60 hover:bg-amber-500/10"
               >
-                <Plus className="mb-3 h-8 w-8 text-amber-300" />
-                <p className="font-display text-lg font-bold text-foreground">
+                <Plus className="mb-3 h-9 w-9 text-amber-300" />
+                <p className="font-display text-xl font-bold text-foreground">
                   Créer un salon
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Choisis le nombre de rounds et de joueurs, invite tes amis.
+                <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+                  Crée une partie et invite tes amis.
                 </p>
               </button>
               <button
                 onClick={() => setTab("benchou")}
-                className="group rounded-2xl border border-violet-400/30 bg-violet-500/5 p-6 text-left transition hover:border-violet-400/60 hover:bg-violet-500/10"
+                className="group min-h-40 rounded-2xl border border-violet-400/30 bg-violet-500/5 p-6 text-left transition hover:border-violet-400/60 hover:bg-violet-500/10"
               >
                 <div className="mb-3 flex items-center gap-3">
                   <img
@@ -428,13 +428,13 @@ export function OnlineSetupScreen() {
                     fetchPriority="high"
                     className="h-12 w-12 rounded-full object-cover ring-2 ring-violet-400/40"
                   />
-                  <Bot className="h-7 w-7 text-violet-300" />
+                  <Bot className="h-8 w-8 text-violet-300" />
                 </div>
-                <p className="font-display text-lg font-bold text-foreground">
+                <p className="font-display text-xl font-bold text-foreground">
                   Jouer contre Benchou
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Défie Benchou Ferrari pour un match 1 vs 1 privé. Seul le super admin recevra l'invitation.
+                <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+                  Défie Benchou en duel privé.
                 </p>
               </button>
             </div>
@@ -444,7 +444,7 @@ export function OnlineSetupScreen() {
               {!showPinForm && !onlineIsBenchou && (
                 <button
                   onClick={() => setShowPinForm(true)}
-                  className="group inline-flex items-center gap-2.5 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500/5 to-rose-500/5 px-4 py-2 text-xs font-medium text-amber-100/70 transition-all hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-100 hover:shadow-[0_4px_20px_-4px_oklch(0.60_0.215_25/0.4)]"
+                  className="group inline-flex min-h-12 items-center gap-2.5 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500/5 to-rose-500/5 px-5 py-3 text-base font-medium text-amber-100/90 transition-all hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-100 hover:shadow-[0_4px_20px_-4px_oklch(0.60_0.215_25/0.4)]"
                 >
                   <img
                     src="/benchou-ferrari-small.jpg"
@@ -461,7 +461,7 @@ export function OnlineSetupScreen() {
               )}
               {showPinForm && !onlineIsBenchou && (
                 <div className="mx-auto max-w-xs space-y-3">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-base leading-relaxed text-muted-foreground">
                     🔐 Saisis le code PIN pour t'identifier en tant que Benchou Ferrari.
                   </p>
                   <Input
@@ -474,7 +474,7 @@ export function OnlineSetupScreen() {
                   />
                   {/* Error message displayed right here, next to the input — not at the top */}
                   {onlineError && showPinForm && (
-                    <p className="text-center text-xs font-medium text-rose-300">
+                    <p className="text-center text-sm font-medium text-rose-300">
                       ⚠️ {onlineError}
                     </p>
                   )}
@@ -506,7 +506,7 @@ export function OnlineSetupScreen() {
                 </div>
               )}
               {onlineIsBenchou && (
-                <p className="text-xs text-emerald-300">
+                <p className="text-sm text-emerald-300">
                   ✓ Connecté en tant que Benchou Ferrari
                 </p>
               )}
@@ -528,7 +528,7 @@ export function OnlineSetupScreen() {
                       <Avatar avatar={ch.challengerEmoji} color={ch.challengerColor} size={36} emojiSize="text-lg" />
                       <div className="flex-1">
                         <p className="text-sm font-bold text-foreground">{ch.challengerName}</p>
-                        <p className="text-xs text-muted-foreground">Match en {ch.totalRounds} rounds</p>
+                        <p className="text-sm text-muted-foreground">Match en {ch.totalRounds} rounds</p>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -565,7 +565,7 @@ export function OnlineSetupScreen() {
             {/* Public rooms list — visible to everyone on the menu */}
             {openRooms.length > 0 && (
               <div className="mt-6">
-                <p className="mb-3 flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
+                <p className="mb-3 flex items-center gap-1.5 text-sm uppercase tracking-widest text-amber-200/70">
                   <Gamepad2 className="h-3.5 w-3.5" />
                   Salons ouverts ({openRooms.length})
                   <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/70">
@@ -597,29 +597,29 @@ export function OnlineSetupScreen() {
                               navigator.clipboard?.writeText(room.roomCode);
                               toast.success("Code copié !");
                             }}
-                            className="group flex items-center gap-1 rounded-md bg-background/60 px-2 py-0.5 font-mono text-sm font-bold tracking-wider text-amber-200 transition hover:bg-amber-500/20"
+                            className="group flex min-h-11 items-center gap-2 rounded-md bg-background/60 px-3 py-2 font-mono text-base font-bold tracking-wider text-amber-200 transition hover:bg-amber-500/20"
                             title="Copier le code"
                           >
                             {room.roomCode}
                             <Copy className="h-2.5 w-2.5 opacity-0 transition group-hover:opacity-60" />
                           </button>
                           {room.isFull && (
-                            <span className="rounded-full bg-muted/20 px-2 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">
+                            <span className="rounded-full bg-muted/20 px-2 py-1 text-xs font-bold uppercase text-muted-foreground">
                               Complet
                             </span>
                           )}
                           {onlineIsBenchou && room.phase && room.phase !== "lobby" && (
-                            <span className="rounded-full border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-200">
+                            <span className="rounded-full border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-xs font-bold uppercase text-emerald-200">
                               {room.phase === "playing" ? "En jeu" : "Terminé"}
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        <p className="mt-1 truncate text-base text-muted-foreground">
                           Hôte : <span className="font-medium text-foreground/80">{room.hostName}</span> · {room.totalRounds} rounds
                         </p>
                         {/* Waiting-players gauge */}
                         <div className="mt-1 flex items-center gap-2">
-                          <div className="flex items-center gap-1 text-[11px] font-medium text-amber-200/80">
+                          <div className="flex items-center gap-1 text-sm font-medium text-amber-200/80">
                             <Users className="h-3 w-3" />
                             {room.playerCount}/{room.maxPlayers} en attente
                           </div>
@@ -643,14 +643,14 @@ export function OnlineSetupScreen() {
                         size="sm"
                         disabled={room.isFull || onlinePending}
                         onClick={() => handleJoinPublic(room)}
-                        className={`h-8 shrink-0 gap-1 whitespace-nowrap ${
+                        className={`h-11 shrink-0 gap-1 whitespace-nowrap px-4 text-sm ${
                           room.isFull
                             ? "cursor-not-allowed opacity-50"
                             : "bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
                         }`}
                       >
                         {room.isFull ? (
-                          <span className="text-xs">Complet</span>
+                          <span className="text-sm">Complet</span>
                         ) : (
                           <>
                             <LogIn className="h-3.5 w-3.5" /> Rejoindre
@@ -664,7 +664,7 @@ export function OnlineSetupScreen() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-8 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                              className="h-11 px-3 text-sm text-muted-foreground hover:text-foreground"
                               onClick={() => setConfirmRoomDelete(null)}
                               disabled={onlinePending}
                             >
@@ -672,7 +672,7 @@ export function OnlineSetupScreen() {
                             </Button>
                             <Button
                               size="sm"
-                              className="h-8 gap-1 whitespace-nowrap bg-rose-600 text-white hover:bg-rose-500"
+                              className="h-11 gap-1 whitespace-nowrap bg-rose-600 px-3 text-sm text-white hover:bg-rose-500"
                               onClick={() => handleAdminDeleteRoom(room.roomCode)}
                               disabled={onlinePending}
                               title={`Supprimer le salon ${room.roomCode}`}
@@ -684,7 +684,7 @@ export function OnlineSetupScreen() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 shrink-0 gap-1 whitespace-nowrap border-rose-400/50 bg-rose-500/10 text-[11px] font-semibold text-rose-200 hover:bg-rose-500/20"
+                            className="h-11 shrink-0 gap-1 whitespace-nowrap border-rose-400/50 bg-rose-500/10 px-3 text-sm font-semibold text-rose-200 hover:bg-rose-500/20"
                             onClick={() => setConfirmRoomDelete(room.roomCode)}
                             disabled={onlinePending}
                             title={`Supprimer le salon ${room.roomCode}`}
@@ -726,14 +726,14 @@ export function OnlineSetupScreen() {
                 />
                 <div>
                   <p className="font-display text-sm font-bold text-violet-200">Benchou Ferrari (Match 1 vs 1)</p>
-                  <p className="text-xs text-muted-foreground">Salon privé réservé. Je suis prêt pour le duel ! 🔥</p>
+                  <p className="text-base leading-relaxed text-muted-foreground">Salon privé réservé. Je suis prêt pour le duel ! 🔥</p>
                 </div>
               </div>
             )}
 
             {/* Profile */}
-            <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-4 sm:p-3">
-              <Label className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-4 sm:p-5">
+              <Label className="flex items-center gap-1 text-base text-muted-foreground">
                 Ton profil <span className="text-rose-400">*</span>
               </Label>
               <div className="mt-2 flex items-center gap-3">
@@ -744,18 +744,18 @@ export function OnlineSetupScreen() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Saisis ton nom"
                     maxLength={18}
-                    className={`h-11 bg-background/60 sm:h-10 ${
+                    className={`h-14 bg-background/60 text-lg ${
                       !name.trim() ? "border-rose-400/60" : "border-border/60"
                     }`}
                   />
                 </div>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-1.5">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <label
-                  className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20 sm:h-7 sm:gap-1 sm:px-2.5 sm:text-[11px]"
+                  className="flex h-12 cursor-pointer items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
                   title="Téléverser une photo (optionnel)"
                 >
-                  <Camera className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                  <Camera className="h-5 w-5" />
                   {isPhotoAvatar(emoji) ? "Photo ✓" : "Photo"}
                   <input
                     type="file"
@@ -767,15 +767,15 @@ export function OnlineSetupScreen() {
                 {isPhotoAvatar(emoji) && (
                   <button
                     onClick={() => setEmoji("")}
-                    className="flex h-9 items-center gap-1.5 rounded-full border border-rose-400/40 bg-rose-500/10 px-3 text-xs font-medium text-rose-200 transition hover:bg-rose-500/20 sm:h-7 sm:px-2.5 sm:text-[11px]"
+                    className="flex h-12 items-center gap-2 rounded-full border border-rose-400/40 bg-rose-500/10 px-4 text-base font-medium text-rose-200 transition hover:bg-rose-500/20"
                     title="Retirer la photo"
                   >
-                    <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                    <X className="h-5 w-5" />
                   </button>
                 )}
               </div>
               {/* Color picker */}
-              <div className="mt-2 flex flex-wrap gap-2 sm:gap-1.5">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {COLOR_PALETTE.map((c) => {
                   const taken =
                     serverState?.players.some((p) => p.color === c) ?? false;
@@ -785,18 +785,18 @@ export function OnlineSetupScreen() {
                       key={c}
                       onClick={() => !taken && setColor(c)}
                       disabled={taken && !selected}
-                      className={`relative h-9 w-9 rounded-full ring-2 transition sm:h-7 sm:w-7 ${
+                      className={`relative h-12 w-12 rounded-full border border-white/30 shadow-md transition duration-200 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         selected
-                          ? "ring-white scale-110"
+                          ? "scale-110 ring-4 ring-white ring-offset-2 ring-offset-background shadow-lg"
                           : taken
                             ? "ring-transparent opacity-30"
-                            : "ring-white/30 hover:ring-white/60"
+                            : "ring-black/20 hover:ring-2 hover:ring-white/80"
                       }`}
                       style={{ backgroundColor: c }}
                       title={taken && !selected ? "Couleur déjà prise" : "Choisir"}
                     >
                       {selected && (
-                        <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow sm:h-3.5 sm:w-3.5" />
+                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow" />
                       )}
                     </button>
                   );
@@ -818,7 +818,7 @@ export function OnlineSetupScreen() {
                       variant={rounds === r ? "default" : "outline"}
                       size="sm"
                       onClick={() => setRounds(r)}
-                      className={`h-11 sm:h-8 ${
+                      className={`h-12 px-4 text-base ${
                         rounds === r
                           ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white"
                           : ""
@@ -836,7 +836,7 @@ export function OnlineSetupScreen() {
               <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-amber-300" />
-                  <span className="font-medium">Nombre max de joueurs</span>
+                  <span className="font-medium">Joueurs dans le salon</span>
                 </div>
                 <div className="grid grid-cols-5 gap-2 sm:flex sm:gap-2">
                   {[2, 3, 4, 5, 6].map((mp) => (
@@ -845,7 +845,8 @@ export function OnlineSetupScreen() {
                       variant={maxPlayers === mp ? "default" : "outline"}
                       size="sm"
                       onClick={() => setMaxPlayers(mp)}
-                      className={`h-11 px-3 sm:h-8 ${
+                      aria-pressed={maxPlayers === mp}
+                      className={`h-12 px-4 text-base ${
                         maxPlayers === mp
                           ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white"
                           : ""
@@ -861,7 +862,7 @@ export function OnlineSetupScreen() {
             {/* Join code input (join only) */}
             {activeTab === "join" && (
               <div className="mt-4 rounded-xl border border-border/60 bg-card/40 p-4">
-                <Label className="text-xs text-muted-foreground">Code du salon</Label>
+                <Label className="text-base text-muted-foreground">Code du salon</Label>
                 <Input
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
@@ -870,7 +871,7 @@ export function OnlineSetupScreen() {
                   className="mt-1 bg-background/60 font-display text-lg tracking-[0.3em] uppercase"
                 />
                 {inviteRoomCode && (
-                  <p className="mt-2 text-xs text-emerald-200/80">
+                  <p className="mt-2 text-sm text-emerald-200/80">
                     Invitation reçue : le code du salon est déjà renseigné.
                   </p>
                 )}
@@ -908,31 +909,31 @@ export function OnlineSetupScreen() {
         {activeTab === "lobby" && serverState && (
           <div>
             {/* Room code */}
-            <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-500/5 p-4 text-center">
-              <p className="text-xs uppercase tracking-widest text-amber-200/70">
+            <div className="mb-4 min-w-0 rounded-2xl border border-amber-400/30 bg-amber-500/5 p-3 text-center sm:p-4">
+              <p className="text-sm uppercase tracking-widest text-amber-200/70">
                 Code du salon
               </p>
-              <div className="mt-1 flex items-center justify-center gap-3">
-                <p className="font-display text-4xl font-black tracking-[0.2em] text-gold-gradient sm:text-3xl">
+              <div className="mt-1 flex min-w-0 items-center justify-center gap-2">
+                <p className="min-w-0 break-all font-display text-3xl font-black tracking-[0.14em] text-gold-gradient sm:text-4xl sm:tracking-[0.2em]">
                   {serverState.roomCode}
                 </p>
                 <button
                   onClick={copyCode}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/10 text-amber-200 transition hover:bg-amber-500/20 sm:h-9 sm:w-9 sm:p-2"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/10 text-amber-200 transition hover:bg-amber-500/20"
                   title="Copier le code"
                 >
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Partage ce code avec tes amis pour qu'ils te rejoignent.
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Envoie ce code à tes amis.
               </p>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex min-w-0 flex-wrap gap-2">
                   <Button
                     onClick={shareRoomInvite}
-                    className="flex-1 gap-2 bg-gradient-to-r from-emerald-700 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-500"
+                    className="h-auto min-h-12 min-w-0 flex-1 gap-2 whitespace-normal bg-gradient-to-r from-emerald-700 to-emerald-600 px-3 py-2 text-sm text-white hover:from-emerald-600 hover:to-emerald-500 sm:text-base"
                   >
-                    <Share2 className="h-4 w-4" /> Envoyer le lien d’invitation
+                    <Share2 className="h-4 w-4 shrink-0" /> <span>Partager l’invitation</span>
                   </Button>
                   <Button
                     type="button"
@@ -941,19 +942,16 @@ export function OnlineSetupScreen() {
                     size="icon"
                     title="Copier le lien d’invitation"
                     aria-label="Copier le lien d’invitation"
-                    className="h-10 w-10 shrink-0 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10"
+                    className="h-12 w-12 shrink-0 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10"
                   >
                     {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
               </div>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Partage ce lien pour ouvrir directement ce salon. L’accès dépend des places disponibles et de l’état de la partie.
-              </p>
             </div>
 
             {/* Players */}
             <div className="mb-4">
-              <p className="mb-2 flex items-center gap-1.5 text-xs uppercase tracking-widest text-amber-200/70">
+              <p className="mb-2 flex items-center gap-1.5 text-sm uppercase tracking-widest text-amber-200/70">
                 <Users className="h-3.5 w-3.5" />
                 Joueurs ({players.length}/{roomMaxPlayers})
               </p>
@@ -967,18 +965,18 @@ export function OnlineSetupScreen() {
                         : "border-border/60 bg-card/40"
                     }`}
                   >
-                    <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                    <Avatar avatar={p.emoji} color={p.color} size={52} emojiSize="text-2xl" />
                     <div className="flex flex-1 flex-col gap-0.5">
-                      <span className="flex items-center gap-1.5 font-medium">
+                      <span className="flex flex-wrap items-center gap-2 text-base font-medium">
                         {p.name}
                         {/* Online status indicator */}
                         {p.connected !== false ? (
-                          <span className="flex items-center gap-0.5 text-[10px] font-bold uppercase text-emerald-300">
+                          <span className="flex items-center gap-1 text-sm font-bold text-emerald-300">
                             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                             Connecté
                           </span>
                         ) : (
-                          <span className="flex items-center gap-0.5 text-[10px] font-bold uppercase text-rose-300">
+                          <span className="flex items-center gap-1 text-sm font-bold text-rose-300">
                             <span className="h-2 w-2 rounded-full bg-rose-400" />
                             Hors ligne
                           </span>
@@ -986,12 +984,12 @@ export function OnlineSetupScreen() {
                       </span>
                     </div>
                     {p.id === serverState.hostId && (
-                      <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-200">
+                      <span className="rounded-full bg-amber-400/20 px-2 py-1 text-xs font-bold uppercase text-amber-200">
                         Hôte
                       </span>
                     )}
                     {p.id === onlineMyPlayerId && (
-                      <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-200">
+                      <span className="rounded-full bg-emerald-400/20 px-2 py-1 text-xs font-bold uppercase text-emerald-200">
                         Toi
                       </span>
                     )}
@@ -1000,7 +998,7 @@ export function OnlineSetupScreen() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 shrink-0 gap-1 px-2 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                        className="h-11 shrink-0 gap-1 px-3 text-sm text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
                         onClick={() => onlineKickPlayer(p.id)}
                         disabled={onlinePending}
                         title={`Retirer ${p.name} du salon`}
@@ -1019,7 +1017,7 @@ export function OnlineSetupScreen() {
                 <p className="text-sm font-bold text-rose-200">
                   😔 Benchou Ferrari a décliné ton défi.
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-2 text-base text-muted-foreground">
                   Tu peux quitter le salon ou réessayer plus tard.
                 </p>
               </div>
@@ -1028,8 +1026,8 @@ export function OnlineSetupScreen() {
             {/* Host / Guest Actions */}
             {amHost ? (
               <div className="space-y-3 pt-2">
-                <Button
-                  onClick={onlineStartGame}
+              <Button
+                onClick={onlineStartGame}
                   disabled={!roomFull}
                   size="lg"
                   className="w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40"

@@ -88,11 +88,11 @@ function CardContent({
           <span className="text-lg">{meta.emoji}</span>
           {meta.short}
         </span>
-        <span className={`text-xs font-semibold ${meta.color}`}>{meta.basePoints}</span>
+        <span className={`text-sm font-semibold ${meta.color}`}>{meta.basePoints}</span>
       </div>
 
       <div className="mt-8 flex flex-col items-center gap-5 text-center">
-        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+        <p className="text-sm uppercase tracking-widest text-muted-foreground">
           {isJoker ? "Carte Joker !" : `Question pour ${currentName}`}
         </p>
 
@@ -110,7 +110,7 @@ function CardContent({
           <div className="w-full">
             <button
               onClick={onToggleReveal}
-              className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-200 transition hover:bg-amber-500/20"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-5 py-3 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
             >
               {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               {revealed ? "Masquer la réponse" : "Révéler la réponse"}
@@ -123,7 +123,7 @@ function CardContent({
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2"
                 >
-                  <p className="text-sm text-amber-100">
+                  <p className="text-base leading-relaxed text-amber-100">
                     <span className="font-semibold">Réponse :</span> {answer}
                   </p>
                 </motion.div>
@@ -133,7 +133,7 @@ function CardContent({
         )}
 
         {/* Instructions per category */}
-        <p className="text-xs italic text-muted-foreground">
+        <p className="text-sm leading-relaxed italic text-muted-foreground">
           {isJoker
             ? "Applique l'effet décrit sur la carte."
             : isSciences

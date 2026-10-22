@@ -29,7 +29,7 @@ export function TournoiScreen() {
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-amber-200"
+          className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-5 py-2 text-sm uppercase tracking-[0.15em] text-amber-200"
         >
           <Sparkles className="h-3 w-3" />
           Bientôt disponible
@@ -58,8 +58,8 @@ export function TournoiScreen() {
             className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4 text-center"
           >
             <Users className="mx-auto mb-2 h-7 w-7 text-amber-300" />
-            <p className="text-xs font-bold text-amber-100">Inscriptions</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="text-base font-bold text-amber-100">Inscriptions</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               4 à 6 joueurs par tournoi
             </p>
           </motion.div>
@@ -70,8 +70,8 @@ export function TournoiScreen() {
             className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4 text-center"
           >
             <Crown className="mx-auto mb-2 h-7 w-7 text-amber-300" />
-            <p className="text-xs font-bold text-amber-100">Élimination</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="text-base font-bold text-amber-100">Élimination</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               Le gagnant avance au tour suivant
             </p>
           </motion.div>
@@ -82,22 +82,22 @@ export function TournoiScreen() {
             className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4 text-center"
           >
             <Clock className="mx-auto mb-2 h-7 w-7 text-amber-300" />
-            <p className="text-xs font-bold text-amber-100">Chronométré</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="text-base font-bold text-amber-100">Chronométré</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               Rapidité et stratégie récompensées
             </p>
           </motion.div>
         </div>
 
-        <p className="mt-8 text-sm italic text-amber-200/60">
+            <p className="mt-8 text-base italic text-amber-200/80">
           Reste connecté — les inscriptions ouvrent bientôt ! 🏆
         </p>
 
-        <Button
+          <Button
           onClick={backHome}
           variant="outline"
           size="lg"
-          className="mt-8 rounded-full border-amber-400/40 bg-amber-500/5 text-amber-200 hover:bg-amber-500/15"
+          className="mt-8 h-12 rounded-full border-amber-400/40 bg-amber-500/5 px-6 text-base text-amber-200 hover:bg-amber-500/15"
         >
           <ArrowLeft className="mr-2 h-5 w-5" />
           Retour à l'accueil
