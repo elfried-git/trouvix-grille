@@ -487,11 +487,11 @@ export function OnlineGameScreen() {
   // === PLAYING ===
   return (
     <>
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col overflow-x-clip px-2 py-1.5 sm:px-6 sm:py-6">
       {/* Top bar */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2 sm:mb-4 sm:gap-3">
         <div className="flex items-center gap-2">
-          <span className="font-display text-2xl font-black">
+          <span className="font-display text-xl font-black sm:text-2xl">
             <span className="text-red-gradient">Trouv</span>
             <span className="text-gold-gradient">ix</span>
           </span>
@@ -503,7 +503,7 @@ export function OnlineGameScreen() {
               size="sm"
               onClick={togglePauseAction}
               disabled={state.resolving}
-              className={`h-12 gap-2 px-4 text-base ${
+              className={`h-9 gap-1.5 px-2.5 text-sm sm:h-12 sm:gap-2 sm:px-4 sm:text-base ${
                 state.isPaused
                   ? "border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/10"
                   : "border-amber-400/40 text-amber-200 hover:bg-amber-500/10"
@@ -518,7 +518,7 @@ export function OnlineGameScreen() {
               variant="outline"
               size="sm"
               onClick={endGameAction}
-              className="h-12 gap-2 border-rose-400/40 px-4 text-base text-rose-200 hover:bg-rose-500/10"
+              className="h-9 gap-1.5 border-rose-400/40 px-2.5 text-sm text-rose-200 hover:bg-rose-500/10 sm:h-12 sm:gap-2 sm:px-4 sm:text-base"
             >
               <Flag className="h-4 w-4" />
               <span className="hidden sm:inline">Terminer</span>
@@ -527,11 +527,11 @@ export function OnlineGameScreen() {
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-2 sm:gap-4">
           {/* Professional score counter & players list — above the grid */}
-          <div className="glass-card rounded-2xl p-3 sm:p-4 space-y-3">
+          <div className="glass-card shrink-0 rounded-2xl p-2 sm:space-y-3 sm:p-4">
             {/* Players list with live scores and active turn highlight */}
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+            <div className={`grid ${players.length <= 2 ? "grid-cols-2" : "grid-cols-4"} gap-1 sm:gap-2`}>
               {players.map((p) => {
                 const isActive = p.id === current?.id;
                 const isMe = p.id === myId;
@@ -548,7 +548,7 @@ export function OnlineGameScreen() {
                           }
                         : undefined
                     }
-                    className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-2 text-center transition-all ${
+                    className={`flex min-w-0 flex-col items-center gap-0.5 rounded-lg border px-1 py-1 text-center transition-all sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 ${
                       isActive
                         ? "border-2 ring-1 ring-white/30 scale-[1.02]"
                         : "bg-card/40 border-border/40 opacity-75"
@@ -557,8 +557,8 @@ export function OnlineGameScreen() {
               <Avatar
                 avatar={p.emoji}
                       color={p.color}
-                        size={48}
-                      emojiSize="text-xl"
+                        size={36}
+                      emojiSize="text-lg"
                       ring={false}
                       className={isActive ? "ring-2" : "ring-2 ring-white/20"}
                       style={
@@ -567,23 +567,23 @@ export function OnlineGameScreen() {
                           : undefined
                       }
                     />
-                    <div className="flex min-w-0 w-full flex-col items-center">
-                      <span className={`w-full truncate text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
+                    <div className="flex min-w-0 w-full flex-wrap items-center justify-center gap-x-1">
+                      <span className={`max-w-full truncate text-xs font-bold leading-tight sm:text-base ${isActive ? "text-white" : "text-foreground"}`}>
                         {p.name}
                       </span>
                       {isMe && (
-                        <span className="mt-0.5 rounded bg-amber-400/20 px-1.5 py-0.5 text-xs font-semibold text-amber-200">
+                        <span className="rounded bg-amber-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-amber-200 sm:px-1.5 sm:text-xs">
                           Toi
                         </span>
                       )}
                       {p.isAI && (
-                        <span className="mt-0.5 rounded bg-violet-400/20 px-1.5 py-0.5 text-xs font-semibold text-violet-200">
+                        <span className="rounded bg-violet-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-violet-200 sm:px-1.5 sm:text-xs">
                           IA
                         </span>
                       )}
                     </div>
-                    <span className={`font-display text-lg font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
-                      {p.score} <span className="text-xs font-normal text-muted-foreground">pts</span>
+                    <span className={`font-display text-sm font-black leading-none sm:text-lg ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                      {p.score} <span className="text-[10px] font-normal text-muted-foreground sm:text-xs">pts</span>
                     </span>
                   </div>
                 );
@@ -591,10 +591,10 @@ export function OnlineGameScreen() {
             </div>
 
             {/* Seconds countdown & progress bar */}
-            <div className="space-y-1.5 pt-1 border-t border-border/30">
+            <div className="mt-1 space-y-1 border-t border-border/30 pt-1 sm:mt-0 sm:space-y-1.5 sm:pt-1">
               <div className="flex items-center justify-end">
                 <div
-                  className="flex items-center gap-1 font-display text-lg font-black tabular-nums"
+                  className="flex items-center gap-1 font-display text-sm font-black tabular-nums sm:text-lg"
                   style={{ color: state.isPaused ? "#34d399" : turnColor }}
                 >
                   {state.isPaused ? (
@@ -611,7 +611,7 @@ export function OnlineGameScreen() {
               </div>
 
               {/* Countdown progress bar — solid, vivid player color (no gradient) */}
-              <div className="h-4 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10 sm:h-4">
                 <motion.div
                   className="h-full rounded-full transition-all"
                   style={{
@@ -626,9 +626,9 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Board */}
-          <div className="mx-auto w-full max-w-[min(560px,calc(100vw-1.5rem))]">
-            <div ref={boardRef} className="relative rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1.5 shadow-2xl sm:p-2">
-              <div className="relative z-20 grid gap-1 rounded-xl bg-[oklch(0.18_0.02_22)] sm:gap-1.5" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
+          <div className="mx-auto w-full min-w-0 max-w-[min(640px,calc(100vw-1rem))] shrink-0">
+            <div ref={boardRef} className="relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2">
+              <div className="relative z-20 grid gap-[2px] rounded-xl bg-[oklch(0.18_0.02_22)] p-px sm:gap-1.5 sm:p-1" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {
                     const cellVal = state.grid[row][col] ?? (
@@ -759,12 +759,12 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Reaction bar */}
-          <div className="flex w-full flex-nowrap items-center justify-between gap-0 px-1 py-1 sm:justify-center sm:gap-3 sm:px-3 sm:py-2">
+          <div className="grid w-full min-w-0 shrink-0 grid-cols-10 items-center gap-0 px-0 py-0.5 sm:flex sm:justify-center sm:gap-3 sm:px-3 sm:py-2">
             {REACTION_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
                 onClick={() => sendReactionAction(emoji)}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl leading-none transition-transform hover:scale-125 active:scale-95"
+                className="flex h-8 w-full min-w-0 items-center justify-center rounded-full text-lg leading-none transition-transform hover:scale-110 active:scale-95 sm:h-11 sm:w-11 sm:text-2xl"
                 title={`Réagir avec ${emoji}`}
               >
                 {emoji}
@@ -773,12 +773,12 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Quit button */}
-          <div className="flex justify-center pt-1">
+          <div className="flex shrink-0 justify-center pt-0 sm:pt-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleQuit}
-              className="h-12 px-4 text-base text-muted-foreground hover:text-foreground"
+              className="h-9 px-3 text-sm text-muted-foreground hover:text-foreground sm:h-12 sm:px-4 sm:text-base"
             >
               <Home className="mr-1.5 h-4 w-4" /> Quitter la partie
             </Button>
