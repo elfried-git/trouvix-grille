@@ -7,7 +7,7 @@ import { useGameStore } from "@/store/game-store";
 import { Timer, Square, Users, Grid3x3, Trophy, Dices, Pause, Globe, Star, Bell } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
-import { enableNotifications } from "@/lib/admin-notifications";
+import { enableNotifications, prepareNotificationAudio } from "@/lib/admin-notifications";
 import { toast } from "sonner";
 
 const FEATURES = [
@@ -119,7 +119,10 @@ export function HomeScreen() {
             Jouer en local
           </Button>
           <Button
-            onClick={goToOnlineSetup}
+            onClick={() => {
+              prepareNotificationAudio();
+              goToOnlineSetup();
+            }}
             size="lg"
             variant="outline"
             className="h-14 w-full rounded-full border-amber-400/50 bg-amber-500/10 px-8 text-base font-semibold text-amber-200 transition hover:bg-amber-500/20 sm:w-auto"
