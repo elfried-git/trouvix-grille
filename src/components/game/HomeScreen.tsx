@@ -64,10 +64,16 @@ export function HomeScreen() {
           />
         </motion.div>
 
-        <h1 className="trouvix-wordmark text-6xl sm:text-7xl md:text-8xl" aria-label="Trouvix">
+        <motion.h1
+          initial={{ opacity: 0, scale: 0.28, rotate: 3 }}
+          animate={{ opacity: 1, scale: [0.28, 1.18, 1], rotate: -1 }}
+          transition={{ duration: 1.15, delay: 0.12, times: [0, 0.72, 1], ease: [0.16, 1, 0.3, 1] }}
+          className="trouvix-wordmark text-6xl sm:text-7xl md:text-8xl"
+          aria-label="Trouvix"
+        >
           <span className="trouvix-wordmark-red">Trouv</span>
           <span className="trouvix-wordmark-gold">ix</span>
-        </h1>
+        </motion.h1>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}

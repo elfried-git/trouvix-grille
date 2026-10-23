@@ -90,7 +90,11 @@ export function ReviewForm({ open, onOpenChange, onSubmitted }: ReviewFormProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="glass-card max-w-md rounded-2xl border-amber-400/30 p-6">
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="bg-black/65 backdrop-blur-md sm:backdrop-blur-lg"
+        className="glass-card max-w-md rounded-2xl border-amber-400/30 p-6"
+      >
         {success ? (
           <div className="flex flex-col items-center gap-4 py-6 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 ring-2 ring-emerald-400/40">

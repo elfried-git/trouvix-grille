@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import type { Player } from "@/lib/types";
 import { vividColor } from "@/lib/color";
@@ -63,13 +62,10 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
                   aria-label={filled ? `Case occupée, ligne ${row + 1} colonne ${col + 1}` : `Placer un pion ligne ${row + 1} colonne ${col + 1}`}
                 >
                   {filled ? (
-                    <motion.div
-                      initial={{ scale: 0.3, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 360, damping: 18 }}
-                      className={`absolute inset-[1px] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] transition-transform ${
+                    <div
+                      className={`absolute inset-[1px] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] ${
                         isFresh
-                          ? "z-20 scale-105 ring-4 ring-white ring-offset-2 ring-offset-[#17100f] shadow-[0_0_14px_rgba(34,211,238,1)] pulse-glow"
+                          ? "z-20 ring-4 ring-white ring-offset-2 ring-offset-[#17100f] shadow-[0_0_14px_rgba(34,211,238,1)]"
                           : isSquareCell
                             ? "z-10 ring-[3px] ring-cyan-100 ring-offset-2 ring-offset-[#17100f] shadow-[0_0_10px_rgba(34,211,238,0.95)]"
                             : "ring-2 ring-white/50"
@@ -79,7 +75,7 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
                       }}
                     >
                       <span aria-hidden="true" className="pointer-events-none absolute left-[18%] top-[12%] h-[22%] w-[38%] -rotate-45 rounded-full bg-white/50 blur-[1px]" />
-                    </motion.div>
+                    </div>
                   ) : (
                     // Ghost preview of the current player's pawn
                     interactive && (
