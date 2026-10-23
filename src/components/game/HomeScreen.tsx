@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, Dices, Pause, Globe, Star, Bell } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, Dices, MousePointerClick, Globe, Star, Bell, Pause } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { enableNotifications, prepareNotificationAudio } from "@/lib/admin-notifications";
@@ -14,7 +14,7 @@ const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
   { icon: Grid3x3, label: "Placement libre", desc: "Pose où tu veux", color: "text-amber-300" },
   { icon: Timer, label: "10 s / coup", desc: "Joue vite ou perds la main", color: "text-emerald-300" },
-  { icon: Pause, label: "Pause à tout moment", desc: "Chrono gelé", color: "text-fuchsia-300" },
+  { icon: MousePointerClick, label: "Gérer la partie", desc: "Ton profil : pause · autre profil : terminer", color: "text-fuchsia-300" },
   { icon: Users, label: "2 à 6 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
   { icon: Trophy, label: "Champion Ultime", desc: "Meilleur score gagne", color: "text-sky-300" },
 ];
@@ -149,11 +149,18 @@ export function HomeScreen() {
           ))}
         </div>
 
-        {/* Stats */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2 text-base"><Grid3x3 className="h-5 w-5 text-rose-300" /> Grille 10×10</span>
-          <span className="flex items-center gap-2 text-base"><Timer className="h-5 w-5 text-amber-300" /> 10s par coup</span>
-          <span className="flex items-center gap-2 text-base"><Users className="h-5 w-5 text-amber-300" /> 2 à 6 joueurs</span>
+        {/* Info complémentaire au même format, sans répéter les règles des cartes */}
+        <div className="mt-10 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.88 }}
+            className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
+          >
+            <Grid3x3 className="h-10 w-10 text-rose-300" />
+            <p className="font-display text-base font-semibold">Grille 10×10</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">100 cases pour jouer</p>
+          </motion.div>
         </div>
 
         {/* Rubrique avis / suggestions */}

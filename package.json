@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 9999",
-    "dev:game": "npx tsx mini-services/game-service/index.ts",
+    "dev:game": "npx tsx watch mini-services/game-service/index.ts",
     "dev:game:cloudflare": "npx wrangler dev",
     "deploy:game:cloudflare": "npx wrangler deploy",
     "build": "next build",

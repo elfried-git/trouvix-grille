@@ -8,7 +8,7 @@ import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
 import { Button } from "@/components/ui/button";
-import { Flag, Home, Timer, ScrollText, Pause, Play } from "lucide-react";
+import { Home, Timer, ScrollText, Pause } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -97,21 +97,6 @@ export function GameScreen() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Pause / Resume button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={togglePause}
-            disabled={resolving}
-            className={`h-12 gap-2 px-4 text-base ${
-              isPaused
-                ? "border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/10"
-                : "border-amber-400/40 text-amber-200 hover:bg-amber-500/10"
-            }`}
-          >
-            {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-            <span>{isPaused ? "Reprendre" : "Pause"}</span>
-          </Button>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-12 gap-2 px-4 text-base">
@@ -128,15 +113,6 @@ export function GameScreen() {
               <RulesContent totalRounds={totalRounds} />
             </DialogContent>
           </Dialog>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={endGameNow}
-            className="h-12 gap-2 border-rose-400/40 px-4 text-base text-rose-200 hover:bg-rose-500/10"
-          >
-            <Flag className="h-4 w-4" />
-            <span>Terminer</span>
-          </Button>
         </div>
       </div>
 
@@ -149,7 +125,15 @@ export function GameScreen() {
             {players.map((p) => {
               const isActive = p.id === current?.id;
               return (
-                <div
+                <button
+                  type="button"
+                  disabled={resolving && p.id === current?.id}
+                  onClick={() => {
+                    if (p.id === current?.id) togglePause();
+                    else endGameNow();
+                  }}
+                  aria-label={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
+                  title={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
                   key={p.id}
                   style={
                     isActive
@@ -160,7 +144,7 @@ export function GameScreen() {
                         }
                       : undefined
                   }
-                  className={`flex min-w-0 flex-col items-center gap-2 rounded-xl border px-3 py-3 text-center transition-all ${
+                  className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-2 rounded-xl border px-3 py-3 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait ${
                     isActive
                       ? "border-2 ring-1 ring-white/30 scale-[1.02]"
                       : "bg-card/40 border-border/40 opacity-75"
@@ -192,7 +176,7 @@ export function GameScreen() {
                   <span className={`font-display text-xl font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                     {p.score} <span className="text-sm font-normal text-muted-foreground">pts</span>
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -287,8 +271,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
           </li>
           <li>Si le chrono expire, tu perds la main et le tour passe au joueur suivant.</li>
           <li>
-            Bouton <span className="font-semibold text-amber-200">⏸️ Pause</span> : mets la partie en
-            pause à tout moment (le chrono est gelé).
+            Appuie sur le profil du joueur actif pour mettre la partie en pause ou la reprendre.
           </li>
         </ul>
       </section>

@@ -1251,18 +1251,14 @@ io.on('connection', (socket) => {
     broadcastState(room); broadcastAdminRoomList()
   })
 
-  // ---- toggle-pause (host only) ----
-  socket.on('toggle-pause', () => {
+  // ---- toggle-pause (any player in the room) ----
+  socket.on('toggle-pause', (_payload: unknown, ack?: (res: any) => void) => {
     const binding = socketBindings.get(socket.id)
-    if (!binding) return
+    if (!binding) { if (ack) ack({ error: 'Tu ne fais pas partie de ce salon.' }); return }
     const room = findRoom(binding.roomCode)
-    if (!room) return
-    if (room.hostId !== binding.playerId) {
-      socket.emit('error', { message: "Seul l'hôte peut mettre en pause" })
-      return
-    }
+    if (!room) { if (ack) ack({ error: 'Salon introuvable.' }); return }
     const s = room.state
-    if (s.phase !== 'playing' || s.resolving) return
+    if (s.phase !== 'playing' || s.resolving) { if (ack) ack({ error: 'La partie ne peut pas être mise en pause maintenant.' }); return }
     const next = !s.isPaused
     if (next && s.turnDeadlineAt !== null) {
       s.turnTimeLeft = Math.max(0, (s.turnDeadlineAt - Date.now()) / 1000)
@@ -1275,18 +1271,15 @@ io.on('connection', (socket) => {
       ? '⏸️ Partie en pause.'
       : `${s.players[s.currentPlayerIndex]?.name ?? ''} reprend. ⏱️`
     broadcastState(room); broadcastAdminRoomList()
+    if (ack) ack({ ok: true, isPaused: next })
   })
 
-  // ---- end-game (host only) ----
-  socket.on('end-game', () => {
+  // ---- end-game (any player in the room) ----
+  socket.on('end-game', (_payload: unknown, ack?: (res: any) => void) => {
     const binding = socketBindings.get(socket.id)
-    if (!binding) return
+    if (!binding) { if (ack) ack({ error: 'Tu ne fais pas partie de ce salon.' }); return }
     const room = findRoom(binding.roomCode)
-    if (!room) return
-    if (room.hostId !== binding.playerId) {
-      socket.emit('error', { message: "Seul l'hôte peut terminer la partie" })
-      return
-    }
+    if (!room) { if (ack) ack({ error: 'Salon introuvable.' }); return }
     const s = room.state
     s.phase = 'gameover'
     s.turnDeadlineAt = null
@@ -1296,8 +1289,9 @@ io.on('connection', (socket) => {
     s.resolving = false
     s.isPaused = false
     s.statusMessage = 'Partie terminée !'
-    console.log(`[room ${room.roomCode}] game ended by host, winner=${s.winnerId}`)
+    console.log(`[room ${room.roomCode}] game ended by player ${binding.playerId}, winner=${s.winnerId}`)
     broadcastState(room); broadcastAdminRoomList()
+    if (ack) ack({ ok: true })
   })
 
   // ---- restart (host only) ----

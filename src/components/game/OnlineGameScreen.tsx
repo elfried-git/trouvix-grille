@@ -9,7 +9,7 @@ import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
-import { Flag, Home, Timer, Pause, Play, Crown, WifiOff, Swords, RotateCcw, Plus } from "lucide-react";
+import { Home, Timer, Pause, Crown, WifiOff, Swords, RotateCcw, Plus } from "lucide-react";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -498,35 +498,6 @@ export function OnlineGameScreen() {
             <span className="trouvix-wordmark-gold">ix</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {amHost && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={togglePauseAction}
-              disabled={state.resolving}
-              className={`h-9 gap-1.5 px-2.5 text-sm sm:h-12 sm:gap-2 sm:px-4 sm:text-base ${
-                state.isPaused
-                  ? "border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/10"
-                  : "border-amber-400/40 text-amber-200 hover:bg-amber-500/10"
-              }`}
-            >
-              {state.isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-              <span className="hidden sm:inline">{state.isPaused ? "Reprendre" : "Pause"}</span>
-            </Button>
-          )}
-          {amHost && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={endGameAction}
-              className="h-9 gap-1.5 border-rose-400/40 px-2.5 text-sm text-rose-200 hover:bg-rose-500/10 sm:h-12 sm:gap-2 sm:px-4 sm:text-base"
-            >
-              <Flag className="h-4 w-4" />
-              <span className="hidden sm:inline">Terminer</span>
-            </Button>
-          )}
-        </div>
       </div>
 
       <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-2 sm:gap-4">
@@ -539,7 +510,15 @@ export function OnlineGameScreen() {
                 const isMe = p.id === myId;
                 const isDisconnected = p.connected === false;
                 return (
-                  <div
+                  <button
+                    type="button"
+                    disabled={(state.resolving && isMe) || !myId}
+                    onClick={() => {
+                      if (isMe) togglePauseAction();
+                      else endGameAction();
+                    }}
+                    aria-label={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
+                    title={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
                     key={p.id}
                     style={
                       isActive
@@ -550,7 +529,7 @@ export function OnlineGameScreen() {
                           }
                         : undefined
                     }
-                    className={`flex min-w-0 flex-col items-center gap-0.5 rounded-lg border px-1 py-1 text-center transition-all sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 ${
+                    className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-0.5 rounded-lg border px-1 py-1 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 ${
                       isActive
                         ? "border-2 ring-1 ring-white/30 scale-[1.02]"
                         : "bg-card/40 border-border/40 opacity-75"
@@ -587,7 +566,7 @@ export function OnlineGameScreen() {
                     <span className={`font-display text-sm font-black leading-none sm:text-lg ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                       {p.score} <span className="text-[10px] font-normal text-muted-foreground sm:text-xs">pts</span>
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>

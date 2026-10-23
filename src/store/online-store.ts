@@ -553,16 +553,16 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   togglePause: () => {
     const socket = getSocket();
-    if (socket.connected) {
-      socket.emit("toggle-pause");
-    }
+    socket.emit("toggle-pause", {}, (res: { error?: string }) => {
+      if (res?.error) set({ errorMessage: res.error });
+    });
   },
 
   endGame: () => {
     const socket = getSocket();
-    if (socket.connected) {
-      socket.emit("end-game");
-    }
+    socket.emit("end-game", {}, (res: { error?: string }) => {
+      if (res?.error) set({ errorMessage: res.error });
+    });
   },
 
   restart: () => {
