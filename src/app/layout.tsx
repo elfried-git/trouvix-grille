@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -54,6 +54,12 @@ export const metadata: Metadata = {
       "Place tes pions librement, forme un carré 2×2, 10s par coup, pause à tout moment, 2 à 6 joueurs.",
     images: ["/trouvix-logo.svg"],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

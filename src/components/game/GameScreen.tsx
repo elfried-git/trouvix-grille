@@ -87,7 +87,7 @@ export function GameScreen() {
   const turnColor = vividColor(current?.color ?? "#f59e0b");
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:py-6">
       {/* Top bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

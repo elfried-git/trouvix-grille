@@ -489,7 +489,7 @@ export function OnlineGameScreen() {
   // === PLAYING ===
   return (
     <>
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col overflow-x-clip px-2 py-1.5 sm:px-6 sm:py-6">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col overflow-x-clip px-2 pb-1.5 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-6">
       {/* Top bar */}
       <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2 sm:mb-4 sm:gap-3">
         <div className="flex items-center gap-2">
