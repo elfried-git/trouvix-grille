@@ -15,6 +15,7 @@ const BOARD_FULL_RESOLVE_MS = 1200
 const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000 // 10 minutes
 const MAX_PLAYERS = 8 // hard server ceiling
 const DEFAULT_MAX_PLAYERS = 2 // default room size when the host doesn't specify a capacity
+const DEFAULT_BENCHOU_AVATAR = '/benchou-ferrari-small.jpg'
 const ROOM_PLAYER_COLORS = [
   '#9f1239', '#b8860b', '#0f766e', '#a16207', '#6d28d9', '#0e7490', '#be185d', '#166534',
   '#1e3a8a', '#7c2d12', '#4a044e', '#0c4a6e', '#854d0e', '#155e75', '#9d174d', '#365314',
@@ -124,23 +125,44 @@ interface Challenge {
 }
 const challenges = new Map<string, Challenge>()
 let benchouSocketId: string | null = null // socket.id of the connected Benchou Ferrari
+let benchouAvatar = DEFAULT_BENCHOU_AVATAR
 
 export function serializeGameState(): string {
-  return JSON.stringify({ rooms: [...rooms.values()], challenges: [...challenges.values()] })
+  // Keep the uploaded admin portrait out of the room snapshot. The Durable
+  // Object has a per-value limit, and a base64 image can push game-state over it.
+  const savedRooms = [...rooms.values()].map((room) => ({
+    ...room,
+    state: {
+      ...room.state,
+      players: room.state.players.map((player) => player.name === 'Benchou Ferrari' ? { ...player, emoji: DEFAULT_BENCHOU_AVATAR } : player),
+      initialPlayers: room.state.initialPlayers.map((player) => player.name === 'Benchou Ferrari' ? { ...player, emoji: DEFAULT_BENCHOU_AVATAR } : player),
+    },
+  }))
+  return JSON.stringify({ rooms: savedRooms, challenges: [...challenges.values()] })
 }
 
-export function restoreGameState(snapshot?: string): void {
+export function getBenchouAvatar(): string {
+  return benchouAvatar
+}
+
+export function restoreGameState(snapshot?: string, storedAvatar?: string): void {
   rooms.clear()
   socketBindings.clear()
   challenges.clear()
   benchouSocketId = null
+  benchouAvatar = DEFAULT_BENCHOU_AVATAR
   if (!snapshot) return
 
   try {
-    const saved = JSON.parse(snapshot) as { rooms?: Room[]; challenges?: Challenge[] }
+    const saved = JSON.parse(snapshot) as { rooms?: Room[]; challenges?: Challenge[]; benchouAvatar?: string }
+    if (isValidBenchouAvatar(storedAvatar)) benchouAvatar = storedAvatar
+    else if (isValidBenchouAvatar(saved.benchouAvatar)) benchouAvatar = saved.benchouAvatar
     const now = Date.now()
     for (const room of saved.rooms ?? []) {
       room.state.players = room.state.players.map((player) => ({ ...player, connected: false }))
+      for (const player of [...room.state.players, ...room.state.initialPlayers]) {
+        if (player.name === 'Benchou Ferrari') player.emoji = benchouAvatar
+      }
       if (room.state.phase === 'playing' && !room.state.isPaused && room.state.turnDeadlineAt == null) {
         room.state.turnDeadlineAt = now + Math.max(0, room.state.turnTimeLeft) * 1000
       }
@@ -477,6 +499,12 @@ function broadcastAdminRoomList(): void {
   }
 }
 
+function isValidBenchouAvatar(avatar: unknown): avatar is string {
+  return avatar === DEFAULT_BENCHOU_AVATAR || (
+    typeof avatar === 'string' && avatar.length <= 120_000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(avatar)
+  )
+}
+
 // ====== Public room list helpers ======
 // Lightweight projection shown to EVERYONE on the online menu: the room code,
 // the host's identity (name/emoji/color), the number of waiting players, the
@@ -538,6 +566,7 @@ io.on('connection', (socket) => {
     benchouSocketId = socket.id
     ;(socket as any).__isBenchou = true
   }
+  socket.emit('benchou-avatar-update', { avatar: benchouAvatar })
 
   // ---- create-room ----
   socket.on(
@@ -594,7 +623,7 @@ io.on('connection', (socket) => {
     console.log(`[benchou] Benchou Ferrari authenticated & online (socket ${socket.id})`)
     // Send all pending challenges
     const pending = Array.from(challenges.values()).filter((c) => c.status === 'pending')
-    if (ack) ack({ ok: true, pendingChallenges: pending })
+    if (ack) ack({ ok: true, pendingChallenges: pending, avatar: benchouAvatar })
     pending.forEach((c) => {
       socket.emit('benchou-challenge', { challenge: c })
     })
@@ -760,7 +789,7 @@ io.on('connection', (socket) => {
       id: makeId(),
       name: 'Benchou Ferrari',
       color: benchouColor,
-      emoji: '/benchou-ferrari-small.jpg',
+      emoji: benchouAvatar,
       score: 0,
       alignments: 0,
       isAI: false,
@@ -894,7 +923,7 @@ io.on('connection', (socket) => {
           id: makeId(),
           name: 'Benchou Ferrari',
           color: benchouColor,
-          emoji: '/benchou-ferrari-small.jpg',
+          emoji: benchouAvatar,
           score: 0,
           alignments: 0,
           isAI: false, // Benchou is a REAL person, not an AI!

@@ -144,6 +144,49 @@
   color: transparent;
 }
 
+.trouvix-wordmark {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 900;
+  letter-spacing: -0.075em;
+  line-height: 0.98;
+  transform: rotate(-1deg);
+  filter: drop-shadow(0 3px 0 rgb(29 9 12 / 70%)) drop-shadow(0 0 16px rgb(231 93 42 / 24%));
+}
+.trouvix-wordmark::after {
+  content: "✦";
+  position: absolute;
+  top: -0.22em;
+  right: -0.48em;
+  color: #ffe48a;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 0.24em;
+  line-height: 1;
+  text-shadow: 0 0 10px rgb(255 205 78 / 85%);
+  animation: trouvix-sparkle 1.8s ease-in-out infinite;
+}
+.trouvix-wordmark-red,
+.trouvix-wordmark-gold {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.trouvix-wordmark-red {
+  background-image: linear-gradient(145deg, #ff786e 0%, #f02f49 52%, #b91340 100%);
+}
+.trouvix-wordmark-gold {
+  background-image: linear-gradient(145deg, #fff0a3 0%, #ffc13b 48%, #e28020 100%);
+}
+@keyframes trouvix-sparkle {
+  0%, 100% { opacity: 0.55; transform: scale(0.78) rotate(-12deg); }
+  50% { opacity: 1; transform: scale(1.14) rotate(12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trouvix-wordmark::after { animation: none; }
+}
+
 /* Glassy card */
 .glass-card {
   background: linear-gradient(180deg, oklch(0.24 0.02 22 / 0.85), oklch(0.18 0.015 22 / 0.85));
@@ -178,11 +221,36 @@
 }
 
 @keyframes ai-selection-border-blink {
-  0%, 100% { opacity: 1; box-shadow: inset 0 0 10px rgb(255 210 90 / 35%), 0 0 16px rgb(255 190 40 / 90%); }
-  50% { opacity: 0.15; box-shadow: inset 0 0 2px rgb(255 210 90 / 10%), 0 0 3px rgb(255 190 40 / 20%); }
+  0%, 100% { opacity: 0.72; box-shadow: inset 0 0 12px rgb(255 235 170 / 12%), 0 0 9px rgb(255 190 40 / 35%); }
+  50% { opacity: 1; box-shadow: inset 0 0 18px rgb(255 235 170 / 24%), 0 0 22px rgb(255 190 40 / 72%); }
 }
 .ai-selection-border-blink {
-  animation: ai-selection-border-blink 0.75s steps(1, end) infinite;
+  animation: ai-selection-border-blink 2s ease-in-out infinite;
+}
+
+@keyframes review-button-blink {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(251 191 36 / 22%), 0 5px 18px rgb(251 146 60 / 30%);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(251 191 36 / 18%), 0 0 28px rgb(251 146 60 / 65%);
+    filter: brightness(1.12);
+  }
+}
+.review-button-blink {
+  animation: review-button-blink 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-button-blink { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-selection-border-blink {
+    animation: none;
+    opacity: 0.9;
+    box-shadow: inset 0 0 12px rgb(255 235 170 / 18%), 0 0 12px rgb(255 190 40 / 45%);
+  }
 }
 
 @keyframes shimmer {

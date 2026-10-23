@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import type { Player } from "@/lib/types";
 import type { GridCell } from "@/store/game-store";
-import { Crown, Timer } from "lucide-react";
+import { Crown, Timer, Trophy } from "lucide-react";
 import { Avatar } from "./Avatar";
 
 interface PlayerPanelProps {
@@ -31,8 +31,8 @@ export function PlayerPanel({
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="font-display text-base font-semibold uppercase tracking-widest text-amber-200/70">
-        Joueurs
+      <h3 className="flex items-center gap-2 font-display text-base font-bold uppercase tracking-[0.16em] text-amber-100">
+        <Trophy className="h-4 w-4 text-amber-300" /> Joueurs
       </h3>
       <div className="flex max-h-[440px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
         {players.map((p) => {
@@ -40,39 +40,43 @@ export function PlayerPanel({
           const isLeader = leader && p.id === leader.id && p.score > 0;
           const delta =
             lastDelta && lastDelta.playerId === p.id ? lastDelta.delta : null;
+          const accent = p.color || "#a78bfa";
           return (
             <motion.div
               key={p.id}
               layout
-              className={`relative overflow-hidden rounded-xl border p-4 transition-all sm:p-3 ${
-                isCurrent
-                  ? "border-amber-400/60 bg-amber-500/10 shadow-[0_0_20px_-5px_oklch(0.80_0.14_84/0.4)]"
-                  : "border-border/60 bg-card/40"
+              style={{
+                background: `linear-gradient(#1b111c, #1b111c) padding-box, linear-gradient(115deg, ${accent}, ${accent}33 62%, #ffffff18) border-box`,
+                boxShadow: isCurrent ? `0 0 24px ${accent}55, inset 0 0 24px ${accent}16` : `0 5px 18px #00000035`,
+              }}
+              className={`relative overflow-hidden rounded-2xl border border-transparent p-4 transition-all sm:p-3 ${
+                isCurrent ? "scale-[1.015]" : "hover:-translate-y-0.5 hover:shadow-xl"
               }`}
             >
-              {isCurrent && (
-                <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-amber-300 to-rose-500" />
-              )}
+              <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full blur-2xl opacity-25" style={{ backgroundColor: accent }} />
+              <div aria-hidden="true" className="absolute bottom-0 left-4 right-4 h-px opacity-50" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
               <div className="flex items-center gap-3">
-                <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                <div className="relative rounded-full p-[2px] shadow-lg" style={{ background: `linear-gradient(135deg, #ffffff, ${accent}, #24142b)` }}>
+                  <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" ring={false} />
+                  {isLeader && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-300 text-[11px] text-amber-950 shadow"><Crown className="h-3 w-3" /></span>}
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <p className="truncate font-display text-base font-semibold text-foreground">
+                    <p className="truncate font-display text-base font-bold text-white">
                       {p.name}
                     </p>
-                    {isLeader && <Crown className="h-3.5 w-3.5 text-amber-300" />}
                     {p.isAI && (
-                      <span className="rounded-full bg-violet-400/20 px-1.5 py-0.5 text-xs font-bold uppercase text-violet-200">
+                      <span className="rounded-full px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white" style={{ backgroundColor: `${accent}55` }}>
                         IA
                       </span>
                     )}
                     {isCurrent && (
-                      <span className="flex items-center gap-1 rounded-full bg-amber-400/20 px-1.5 py-0.5 text-xs font-bold uppercase text-amber-200">
+                      <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white" style={{ backgroundColor: accent }}>
                         <Timer className="h-2.5 w-2.5" /> À toi
                       </span>
                     )}
                   </div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="mt-0.5 text-sm leading-relaxed text-white/60">
                     {p.alignments} carré{p.alignments > 1 ? "s" : ""} · {pionCount(p.id)} pion{pionCount(p.id) > 1 ? "s" : ""}
                   </p>
                 </div>
@@ -89,7 +93,7 @@ export function PlayerPanel({
                             : "#f5f0e8",
                     }}
                     animate={{ scale: 1, color: "#f5f0e8" }}
-                    className="font-display text-3xl font-bold sm:text-2xl"
+                    className="font-display text-3xl font-black text-white sm:text-2xl"
                   >
                     {p.score}
                   </motion.p>

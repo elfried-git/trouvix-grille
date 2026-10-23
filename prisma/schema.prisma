@@ -29,16 +29,3 @@ model GameResult {
   durationMin Int
   createdAt DateTime @default(now())
 }
-
-model Review {
-  id         String   @id @default(cuid())
-  authorName String
-  rating     Int
-  comment    String
-  visible    Boolean  @default(true)
-  adminLiked Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  @@index([createdAt])
-  @@index([adminLiked])
-}

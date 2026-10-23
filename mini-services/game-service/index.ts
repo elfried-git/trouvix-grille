@@ -16,6 +16,7 @@ const TICK_DT = TICK_MS / 1000 // 0.5 seconds
 const EMPTY_ROOM_TTL_MS = 10 * 60 * 1000 // 10 minutes
 const MAX_PLAYERS = 8 // hard server ceiling
 const DEFAULT_MAX_PLAYERS = 2 // default room size when the host doesn't specify a capacity
+const DEFAULT_BENCHOU_AVATAR = '/benchou-ferrari-small.jpg'
 const ROOM_PLAYER_COLORS = [
   '#9f1239', '#b8860b', '#0f766e', '#a16207', '#6d28d9', '#0e7490', '#be185d', '#166534',
   '#1e3a8a', '#7c2d12', '#4a044e', '#0c4a6e', '#854d0e', '#155e75', '#9d174d', '#365314',
@@ -110,6 +111,7 @@ interface Challenge {
 }
 const challenges = new Map<string, Challenge>()
 let benchouSocketId: string | null = null // socket.id of the connected Benchou Ferrari
+let benchouAvatar = DEFAULT_BENCHOU_AVATAR
 
 // ====== Helpers ======
 function makeId(): string {
@@ -497,6 +499,7 @@ function broadcastPublicRoomList(): void {
 // ====== Connection handling ======
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`)
+  socket.emit('benchou-avatar-update', { avatar: benchouAvatar })
 
   // ---- create-room ----
   socket.on(
@@ -552,7 +555,7 @@ io.on('connection', (socket) => {
     console.log(`[benchou] Benchou Ferrari authenticated & online (socket ${socket.id})`)
     // Send all pending challenges
     const pending = Array.from(challenges.values()).filter((c) => c.status === 'pending')
-    if (ack) ack({ ok: true, pendingChallenges: pending })
+    if (ack) ack({ ok: true, pendingChallenges: pending, avatar: benchouAvatar })
     pending.forEach((c) => {
       socket.emit('benchou-challenge', { challenge: c })
     })
@@ -714,7 +717,7 @@ io.on('connection', (socket) => {
       id: makeId(),
       name: 'Benchou Ferrari',
       color: benchouColor,
-      emoji: '/benchou-ferrari-small.jpg',
+      emoji: benchouAvatar,
       score: 0,
       alignments: 0,
       isAI: false,
@@ -848,7 +851,7 @@ io.on('connection', (socket) => {
           id: makeId(),
           name: 'Benchou Ferrari',
           color: benchouColor,
-          emoji: '/benchou-ferrari-small.jpg',
+          emoji: benchouAvatar,
           score: 0,
           alignments: 0,
           isAI: false, // Benchou is a REAL person, not an AI!

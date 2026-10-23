@@ -1,6 +1,15 @@
 export type Phase = "home" | "setup" | "playing" | "gameover" | "online-setup" | "online-playing" | "reviews";
 
-export type AIProfile = "gpt" | "gemini" | "claude" | "grok" | "copilot" | "kimi";
+export type AIProfile = "gpt" | "gemini" | "claude" | "grok" | "copilot" | "kimi" | "siri";
+export const AI_PROFILE_AVATARS: Record<AIProfile, string> = {
+  gpt: "/images/ai-profiles/gpt.png",
+  gemini: "/images/ai-profiles/gemini.png",
+  claude: "/images/ai-profiles/claude.png",
+  grok: "/images/ai-profiles/grok.png",
+  copilot: "/images/ai-profiles/copilot.png",
+  kimi: "/images/ai-profiles/siri.png", // Keep older saved games compatible.
+  siri: "/images/ai-profiles/siri.png",
+};
 
 export interface Player {
   id: string;

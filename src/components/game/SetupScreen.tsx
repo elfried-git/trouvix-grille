@@ -7,28 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
+import { ColorSwatch } from "./ColorSwatch";
 import { isPhotoAvatar } from "@/lib/types";
-import type { AIProfile } from "@/lib/types";
-import { ArrowLeft, ArrowRight, Swords, Users, Minus, Plus, Target, Check, Camera, X, Bot } from "lucide-react";
+import { AI_PROFILE_AVATARS, type AIProfile } from "@/lib/types";
+import { ArrowLeft, ArrowRight, Swords, Users, Minus, Plus, Target, Camera, X, Bot } from "lucide-react";
 
-// Elegant color palette — 16 distinct deep tones (so up to 6 players always have a unique choice)
+// Six couleurs très distinctes pour les six joueurs maximum.
 const COLOR_PALETTE = [
-  "#ff1744", // rouge vif
-  "#ffc400", // jaune solaire
-  "#00c9a7", // turquoise
-  "#ff7a00", // orange pop
-  "#8b5cf6", // violet
-  "#00b8f0", // cyan
-  "#f72585", // rose
-  "#22c55e", // vert
-  "#4361ee", // bleu
-  "#f43f5e", // corail
-  "#c026d3", // magenta
-  "#0891b2", // bleu lagon
-  "#a3e635", // citron vert
-  "#14b8a6", // jade
-  "#fb7185", // rose clair
-  "#84cc16", // lime
+  "#ff1744", // rouge
+  "#ffd600", // jaune
+  "#00c853", // vert
+  "#2979ff", // bleu
+  "#ff6d00", // orange
+  "#d500f9", // violet
 ];
 
 const AI_OPTIONS: { id: AIProfile; name: string; style: string; color: string; selectedColor: string; border: string }[] = [
@@ -37,7 +28,7 @@ const AI_OPTIONS: { id: AIProfile; name: string; style: string; color: string; s
   { id: "claude", name: "CLAUDE", style: "Prudent", color: "bg-emerald-950/80", selectedColor: "bg-emerald-800/90", border: "border-emerald-400/40" },
   { id: "grok", name: "GROK", style: "Offensif", color: "bg-red-950/80", selectedColor: "bg-red-800/90", border: "border-red-400/40" },
   { id: "copilot", name: "COPILOT", style: "Méthodique", color: "bg-amber-950/80", selectedColor: "bg-amber-800/90", border: "border-amber-400/40" },
-  { id: "kimi", name: "KIMI 2", style: "Tactique", color: "bg-violet-950/80", selectedColor: "bg-violet-800/90", border: "border-violet-400/40" },
+  { id: "siri", name: "SIRI", style: "Tactique", color: "bg-violet-950/80", selectedColor: "bg-violet-800/90", border: "border-violet-400/40" },
 ];
 const AI_NAMES = AI_OPTIONS.map((ai) => ai.name);
 
@@ -52,11 +43,11 @@ export function SetupScreen() {
   // Names default to empty — each player must type their own name
   const [names, setNames] = useState<string[]>(Array.from({ length: 6 }, () => ""));
   const [colors, setColors] = useState<string[]>([...COLOR_PALETTE]);
-  // Avatar state: empty string = no photo yet (photo is required for humans); data URL = uploaded photo
-  const [emojis, setEmojis] = useState<string[]>(Array.from({ length: 6 }, () => ""));
-  // isAI: true = AI-controlled player (no photo required, robot avatar)
+  // Each AI profile has its own portrait; human players can upload an avatar.
+  const [emojis, setEmojis] = useState<string[]>(Array.from({ length: 6 }, (_, i) => i > 0 ? AI_PROFILE_AVATARS[AI_OPTIONS[i % AI_OPTIONS.length].id] : ""));
+  // isAI: true = AI-controlled player (uses its selected AI portrait)
   const [isAI, setIsAI] = useState<boolean[]>([false, true, true, true, true, true]);
-  const [aiProfiles, setAiProfiles] = useState<AIProfile[]>(["gpt", "gemini", "claude", "grok", "copilot", "kimi"]);
+  const [aiProfiles, setAiProfiles] = useState<AIProfile[]>(["gpt", "gemini", "claude", "grok", "copilot", "siri"]);
   const [rounds, setRounds] = useState(10);
 
   // Validation: every visible human player must have a name. AI players are filled automatically.
@@ -68,21 +59,22 @@ export function SetupScreen() {
     const next = [...isAI];
     next[i] = !next[i];
     setIsAI(next);
-    // When enabling AI: auto-fill name + robot emoji if empty
+    // When enabling AI: assign its default name and profile portrait.
     if (next[i]) {
       if (!names[i].trim()) {
         const nn = [...names];
         nn[i] = getDefaultAIName(i);
         setNames(nn);
       }
-      if (!isPhotoAvatar(emojis[i])) {
+      const aiAvatar = AI_PROFILE_AVATARS[aiProfiles[i]];
+      if (emojis[i] !== aiAvatar) {
         const ne = [...emojis];
-        ne[i] = "🤖";
+        ne[i] = aiAvatar;
         setEmojis(ne);
       }
     } else {
-      // When disabling AI: clear the robot emoji if it was set automatically
-      if (emojis[i] === "🤖") {
+      // When disabling AI: clear its automatically assigned profile icon.
+      if (Object.values(AI_PROFILE_AVATARS).includes(emojis[i])) {
         const ne = [...emojis];
         ne[i] = "";
         setEmojis(ne);
@@ -121,6 +113,9 @@ export function SetupScreen() {
     const nextNames = [...names];
     nextNames[1] = AI_OPTIONS.find((option) => option.id === profile)?.name ?? "GPT";
     setNames(nextNames);
+    const nextEmojis = [...emojis];
+    nextEmojis[1] = AI_PROFILE_AVATARS[profile];
+    setEmojis(nextEmojis);
   };
 
   // Upload a photo as avatar (read file as data URL)
@@ -154,8 +149,9 @@ export function SetupScreen() {
       if (!nextNames[i].trim()) {
         nextNames[i] = getDefaultAIName(i);
       }
-      if (!isPhotoAvatar(nextEmojis[i])) {
-        nextEmojis[i] = "🤖";
+      const profileAvatar = AI_PROFILE_AVATARS[aiProfiles[i]];
+      if (nextEmojis[i] !== profileAvatar) {
+        nextEmojis[i] = profileAvatar;
       }
     }
 
@@ -171,7 +167,7 @@ export function SetupScreen() {
       return {
         name: isAI[i] ? names[i].trim() || aiName : names[i].trim(),
         color: colors[i],
-        emoji: isAI[i] ? emojis[i] || "🤖" : emojis[i],
+        emoji: isAI[i] ? AI_PROFILE_AVATARS[aiProfiles[i]] : emojis[i],
         isAI: isAI[i],
         aiProfile: isAI[i] ? aiProfiles[i] : undefined,
       };
@@ -362,40 +358,43 @@ export function SetupScreen() {
                         type="button"
                         onClick={() => chooseAiProfile(option.id)}
                         aria-pressed={aiProfiles[1] === option.id}
-                        className={`group relative min-h-[4.5rem] overflow-hidden rounded-xl border px-4 py-3 text-left text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${option.color} ${option.border} ${aiProfiles[1] === option.id ? `${option.selectedColor} ring-2 ring-white/80 shadow-lg` : "hover:brightness-125"}`}
+                        className={`group relative isolate min-h-[4.5rem] overflow-hidden rounded-2xl border px-4 py-3 text-left text-white shadow-[0_8px_18px_rgba(0,0,0,0.28)] transition-[transform,box-shadow,filter] duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-0 before:bg-gradient-to-br before:from-white/10 before:via-transparent before:to-black/25 before:content-[''] hover:-translate-y-1 hover:shadow-[0_14px_26px_rgba(0,0,0,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${option.color} ${option.border} ${aiProfiles[1] === option.id ? `${option.selectedColor} ring-2 ring-amber-100/80 shadow-[0_0_24px_rgba(255,198,76,0.25)]` : "hover:brightness-125"}`}
                       >
                         {aiProfiles[1] === option.id && (
                           <span
                             aria-hidden="true"
-                            className="ai-selection-border-blink pointer-events-none absolute inset-0 rounded-xl border-2 border-amber-200"
+                            className="ai-selection-border-blink pointer-events-none absolute inset-0 rounded-2xl border-2 border-amber-100"
                           />
                         )}
-                        <span className="relative z-10 block font-display text-base font-bold tracking-wide">{option.name}</span>
+                        <span className="relative z-10 flex w-full flex-col items-center justify-center gap-1.5 py-1">
+                          <span className="font-display text-lg font-black italic tracking-[0.12em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] transition-all duration-300 group-hover:scale-110 group-hover:tracking-[0.17em]">
+                            {option.name}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className={`h-0.5 rounded-full bg-white/65 transition-all duration-300 ${aiProfiles[1] === option.id ? "w-10" : "w-5 group-hover:w-10"}`}
+                          />
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
               {/* Color picker */}
-              <div className="mt-3 flex flex-wrap gap-2.5 pl-1 sm:gap-1.5">
+              <div className="mt-3 grid w-full grid-cols-6 items-center justify-items-center gap-y-2">
                 {COLOR_PALETTE.map((color) => {
                   const selected = colors[i] === color;
                   const usedByOther = colors
                     .slice(0, count)
                     .some((c, idx) => idx !== i && c === color);
                   return (
-                    <button
+                    <ColorSwatch
                       key={color}
-                      onClick={() => setColor(i, color)}
+                      color={color}
+                      selected={selected}
                       disabled={isAI[i] || (usedByOther && !selected)}
-                      className={`relative h-12 w-12 rounded-full border border-white/30 shadow-md transition duration-200 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                        selected
-                          ? "scale-110 ring-4 ring-white ring-offset-2 ring-offset-background shadow-lg"
-                          : usedByOther
-                            ? "ring-transparent opacity-30"
-                            : "ring-black/20 hover:ring-2 hover:ring-white/80"
-                      } ${isAI[i] ? "cursor-not-allowed opacity-50" : ""}`}
-                      style={{ backgroundColor: color }}
+                      onClick={() => setColor(i, color)}
+                      sizeClass="h-[34px] w-[34px] sm:h-11 sm:w-11"
                       title={
                         isAI[i]
                           ? "Couleur verrouillée pour l'IA"
@@ -403,11 +402,7 @@ export function SetupScreen() {
                             ? "Couleur déjà prise"
                             : "Choisir cette couleur"
                       }
-                    >
-                      {selected && (
-                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow" />
-                      )}
-                    </button>
+                    />
                   );
                 })}
               </div>

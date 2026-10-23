@@ -33,6 +33,8 @@ export function ReviewsBoard() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const benchouPin = useOnlineStore((s) => s.benchouPin);
 
@@ -58,6 +60,7 @@ export function ReviewsBoard() {
       if (!res.ok) throw new Error("Erreur");
       const data = await res.json();
       setReviews(data.reviews ?? []);
+      setSelectedIds((current) => current.filter((id) => (data.reviews ?? []).some((r: Review) => r.id === id)));
     } catch {
       setReviews([]);
     } finally {
@@ -67,6 +70,8 @@ export function ReviewsBoard() {
 
   useEffect(() => {
     loadReviews();
+    const refreshInterval = window.setInterval(loadReviews, 15000);
+    return () => window.clearInterval(refreshInterval);
   }, [loadReviews]);
 
   // Met à jour localement un avis après une action admin
@@ -83,11 +88,38 @@ export function ReviewsBoard() {
       });
       if (!res.ok) throw new Error("Erreur");
       setReviews((prev) => prev.filter((r) => r.id !== id));
+      setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
       showToast(`Avis de ${name} supprimé.`);
     } catch {
       showToast("Erreur lors de la suppression.");
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "DELETE",
+        headers: headers(),
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Erreur");
+      const removed = new Set(selectedIds);
+      setReviews((prev) => prev.filter((review) => !removed.has(review.id)));
+      setSelectedIds([]);
+      showToast(`${data.deletedCount ?? removed.size} avis supprimé${(data.deletedCount ?? removed.size) > 1 ? "s" : ""}.`);
+    } catch {
+      showToast("Erreur lors de la suppression groupée.");
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -165,6 +197,32 @@ export function ReviewsBoard() {
           Actualiser
         </Button>
       </div>
+
+      {/* Stats + distribution */}
+      {reviews.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-400/20 bg-violet-500/5 px-3 py-2">
+          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-violet-100">
+            <input
+              type="checkbox"
+              checked={reviews.length > 0 && selectedIds.length === reviews.length}
+              onChange={(event) => setSelectedIds(event.target.checked ? reviews.map((review) => review.id) : [])}
+              className="h-4 w-4 accent-violet-400"
+              aria-label="Sélectionner tous les avis"
+            />
+            Tout sélectionner ({selectedIds.length}/{reviews.length})
+          </label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={deleteSelected}
+            disabled={selectedIds.length === 0 || bulkBusy}
+            className="h-8 border-rose-400/40 px-2 text-xs text-rose-200 hover:bg-rose-500/10"
+          >
+            {bulkBusy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1 h-3.5 w-3.5" />}
+            Supprimer la sélection
+          </Button>
+        </div>
+      )}
 
       {/* Stats + distribution */}
       {reviews.length > 0 && (
@@ -267,6 +325,13 @@ export function ReviewsBoard() {
 
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(r.id)}
+                      onChange={() => toggleSelected(r.id)}
+                      className="h-4 w-4 shrink-0 accent-violet-400"
+                      aria-label={`Sélectionner l’avis de ${r.authorName}`}
+                    />
                     <div
                       className="flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-bold text-white"
                       style={{

@@ -59,11 +59,13 @@ export function WinnerScreen() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + i * 0.1 }}
-                  className="flex min-h-16 items-center gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/10 p-4 shadow-[0_0_20px_-5px_rgba(139,92,246,0.4)]"
+                  style={{ background: `linear-gradient(#1b111c, #1b111c) padding-box, linear-gradient(110deg, ${p.color}, ${p.color}45 65%, #ffffff22) border-box`, boxShadow: `0 0 22px ${p.color}35` }}
+                  className="flex min-h-16 items-center gap-3 rounded-2xl border-2 border-transparent p-4 shadow-xl"
                 >
-                  <Avatar avatar={p.emoji} color={p.color} size={52} emojiSize="text-2xl" />
-                  <span className="flex-1 text-left text-lg font-bold text-violet-100">{p.name}</span>
-                  <span className="font-display text-2xl font-bold text-violet-200 sm:text-xl">{p.score} pts</span>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black text-white" style={{ backgroundColor: `${p.color}66` }}>{i + 1}</span>
+                  <div className="rounded-full p-[2px]" style={{ background: `linear-gradient(135deg, #fff, ${p.color})` }}><Avatar avatar={p.emoji} color={p.color} size={48} emojiSize="text-2xl" ring={false} /></div>
+                  <span className="flex-1 text-left text-lg font-bold text-white">{p.name}</span>
+                  <span className="rounded-xl px-3 py-1 font-display text-xl font-black text-white sm:text-lg" style={{ backgroundColor: `${p.color}33` }}>{p.score} pts</span>
                 </motion.div>
               ))}
             </div>
@@ -96,7 +98,6 @@ export function WinnerScreen() {
             </Button>
           </div>
 
-          <p className="mt-6 text-base leading-relaxed text-muted-foreground">Seuls les joueurs à égalité participent au challenge. Le premier à avoir plus de points gagne.</p>
         </motion.div>
       </div>
     );

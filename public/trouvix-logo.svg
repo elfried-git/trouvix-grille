@@ -1,30 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1a0f0f"/>
-      <stop offset="100%" stop-color="#0d0808"/>
+    <linearGradient id="background" x1="40" y1="28" x2="470" y2="486" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#251319"/>
+      <stop offset="1" stop-color="#100B10"/>
     </linearGradient>
-    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f5d97a"/>
-      <stop offset="50%" stop-color="#d4af37"/>
-      <stop offset="100%" stop-color="#b8860b"/>
+    <linearGradient id="gold" x1="92" y1="83" x2="407" y2="421" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF0A6"/>
+      <stop offset=".42" stop-color="#F7B928"/>
+      <stop offset="1" stop-color="#D66A16"/>
     </linearGradient>
-    <linearGradient id="red" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e11d48"/>
-      <stop offset="100%" stop-color="#9f1239"/>
+    <linearGradient id="red" x1="150" y1="127" x2="250" y2="253" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6572"/>
+      <stop offset="1" stop-color="#C5163E"/>
     </linearGradient>
+    <linearGradient id="pencil" x1="116" y1="392" x2="377" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE89A"/>
+      <stop offset=".48" stop-color="#F4AE25"/>
+      <stop offset="1" stop-color="#FFF1B2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(0 184 -184 0 256 252)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFC13D" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#FFC13D" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="90" y="90" width="332" height="332" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
   </defs>
-  <!-- Rounded square background -->
-  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bg)" stroke="url(#gold)" stroke-width="6"/>
-  <!-- 2x2 square grid (the game's signature shape) -->
-  <!-- Top-left cell: red -->
-  <rect x="136" y="136" width="100" height="100" rx="20" fill="url(#red)"/>
-  <!-- Top-right cell: gold -->
-  <rect x="276" y="136" width="100" height="100" rx="20" fill="url(#gold)"/>
-  <!-- Bottom-left cell: gold -->
-  <rect x="136" y="276" width="100" height="100" rx="20" fill="url(#gold)"/>
-  <!-- Bottom-right cell: red -->
-  <rect x="276" y="276" width="100" height="100" rx="20" fill="url(#red)"/>
-  <!-- Golden ring around the 2x2 block (the "formed square" highlight) -->
-  <rect x="124" y="124" width="264" height="264" rx="28" fill="none" stroke="url(#gold)" stroke-width="8" opacity="0.6"/>
+  <rect x="16" y="16" width="480" height="480" rx="104" fill="url(#background)" stroke="url(#gold)" stroke-width="6"/>
+  <circle cx="256" cy="252" r="184" fill="url(#glow)"/>
+  <rect x="109" y="109" width="294" height="294" rx="48" fill="#000" opacity=".56" filter="url(#shadow)"/>
+  <rect x="120" y="120" width="118" height="118" rx="25" fill="url(#red)" stroke="#FFB0A6" stroke-opacity=".5" stroke-width="3"/>
+  <rect x="274" y="120" width="118" height="118" rx="25" fill="url(#gold)" stroke="#FFF0A6" stroke-opacity=".6" stroke-width="3"/>
+  <rect x="120" y="274" width="118" height="118" rx="25" fill="url(#gold)" stroke="#FFF0A6" stroke-opacity=".6" stroke-width="3"/>
+  <rect x="274" y="274" width="118" height="118" rx="25" fill="url(#red)" stroke="#FFB0A6" stroke-opacity=".5" stroke-width="3"/>
+  <rect x="108" y="108" width="296" height="296" rx="34" stroke="url(#gold)" stroke-opacity=".64" stroke-width="8"/>
+  <!-- A pencil stroke echoes the reference mark while the four tiles keep the game identity. -->
+  <path d="M106 390 350 146" stroke="#100B10" stroke-width="46" stroke-linecap="round"/>
+  <path d="M106 390 350 146" stroke="url(#pencil)" stroke-width="27" stroke-linecap="round"/>
+  <path d="m97 399 13-42 29 29-42 13Z" fill="#F4AE25" stroke="#100B10" stroke-width="5" stroke-linejoin="round"/>
+  <path d="m97 399 9-28 19 19-28 9Z" fill="#21151A"/>
+  <path d="m350 146 25-25 29 29-25 25-29-29Z" fill="#E98D1C" stroke="#100B10" stroke-width="5" stroke-linejoin="round"/>
+  <path d="m368 128 10-10 29 29-10 10-29-29Z" fill="#FFF0A6"/>
+  <!-- Discovery bulb at the center of the game square. -->
+  <circle cx="256" cy="256" r="53" fill="#1A1013" fill-opacity=".94" stroke="#F7C341" stroke-width="5"/>
+  <path d="M232 251a24 24 0 1 1 48 0c0 10-5 15-10 22-3 4-4 8-4 12h-20c0-4-1-8-4-12-5-7-10-12-10-22Z" fill="#F9B933" fill-opacity=".12" stroke="#FFE48A" stroke-width="6" stroke-linejoin="round"/>
+  <path d="m244 249 8 8 8-13 8 13" stroke="#FFF0A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M247 291h18m-15 8h12" stroke="#F7B928" stroke-width="5" stroke-linecap="round"/>
+  <path d="M256 215v-10m-31 18-7-7m69 7 7-7m-51 74-7 5m51-5 7 5" stroke="#FFE48A" stroke-width="5" stroke-linecap="round"/>
 </svg>

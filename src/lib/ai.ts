@@ -177,6 +177,7 @@ export function findBestMove(
     grok: { block: 42000, threat: 10800, potential: 300, fork: 22000, risk: 22000, neutralize: 4200, center: 4, adjacency: 100 },
     copilot: { block: 65000, threat: 8200, potential: 600, fork: 28000, risk: 42000, neutralize: 7600, center: 14, adjacency: 48 },
     kimi: { block: 55000, threat: 9000, potential: 740, fork: 38000, risk: 38000, neutralize: 6500, center: 10, adjacency: 62 },
+    siri: { block: 55000, threat: 9000, potential: 740, fork: 38000, risk: 38000, neutralize: 6500, center: 10, adjacency: 62 },
   };
   const strategy = strategies[profile] ?? strategies.gpt;
   const threatsBefore = opponentIds.map((id) => countImmediateThreats(grid, id));

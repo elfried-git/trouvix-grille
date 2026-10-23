@@ -17,6 +17,7 @@ out/
 # Prisma
 prisma/generated/
 prisma/migrations/
+.data/
 
 # Logs
 npm-debug.log*

@@ -66,6 +66,8 @@ export interface AdminRoom {
   players: AdminRoomPlayer[];
 }
 
+const DEFAULT_BENCHOU_AVATAR = "/benchou-ferrari-small.jpg";
+
 interface OnlineStore {
   connected: boolean;
   connecting: boolean; // true while we're (re)connecting to the game service
@@ -77,6 +79,7 @@ interface OnlineStore {
   pendingAction: boolean;
   challenges: Challenge[]; // pending challenges for Benchou Ferrari
   isBenchou: boolean; // true if this client registered as Benchou Ferrari
+  benchouAvatar: string;
   benchouPin: string; // stored PIN for admin API calls (reviews, etc.)
   publicRooms: PublicRoom[]; // all lobby-phase rooms visible to everyone
   adminRooms: AdminRoom[]; // all rooms with full details (Benchou only)
@@ -128,6 +131,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   pendingAction: false,
   challenges: [],
   isBenchou: false,
+  benchouAvatar: DEFAULT_BENCHOU_AVATAR,
   challengeDeclined: false,
   publicRooms: [],
   adminRooms: [],
@@ -166,6 +170,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       }
     });
     socket.on("disconnect", () => set({ connected: false, connecting: true }));
+    socket.on("benchou-avatar-update", (payload: { avatar?: string }) => {
+      if (typeof payload?.avatar === "string") set({ benchouAvatar: payload.avatar });
+    });
     socket.on("state-update", (payload: { state: OnlineGameState }) => {
       // Always set a NEW object reference so Zustand detects the change
       // (socket.io may reuse the same parsed object in some edge cases)
@@ -472,12 +479,12 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       }
     }
     return new Promise<boolean>((resolve) => {
-      socket.emit("register-as-benchou", { pin }, (res: { ok?: boolean; pendingChallenges?: Challenge[]; error?: string }) => {
+      socket.emit("register-as-benchou", { pin }, (res: { ok?: boolean; pendingChallenges?: Challenge[]; avatar?: string; error?: string }) => {
         if (res?.error) {
           set({ errorMessage: res.error });
           resolve(false);
         } else if (res?.ok) {
-          set({ isBenchou: true, benchouPin: pin, challenges: res.pendingChallenges ?? [] });
+          set({ isBenchou: true, benchouPin: pin, challenges: res.pendingChallenges ?? [], ...(res.avatar ? { benchouAvatar: res.avatar } : {}) });
           resolve(true);
         } else {
           resolve(false);

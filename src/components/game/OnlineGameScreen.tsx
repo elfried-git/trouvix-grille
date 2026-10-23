@@ -264,20 +264,22 @@ export function OnlineGameScreen() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 + i * 0.1 }}
-                    className={`flex items-center gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/10 p-4 shadow-[0_0_20px_-5px_oklch(0.60_0.20_300/0.4)] sm:p-3 ${
+                    style={{ background: `linear-gradient(#1b111c, #1b111c) padding-box, linear-gradient(110deg, ${p.color}, ${p.color}45 65%, #ffffff22) border-box`, boxShadow: `0 0 22px ${p.color}35` }}
+                    className={`flex items-center gap-3 rounded-2xl border-2 border-transparent p-4 shadow-xl sm:p-3 ${
                       p.connected === false ? "opacity-50" : ""
                     }`}
                   >
-                    <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black text-white" style={{ backgroundColor: `${p.color}66` }}>{i + 1}</span>
+                    <div className="rounded-full p-[2px]" style={{ background: `linear-gradient(135deg, #fff, ${p.color})` }}><Avatar avatar={p.emoji} color={p.color} size={40} emojiSize="text-xl" ring={false} /></div>
                     <div className="min-w-0 flex-1 text-left">
-                      <p className={`font-bold text-violet-100 truncate ${p.connected === false ? "line-through text-muted-foreground" : ""}`}>
+                      <p className={`font-display font-bold text-white truncate ${p.connected === false ? "line-through text-muted-foreground" : ""}`}>
                         {p.name}
                       </p>
                       {p.connected === false && (
                         <span className="text-sm font-bold text-rose-300">A quitté le salon</span>
                       )}
                     </div>
-                    <span className="font-display text-2xl font-bold text-violet-200 sm:text-xl">{p.score} pts</span>
+                    <span className="rounded-xl px-3 py-1 font-display text-xl font-black text-white sm:text-lg" style={{ backgroundColor: `${p.color}33` }}>{p.score} pts</span>
                   </motion.div>
                 ))}
               </div>
@@ -491,9 +493,9 @@ export function OnlineGameScreen() {
       {/* Top bar */}
       <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2 sm:mb-4 sm:gap-3">
         <div className="flex items-center gap-2">
-          <span className="font-display text-xl font-black sm:text-2xl">
-            <span className="text-red-gradient">Trouv</span>
-            <span className="text-gold-gradient">ix</span>
+          <span className="trouvix-wordmark text-xl sm:text-2xl" aria-label="Trouvix">
+            <span className="trouvix-wordmark-red">Trouv</span>
+            <span className="trouvix-wordmark-gold">ix</span>
           </span>
         </div>
         <div className="flex items-center gap-2">

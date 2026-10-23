@@ -34,7 +34,6 @@ export function ReviewsScreen() {
   const [success, setSuccess] = useState(false);
 
   // Formulaire
-  const [authorName, setAuthorName] = useState("");
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -70,18 +69,13 @@ export function ReviewsScreen() {
       setError("Sélectionne une note entre 1 et 5 étoiles.");
       return;
     }
-    if (!comment.trim()) {
-      setError("Écris ton commentaire.");
-      return;
-    }
-
     setSubmitting(true);
     try {
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          authorName: authorName.trim() || "Anonyme",
+          authorName: "Anonyme",
           rating,
           comment: comment.trim(),
         }),
@@ -92,7 +86,6 @@ export function ReviewsScreen() {
         throw new Error(msg);
       }
       // Réinitialise le formulaire
-      setAuthorName("");
       setRating(0);
       setComment("");
       setSuccess(true);
@@ -172,23 +165,9 @@ export function ReviewsScreen() {
       >
         <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-amber-100">
           <Send className="h-4 w-4 text-amber-300" />
-          Laisse ton avis
+          Votre avis
         </h2>
-
-        {/* Nom (optionnel) */}
-        <div className="mb-4">
-          <label className="mb-1.5 block text-base font-medium text-muted-foreground">
-            Ton prénom <span className="text-muted-foreground/60">(optionnel)</span>
-          </label>
-          <input
-            type="text"
-            value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
-            maxLength={40}
-            placeholder="Anonyme"
-            className="min-h-12 w-full rounded-xl border border-border/50 bg-background/60 px-4 py-3 text-base text-foreground outline-none transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-400/20"
-          />
-        </div>
+        <p className="mb-4 text-sm text-muted-foreground">Votre avis est anonyme. Seule la note est obligatoire.</p>
 
         {/* Étoiles */}
         <div className="mb-4">
@@ -229,7 +208,7 @@ export function ReviewsScreen() {
         {/* Commentaire */}
         <div className="mb-4">
           <label className="mb-1.5 block text-base font-medium text-muted-foreground">
-            Ton commentaire <span className="text-rose-300">*</span>
+            Commentaire <span className="text-muted-foreground">(facultatif)</span>
           </label>
           <textarea
             value={comment}

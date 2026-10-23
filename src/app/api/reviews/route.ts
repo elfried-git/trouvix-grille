@@ -1,95 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import {
+  createLocalReview,
+  deleteLocalReviews,
+  getProductionReviewsUrl,
+  isValidAdminPin,
+  listLocalReviews,
+} from "@/lib/review-storage";
 
-const BENCHOU_PIN = process.env.BENCHOU_PIN || "331991";
+export const runtime = "nodejs";
 
-function validatePin(req: NextRequest): boolean {
-  const pin = req.headers.get("x-benchou-pin");
-  return !!pin && pin === BENCHOU_PIN;
-}
+const isProduction = process.env.NODE_ENV === "production";
 
-// Helper : extrait un message d'erreur lisible
-function errMsg(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
-
-// GET /api/reviews — liste publique des avis visibles uniquement
-// Les avis masqués par l'admin (visible=false) ne sont pas retournés ici.
-// Un paramètre ?all=true permet à l'admin de tout récupérer (pour le board admin).
-export async function GET(req: NextRequest) {
+async function proxyToGameService(path: string, method: string, req: NextRequest, body?: unknown) {
   try {
-    const { searchParams } = new URL(req.url);
-    const all = searchParams.get("all") === "true";
-
-    // Si l'admin demande tous les avis (y compris masqués), vérifier le PIN
-    if (all && !validatePin(req)) {
-      return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
-    }
-
-    const db = getDb();
-    const reviews = await db.review.findMany({
-      where: all ? undefined : { visible: true },
-      orderBy: [{ adminLiked: "desc" }, { createdAt: "desc" }],
-      take: 200,
-    });
-    return NextResponse.json({ reviews });
-  } catch (err) {
-    console.error("[reviews] GET error:", err);
-    return NextResponse.json(
-      {
-        error: "Impossible de charger les avis.",
-        detail: errMsg(err),
+    const response = await fetch(getProductionReviewsUrl(path), {
+      method,
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...(req.headers.get("x-benchou-pin") ? { "x-benchou-pin": req.headers.get("x-benchou-pin")! } : {}),
       },
-      { status: 500 }
-    );
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+    return NextResponse.json(await response.json(), { status: response.status });
+  } catch (error) {
+    console.error("[reviews] game-service request failed:", error);
+    return NextResponse.json({ error: "Service des avis temporairement indisponible." }, { status: 503 });
   }
 }
 
-// POST /api/reviews — crée un avis (auto-visible immédiatement)
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
+  const all = new URL(req.url).searchParams.get("all") === "true";
+  if (isProduction) {
+    return proxyToGameService(`/reviews${all ? "?all=true" : ""}`, "GET", req);
+  }
+  if (all && !isValidAdminPin(req.headers.get("x-benchou-pin"))) {
+    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+  }
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) {
-      return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
-    }
+    return NextResponse.json({ reviews: await listLocalReviews(all) });
+  } catch (error) {
+    console.error("[reviews] local GET error:", error);
+    return NextResponse.json({ error: "Impossible de charger les avis." }, { status: 500 });
+  }
+}
 
-    const authorName = (body.authorName ?? "").toString().trim().slice(0, 40);
-    const ratingRaw = Number(body.rating);
-    const comment = (body.comment ?? "").toString().trim().slice(0, 500);
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => null);
+  const rating = Number(body?.rating);
+  const comment = typeof body?.comment === "string" ? body.comment.trim().slice(0, 500) : "";
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return NextResponse.json({ error: "La note doit être entre 1 et 5 étoiles." }, { status: 400 });
+  }
 
-    // Validation : rating entre 1 et 5, commentaire non vide
-    if (!Number.isInteger(ratingRaw) || ratingRaw < 1 || ratingRaw > 5) {
-      return NextResponse.json(
-        { error: "La note doit être entre 1 et 5 étoiles." },
-        { status: 400 }
-      );
-    }
-    if (!comment) {
-      return NextResponse.json(
-        { error: "Le commentaire est obligatoire." },
-        { status: 400 }
-      );
-    }
-
-    const db = getDb();
-    const review = await db.review.create({
-      data: {
-        authorName: authorName || "Anonyme",
-        rating: ratingRaw,
-        comment,
-      },
-    });
-
+  if (isProduction) return proxyToGameService("/reviews", "POST", req, { rating, comment });
+  try {
+    const review = await createLocalReview(rating, comment);
     return NextResponse.json({ review }, { status: 201 });
-  } catch (err) {
-    console.error("[reviews] POST error:", err);
-    return NextResponse.json(
-      {
-        error: "Impossible d'enregistrer l'avis.",
-        detail: errMsg(err),
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("[reviews] local POST error:", error);
+    return NextResponse.json({ error: "Impossible d'enregistrer l'avis." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const body = await req.json().catch(() => null);
+  const ids: string[] = Array.isArray(body?.ids)
+    ? [...new Set<string>((body.ids as unknown[]).filter((id): id is string => typeof id === "string" && id.length > 0))]
+    : [];
+  if (ids.length === 0 || ids.length > 200) {
+    return NextResponse.json({ error: "Sélection d’avis invalide." }, { status: 400 });
+  }
+
+  if (isProduction) return proxyToGameService("/reviews", "DELETE", req, { ids });
+  if (!isValidAdminPin(req.headers.get("x-benchou-pin"))) {
+    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+  }
+  try {
+    const deletedCount = await deleteLocalReviews(ids);
+    return NextResponse.json({ ok: true, deletedCount });
+  } catch (error) {
+    console.error("[reviews] local DELETE error:", error);
+    return NextResponse.json({ error: "Impossible de supprimer les avis." }, { status: 500 });
   }
 }

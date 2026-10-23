@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
 import { Timer, Square, Users, Grid3x3, Trophy, Dices, Pause, Globe, Star } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
+import { ReviewForm } from "./ReviewForm";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
@@ -18,9 +20,9 @@ const FEATURES = [
 const FLOAT_ICONS = ["🟥", "🟨", "🟦", "⏱️", "🎯", "🏆", "⬜", "✨"];
 
 export function HomeScreen() {
+  const [reviewOpen, setReviewOpen] = useState(false);
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
-  const goToReviews = useGameStore((s) => s.goToReviews);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
@@ -62,9 +64,9 @@ export function HomeScreen() {
           />
         </motion.div>
 
-        <h1 className="font-display text-6xl font-black tracking-tight sm:text-7xl md:text-8xl">
-          <span className="text-red-gradient">Trouv</span>
-          <span className="text-gold-gradient">ix</span>
+        <h1 className="trouvix-wordmark text-6xl sm:text-7xl md:text-8xl" aria-label="Trouvix">
+          <span className="trouvix-wordmark-red">Trouv</span>
+          <span className="trouvix-wordmark-gold">ix</span>
         </h1>
 
         <motion.div
@@ -123,14 +125,14 @@ export function HomeScreen() {
           transition={{ delay: 0.6 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
-          {/* <Button
-            onClick={goToReviews}
+          <Button
+            onClick={() => setReviewOpen(true)}
             variant="outline"
             size="sm"
-            className="gap-1.5 rounded-full border-amber-400/30 bg-amber-500/5 text-amber-200 hover:bg-amber-500/15 transition"
+            className="review-button-blink group h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110"
           >
-            <Star className="h-3.5 w-3.5" /> Vos avis / Suggestions
-          </Button> */}
+            <Star className="h-4 w-4 fill-current transition-transform group-hover:rotate-12 group-hover:scale-110" /> Votre avis
+          </Button>
                 </motion.div>
               </motion.div>
 
@@ -145,6 +147,7 @@ export function HomeScreen() {
                 </div>
                 <TutorialVideoScreen />
               </div>
-            </div>
+            <ReviewForm open={reviewOpen} onOpenChange={setReviewOpen} />
+          </div>
           );
         }

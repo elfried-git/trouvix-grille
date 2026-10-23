@@ -9,7 +9,9 @@ import { useOnlineStore } from "@/store/online-store";
 import type { PublicRoom } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
+import { ColorSwatch } from "./ColorSwatch";
 import { AdminRoomsBoard } from "./AdminRoomsBoard";
+import { ReviewsBoard } from "./ReviewsBoard";
 import { isPhotoAvatar } from "@/lib/types";
 import {
   ArrowLeft,
@@ -34,12 +36,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Palette vive et distincte, partagée avec le mode local.
+// Six couleurs très distinctes pour les six joueurs maximum.
 const COLOR_PALETTE = [
-  "#ff1744", "#ffc400", "#00c9a7", "#ff7a00",
-  "#8b5cf6", "#00b8f0", "#f72585", "#22c55e",
-  "#4361ee", "#f43f5e", "#c026d3", "#0891b2",
-  "#a3e635", "#14b8a6", "#fb7185", "#84cc16",
+  "#ff1744", "#ffd600", "#00c853",
+  "#2979ff", "#ff6d00", "#d500f9",
 ];
 const ROUND_OPTIONS = [5, 10, 15];
 
@@ -57,6 +57,7 @@ export function OnlineSetupScreen() {
   const onlinePending = useOnlineStore((s) => s.pendingAction);
   const onlineChallenges = useOnlineStore((s) => s.challenges);
   const onlineIsBenchou = useOnlineStore((s) => s.isBenchou);
+  const onlineBenchouAvatar = useOnlineStore((s) => s.benchouAvatar);
   const onlineChallengeDeclined = useOnlineStore((s) => s.challengeDeclined);
   const onlineCreateRoom = useOnlineStore((s) => s.createRoom);
   const onlineJoinRoom = useOnlineStore((s) => s.joinRoom);
@@ -367,25 +368,18 @@ export function OnlineSetupScreen() {
                 </label>
               </div>
               {/* Compact color picker */}
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 grid w-full grid-cols-6 items-center justify-items-center gap-y-2">
                 {COLOR_PALETTE.map((c) => {
                   const selected = color === c;
                   return (
-                    <button
+                    <ColorSwatch
                       key={c}
+                      color={c}
+                      selected={selected}
                       onClick={() => setColor(c)}
-                      className={`relative h-11 w-11 rounded-full border border-white/30 shadow-md transition duration-200 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                        selected
-                          ? "scale-110 ring-4 ring-white ring-offset-2 ring-offset-background shadow-lg"
-                          : "ring-black/20 hover:ring-2 hover:ring-white/80"
-                      }`}
-                      style={{ backgroundColor: c }}
+                      sizeClass="h-[34px] w-[34px] sm:h-11 sm:w-11"
                       title="Choisir"
-                    >
-                      {selected && (
-                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow" />
-                      )}
-                    </button>
+                    />
                   );
                 })}
               </div>
@@ -420,7 +414,7 @@ export function OnlineSetupScreen() {
               >
                 <div className="mb-3 flex items-center gap-3">
                   <img
-                    src="/benchou-ferrari-small.jpg"
+                    src={onlineBenchouAvatar}
                     alt="Benchou Ferrari"
                     width={48}
                     height={48}
@@ -447,7 +441,7 @@ export function OnlineSetupScreen() {
                   className="group inline-flex min-h-12 items-center gap-2.5 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500/5 to-rose-500/5 px-5 py-3 text-base font-medium text-amber-100/90 transition-all hover:border-amber-400/60 hover:bg-amber-500/10 hover:text-amber-100 hover:shadow-[0_4px_20px_-4px_oklch(0.60_0.215_25/0.4)]"
                 >
                   <img
-                    src="/benchou-ferrari-small.jpg"
+                    src={onlineBenchouAvatar}
                     alt="Benchou Ferrari"
                     width={20}
                     height={20}
@@ -506,9 +500,16 @@ export function OnlineSetupScreen() {
                 </div>
               )}
               {onlineIsBenchou && (
-                <p className="text-sm text-emerald-300">
-                  ✓ Connecté en tant que Benchou Ferrari
-                </p>
+                <div className="mx-auto mt-4 flex max-w-lg flex-col items-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] p-4 sm:flex-row sm:text-left">
+                  <img
+                    src={onlineBenchouAvatar}
+                    alt="Photo de profil de Benchou Ferrari"
+                    className="h-16 w-16 rounded-full object-cover ring-2 ring-emerald-300/50"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-emerald-200">Connecté en tant que Benchou Ferrari</p>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -557,8 +558,9 @@ export function OnlineSetupScreen() {
 
             {/* Super Admin Rooms Board (visible only to Benchou Ferrari) */}
             {onlineIsBenchou && (
-              <div className="mt-6">
+              <div className="mt-6 space-y-6">
                 <AdminRoomsBoard />
+                <ReviewsBoard />
               </div>
             )}
 
@@ -716,7 +718,7 @@ export function OnlineSetupScreen() {
             {activeTab === "benchou" && (
               <div className="mt-4 flex items-center gap-3 rounded-xl border border-violet-400/30 bg-violet-500/5 p-3">
                 <img
-                  src="/benchou-ferrari-small.jpg"
+                  src={onlineBenchouAvatar}
                   alt="Benchou Ferrari"
                   width={56}
                   height={56}
@@ -725,8 +727,8 @@ export function OnlineSetupScreen() {
                   className="h-14 w-14 rounded-full object-cover ring-2 ring-violet-400/40"
                 />
                 <div>
-                  <p className="font-display text-sm font-bold text-violet-200">Benchou Ferrari (Match 1 vs 1)</p>
-                  <p className="text-base leading-relaxed text-muted-foreground">Salon privé réservé. Je suis prêt pour le duel ! 🔥</p>
+                  <p className="font-display text-sm font-bold text-violet-200">Benchou Ferrari</p>
+                  <p className="text-base leading-relaxed text-muted-foreground">Défi privé · 1 contre 1 🔥</p>
                 </div>
               </div>
             )}
@@ -775,30 +777,21 @@ export function OnlineSetupScreen() {
                 )}
               </div>
               {/* Color picker */}
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 grid w-full grid-cols-6 items-center justify-items-center gap-y-2">
                 {COLOR_PALETTE.map((c) => {
                   const taken =
                     serverState?.players.some((p) => p.color === c) ?? false;
                   const selected = color === c;
                   return (
-                    <button
+                    <ColorSwatch
                       key={c}
-                      onClick={() => !taken && setColor(c)}
+                      color={c}
+                      selected={selected}
                       disabled={taken && !selected}
-                      className={`relative h-12 w-12 rounded-full border border-white/30 shadow-md transition duration-200 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                        selected
-                          ? "scale-110 ring-4 ring-white ring-offset-2 ring-offset-background shadow-lg"
-                          : taken
-                            ? "ring-transparent opacity-30"
-                            : "ring-black/20 hover:ring-2 hover:ring-white/80"
-                      }`}
-                      style={{ backgroundColor: c }}
+                      onClick={() => !taken && setColor(c)}
+                      sizeClass="h-[34px] w-[34px] sm:h-11 sm:w-11"
                       title={taken && !selected ? "Couleur déjà prise" : "Choisir"}
-                    >
-                      {selected && (
-                        <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow" />
-                      )}
-                    </button>
+                    />
                   );
                 })}
               </div>

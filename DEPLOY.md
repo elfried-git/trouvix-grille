@@ -21,6 +21,8 @@ Dans **Vercel > projet Trouvix > Settings > Environment Variables**, définis `N
 
 Le client en production utilise le WebSocket natif `/ws`. En développement local, il continue d’utiliser Socket.IO via `npm run dev:game`.
 
+Les avis sont conservés dans le stockage persistant du Durable Object Cloudflare existant. Aucune table ni base Prisma n’est nécessaire pour les avis. Après modification du service, redéploie le Worker avec `npm run deploy:game:cloudflare`; le site Vercel transmet ensuite les avis à ce stockage. En développement local, les avis sont enregistrés dans `.data/reviews.json`.
+
 Garde Render actif jusqu’à avoir vérifié deux navigateurs, la création et la reprise d’un salon, les WebSockets et les réactions. Si tu dois revenir en arrière, remets l’ancienne URL Render dans Vercel et redéploie le front.
 
 ## Offre gratuite et limites

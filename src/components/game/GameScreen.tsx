@@ -91,9 +91,9 @@ export function GameScreen() {
       {/* Top bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="font-display text-2xl font-black">
-            <span className="text-red-gradient">Trouv</span>
-            <span className="text-gold-gradient">ix</span>
+          <span className="trouvix-wordmark text-2xl" aria-label="Trouvix">
+            <span className="trouvix-wordmark-red">Trouv</span>
+            <span className="trouvix-wordmark-gold">ix</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
