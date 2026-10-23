@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, Dices, Pause, Globe, Star } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, Dices, Pause, Globe, Star, Bell } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
+import { enableNotifications } from "@/lib/admin-notifications";
+import { toast } from "sonner";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
@@ -21,8 +23,25 @@ const FLOAT_ICONS = ["🟥", "🟨", "🟦", "⏱️", "🎯", "🏆", "⬜", "�
 
 export function HomeScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
+
+  useEffect(() => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setNotificationPermission("unsupported");
+      return;
+    }
+    setNotificationPermission(Notification.permission);
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    const permission = await enableNotifications();
+    setNotificationPermission(permission);
+    if (permission === "granted") toast.success("Notifications activées pour les nouveaux salons.");
+    else if (permission === "denied") toast.error("Autorise les notifications de Trouvix dans les réglages du téléphone.");
+    else toast.error("Les notifications ne sont pas disponibles dans ce navigateur.");
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
@@ -81,6 +100,16 @@ export function HomeScreen() {
           transition={{ delay: 0.3 }}
           className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
         >
+          {notificationPermission !== "granted" && notificationPermission !== "unsupported" && (
+            <Button
+              onClick={handleEnableNotifications}
+              variant="outline"
+              size="sm"
+              className="h-10 gap-2 rounded-full border-sky-300/40 bg-sky-500/10 px-4 text-sky-100 hover:bg-sky-500/20"
+            >
+              <Bell className="h-4 w-4" /> Activer les notifications
+            </Button>
+          )}
           <Button
             onClick={goToSetup}
             size="lg"

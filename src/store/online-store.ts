@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { getSocket, disconnectSocket, wakeGameService } from "@/lib/socket";
 import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
+import { enableNotifications, notifyAdminChallenge, notifyRoomCreated } from "@/lib/admin-notifications";
 
 export interface Challenge {
   id: string;
@@ -211,30 +212,11 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           ? s.challenges
           : [...s.challenges, challenge],
       }));
-      // Play a notification sound + browser notification
-      if (typeof window !== "undefined") {
-        // Browser notification
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("🎮 Défi Trouvix Grille", {
-            body: `${challenge.challengerName} vous sollicite pour une partie ! Cliquez pour rejoindre.`,
-            icon: "/trouvix-logo.svg",
-            tag: challenge.id,
-          });
-        }
-        // Sound (simple beep via Web Audio API)
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.value = 880;
-          gain.gain.setValueAtTime(0.3, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.5);
-        } catch {}
-      }
+      void notifyAdminChallenge(challenge.challengerName, challenge.id);
+    });
+    socket.on("room-created", (payload: { roomCode: string; hostName: string; maxPlayers: number }) => {
+      if (typeof payload?.roomCode !== "string" || typeof payload.hostName !== "string") return;
+      void notifyRoomCreated(payload.hostName, payload.roomCode, payload.maxPlayers);
     });
     // Challenge declined by Benchou Ferrari (received by the challenger)
     socket.on("challenge-declined", (payload: { challengeId: string }) => {
@@ -472,12 +454,8 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     const socket = getSocket();
     get().init(); // ensure listeners
     set({ errorMessage: null });
-    // Request browser notification permission
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "default") {
-        await Notification.requestPermission();
-      }
-    }
+    // Permission and audio are initialized from the admin's button gesture.
+    await enableNotifications();
     return new Promise<boolean>((resolve) => {
       socket.emit("register-as-benchou", { pin }, (res: { ok?: boolean; pendingChallenges?: Challenge[]; avatar?: string; error?: string }) => {
         if (res?.error) {

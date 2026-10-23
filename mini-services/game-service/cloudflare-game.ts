@@ -598,6 +598,11 @@ io.on('connection', (socket) => {
         socket.join(roomCode)
         bindSocket(socket, { roomCode, playerId: player.id })
         console.log(`[room ${roomCode}] created by ${player.name} (${player.id}), totalRounds=${totalRounds}, maxPlayers=${maxPlayers}`)
+        for (const [socketId, client] of io.clients) {
+          if (socketId !== socket.id) {
+            client.emit('room-created', { roomCode, hostName: player.name, maxPlayers })
+          }
+        }
         if (ack) ack({ roomCode, playerId: player.id })
         broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
       } catch (err) {

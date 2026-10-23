@@ -18,6 +18,11 @@ import { useOnlineStore } from "@/store/online-store";
  */
 export function GameServiceWarmer() {
   useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((error) => {
+        console.warn("[notifications] service worker unavailable", error);
+      });
+    }
     // Wake the server over HTTP (no-op in local dev where there's no cold start).
     wakeGameService();
     // Open the socket now and attach the store listeners so the connection is
