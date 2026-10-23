@@ -1,7 +1,7 @@
 import { SocketIOServerCompat } from './cloudflare-io'
 
 let BENCHOU_PIN = '331991'
-let APP_URL = 'https://trouvix.vercel.app'
+let APP_URL = 'https://trouvix-grille.vercel.app'
 
 // ====== Game constants (must match the client store exactly) ======
 const ROWS = 10
@@ -1665,7 +1665,7 @@ export function runScheduledMaintenance(now = Date.now()): { nextAt: number | nu
 
 export function configureGame(options: { benchouPin?: string; appUrl?: string }) {
   BENCHOU_PIN = options.benchouPin || '331991'
-  APP_URL = options.appUrl || 'https://trouvix.vercel.app'
+  APP_URL = options.appUrl || 'https://trouvix-grille.vercel.app'
 }
 
 export { io }

@@ -19,6 +19,6 @@
     }
   ],
   "vars": {
-    "APP_URL": "https://trouvix.vercel.app"
+    "APP_URL": "https://trouvix-grille.vercel.app"
   }
 }

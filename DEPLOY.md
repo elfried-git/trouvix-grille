@@ -1,6 +1,6 @@
 # Déploiement de Trouvix Grille
 
-Le site Next.js reste sur Vercel. Le serveur de parties en ligne est porté sur Cloudflare Workers et Durable Objects, avec WebSockets natifs. Le mode local contre l’IA reste côté navigateur.
+Le site Next.js est disponible sur `https://trouvix-grille.vercel.app`. Le serveur de parties en ligne est porté sur Cloudflare Workers et Durable Objects, avec WebSockets natifs. Le mode local contre l’IA reste côté navigateur.
 
 ## Déployer le serveur Cloudflare
 
