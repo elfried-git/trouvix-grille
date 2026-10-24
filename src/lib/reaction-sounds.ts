@@ -104,3 +104,13 @@ export function playReactionSound(emoji: string) {
 
   playToneSequence(REACTION_TONES[emoji] ?? REACTION_TONES["😮"]);
 }
+
+export function playTrouvixMagicChime() {
+  if (typeof window === "undefined" || !areReactionSoundsEnabled()) return;
+  const tones: Tone[] = [
+    { frequency: 523, endFrequency: 659, wave: "triangle", duration: 0.14, delay: 0, gain: 0.1 },
+    { frequency: 784, endFrequency: 1046, wave: "triangle", duration: 0.16, delay: 0.08, gain: 0.12 },
+    { frequency: 1318, endFrequency: 1568, wave: "sine", duration: 0.3, delay: 0.16, gain: 0.12 },
+  ];
+  playToneSequence(tones);
+}

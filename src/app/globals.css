@@ -155,6 +155,17 @@
   transform: rotate(-1deg);
   filter: drop-shadow(0 3px 0 rgb(29 9 12 / 70%)) drop-shadow(0 0 16px rgb(231 93 42 / 24%));
 }
+.trouvix-hero-wordmark {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 900;
+  letter-spacing: -0.075em;
+  line-height: 0.98;
+  transform: rotate(-1deg);
+  filter: drop-shadow(0 4px 0 rgb(29 9 12 / 80%)) drop-shadow(0 0 24px rgb(244 63 94 / 35%)) drop-shadow(0 0 45px rgb(245 158 11 / 25%));
+}
 .trouvix-wordmark::after {
   content: "✦";
   position: absolute;

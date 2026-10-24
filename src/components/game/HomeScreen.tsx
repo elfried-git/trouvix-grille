@@ -7,6 +7,7 @@ import { useGameStore } from "@/store/game-store";
 import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
+import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
 import { enableNotifications, prepareNotificationAudio } from "@/lib/admin-notifications";
 import { toast } from "sonner";
 
@@ -67,32 +68,8 @@ export function HomeScreen() {
         transition={{ duration: 0.6 }}
         className="relative z-10 flex flex-col items-center text-center"
       >
-        {/* Logo Trouvix */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ duration: 0.7, type: "spring", stiffness: 120 }}
-          className="mb-4"
-        >
-          <img
-            src="/trouvix-logo.svg"
-            alt="Logo Trouvix Grille"
-            width={96}
-            height={96}
-            className="h-24 w-24 drop-shadow-[0_8px_24px_-6px_oklch(0.60_0.215_25/0.5)] sm:h-[88px] sm:w-[88px]"
-          />
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, scale: 0.28, rotate: 3 }}
-          animate={{ opacity: 1, scale: [0.28, 1.18, 1], rotate: -1 }}
-          transition={{ duration: 1.15, delay: 0.12, times: [0, 0.72, 1], ease: [0.16, 1, 0.3, 1] }}
-          className="trouvix-wordmark text-6xl sm:text-7xl md:text-8xl"
-          aria-label="Trouvix"
-        >
-          <span className="trouvix-wordmark-red">Trouv</span>
-          <span className="trouvix-wordmark-gold">ix</span>
-        </motion.h1>
+        {/* Logo & Titre Trouvix avec effet Wow (Assemblage du carré magique & shimmer) */}
+        <TrouvixHeroTitle />
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
