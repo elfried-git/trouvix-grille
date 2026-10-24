@@ -9,7 +9,8 @@ import { Avatar } from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
-import { Home, Timer, Pause, Crown, WifiOff, Swords, RotateCcw, Plus } from "lucide-react";
+import { Home, Timer, Pause, Crown, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
+import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -21,6 +22,8 @@ export function OnlineGameScreen() {
   const state = useOnlineStore((s) => s.state);
   const optimisticPawn = useOnlineStore((s) => s.optimisticPawn);
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const [reactionSoundsOn, setReactionSoundsOn] = useState(true);
+  useEffect(() => setReactionSoundsOn(areReactionSoundsEnabled()), []);
   useEffect(() => {
     if (!state || state.phase !== "playing" || state.isPaused || state.turnDeadlineAt == null) return;
     const timer = window.setInterval(() => setClockNow(Date.now()), 100);
@@ -740,17 +743,35 @@ export function OnlineGameScreen() {
           </div>
 
           {/* Reaction bar */}
-          <div className="mx-auto grid w-full min-w-0 max-w-[340px] shrink-0 grid-cols-5 items-center gap-1 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:max-w-[390px] sm:gap-2 sm:p-2">
-            {REACTION_EMOJIS.map((emoji) => (
+          <div className="mx-auto w-full max-w-[340px] shrink-0 sm:max-w-[390px]">
+            <div className="mb-1 flex justify-end">
               <button
-                key={emoji}
-                onClick={() => sendReactionAction(emoji)}
-                className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-105 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-2xl"
-                title={`Réagir avec ${emoji}`}
+                type="button"
+                onClick={() => {
+                  const enabled = !reactionSoundsOn;
+                  setReactionSoundsOn(enabled);
+                  setReactionSoundsEnabled(enabled);
+                }}
+                className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+                aria-label={reactionSoundsOn ? "Désactiver le son des réactions" : "Activer le son des réactions"}
+                title={reactionSoundsOn ? "Couper le son des réactions" : "Activer le son des réactions"}
               >
-                {emoji}
+                {reactionSoundsOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                Son {reactionSoundsOn ? "activé" : "coupé"}
               </button>
-            ))}
+            </div>
+            <div className="grid w-full min-w-0 grid-cols-5 items-center gap-1 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:gap-2 sm:p-2">
+              {REACTION_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => sendReactionAction(emoji)}
+                  className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-105 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-2xl"
+                  title={`Réagir avec ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Quit button */}

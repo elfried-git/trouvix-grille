@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { getSocket, disconnectSocket, wakeGameService } from "@/lib/socket";
 import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
 import { enableNotifications, notifyAdminChallenge, notifyRoomCreated } from "@/lib/admin-notifications";
+import { playReactionSound } from "@/lib/reaction-sounds";
 
 export interface Challenge {
   id: string;
@@ -248,6 +249,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     // Floating emoji reactions (broadcast to the room)
     socket.on("reaction-received", (payload: { playerId: string; emoji: string; timestamp: number }) => {
       if (!payload?.emoji) return;
+      if (payload.playerId !== get().myPlayerId) playReactionSound(payload.emoji);
       const reaction = {
         id: `${payload.playerId}-${payload.timestamp}-${Math.random().toString(36).slice(2, 6)}`,
         emoji: payload.emoji,
@@ -715,6 +717,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   clearKicked: () => set({ kicked: false, kickedToOnline: false, errorMessage: null }),
 
   sendReaction: (emoji) => {
+    playReactionSound(emoji);
     const socket = getSocket();
     if (socket.connected) {
       socket.emit("send-reaction", { emoji });
