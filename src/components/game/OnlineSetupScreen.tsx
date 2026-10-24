@@ -331,17 +331,26 @@ export function OnlineSetupScreen() {
         {/* === MENU TAB === */}
         {activeTab === "menu" && (
           <div>
-            <h2 className="text-center font-display text-4xl font-bold text-gold-gradient sm:text-5xl">
-              Jouer en ligne
-            </h2>
+            <div className="text-center">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-300/25 bg-amber-300/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-200/90 shadow-[0_0_20px_rgba(251,191,36,0.08)]">
+                <Gamepad2 className="h-3.5 w-3.5" /> Multijoueur
+              </div>
+              <h2 className="font-display text-4xl font-black tracking-tight text-gold-gradient drop-shadow-[0_4px_18px_rgba(245,158,11,0.18)] sm:text-5xl">
+                Jouer en ligne
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">La partie commence avec toi.</p>
+            </div>
 
             {/* Compact profile — name + color, shared with create/benchou */}
-            <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-5">
-              <Label className="flex items-center gap-1 text-base text-muted-foreground">
+            <div className="relative mt-6 overflow-hidden rounded-2xl border border-amber-200/15 bg-gradient-to-br from-rose-400/[0.08] via-card/70 to-amber-300/[0.07] p-4 shadow-[0_12px_36px_rgba(0,0,0,0.2)] sm:p-5">
+              <div className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-amber-300/[0.08] blur-3xl" />
+              <Label className="relative flex items-center gap-1 text-sm font-semibold text-amber-100/90 sm:text-base">
                 Ton profil <span className="text-rose-400">*</span>
               </Label>
-              <div className="mt-2 flex items-center gap-3">
-                <Avatar avatar={emoji} color={color} size={56} emojiSize="text-2xl" />
+              <div className="relative mt-2 flex items-center gap-3">
+                <div className="shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.2)]">
+                  <Avatar avatar={emoji} color={color} size={54} emojiSize="text-2xl" ring={false} />
+                </div>
                 <div className="flex-1">
                   <Input
                     ref={nameInputRef}
@@ -349,13 +358,13 @@ export function OnlineSetupScreen() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Saisis ton prénom"
                     maxLength={18}
-                    className={`h-14 bg-background/60 text-lg ${
+                    className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
                       !name.trim() ? "border-rose-400/60" : "border-border/60"
                     }`}
                   />
                 </div>
                 <label
-                  className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
+                  className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-base font-medium text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95"
                   title="Téléverser une photo (optionnel)"
                 >
                   <Camera className="h-5 w-5" />
@@ -368,7 +377,7 @@ export function OnlineSetupScreen() {
                 </label>
               </div>
               {/* Compact color picker */}
-              <div className="mt-3 grid w-full grid-cols-6 items-center justify-items-center gap-y-2">
+              <div className="relative mt-4 grid w-full grid-cols-6 items-center justify-items-center gap-y-2 rounded-xl border border-white/[0.06] bg-black/15 px-2 py-2.5">
                 {COLOR_PALETTE.map((c) => {
                   const selected = color === c;
                   return (
@@ -386,31 +395,35 @@ export function OnlineSetupScreen() {
             </div>
 
             {/* Action cards */}
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-4">
               {/* Join by code — the JOIN card */}
               <button
                 onClick={() => setTab("join")}
-                className="group min-h-40 rounded-2xl border-emerald-400/30 bg-emerald-500/5 p-6 text-left transition hover:border-emerald-400/60 hover:bg-emerald-500/10"
+                className="group relative min-h-36 overflow-hidden rounded-2xl border border-emerald-300/25 bg-gradient-to-br from-emerald-400/[0.13] via-emerald-500/[0.04] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-emerald-200/60 hover:shadow-[0_14px_32px_rgba(16,185,129,0.14)] active:translate-y-0 sm:min-h-40 sm:p-6"
               >
-                <LogIn className="mb-3 h-9 w-9 text-emerald-300" />
-                <p className="font-display text-xl font-bold text-foreground">Rejoindre un salon</p>
-                <p className="mt-2 text-base leading-relaxed text-muted-foreground">Entre le code du salon pour rejoindre tes amis.</p>
+                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/20 bg-emerald-300/10 shadow-[0_0_20px_rgba(52,211,153,0.1)] transition group-hover:scale-105 group-hover:bg-emerald-300/15">
+                  <LogIn className="h-6 w-6 text-emerald-200" />
+                </span>
+                <p className="font-display text-lg font-bold text-foreground sm:text-xl">Rejoindre un salon</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">Entre le code pour retrouver tes amis.</p>
               </button>
               <button
                 onClick={() => setTab("create")}
-                className="group min-h-40 rounded-2xl border border-amber-400/30 bg-amber-500/5 p-6 text-left transition hover:border-amber-400/60 hover:bg-amber-500/10"
+                className="group relative min-h-36 overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-amber-400/[0.14] via-orange-500/[0.05] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-amber-200/60 hover:shadow-[0_14px_32px_rgba(245,158,11,0.14)] active:translate-y-0 sm:min-h-40 sm:p-6"
               >
-                <Plus className="mb-3 h-9 w-9 text-amber-300" />
+                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10 shadow-[0_0_20px_rgba(251,191,36,0.1)] transition group-hover:scale-105 group-hover:bg-amber-300/15">
+                  <Plus className="h-7 w-7 text-amber-200" />
+                </span>
                 <p className="font-display text-xl font-bold text-foreground">
                   Créer un salon
                 </p>
-                <p className="mt-2 text-base leading-relaxed text-muted-foreground">
-                  Crée une partie et invite tes amis.
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  Lance ta partie et invite tes amis.
                 </p>
               </button>
               <button
                 onClick={() => setTab("benchou")}
-                className="group min-h-40 rounded-2xl border border-violet-400/30 bg-violet-500/5 p-6 text-left transition hover:border-violet-400/60 hover:bg-violet-500/10"
+                className="group relative min-h-36 overflow-hidden rounded-2xl border border-violet-300/25 bg-gradient-to-br from-violet-400/[0.13] via-fuchsia-500/[0.04] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-violet-200/60 hover:shadow-[0_14px_32px_rgba(168,85,247,0.16)] active:translate-y-0 sm:min-h-40 sm:p-6"
               >
                 <div className="mb-3 flex items-center gap-3">
                   <img
@@ -422,12 +435,14 @@ export function OnlineSetupScreen() {
                     fetchPriority="high"
                     className="h-12 w-12 rounded-full object-cover ring-2 ring-violet-400/40"
                   />
-                  <Bot className="h-8 w-8 text-violet-300" />
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-200/20 bg-violet-300/10">
+                    <Bot className="h-6 w-6 text-violet-200" />
+                  </span>
                 </div>
                 <p className="font-display text-xl font-bold text-foreground">
                   Jouer contre Benchou
                 </p>
-                <p className="mt-2 text-base leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
                   Défie Benchou en duel privé.
                 </p>
               </button>
@@ -706,17 +721,23 @@ export function OnlineSetupScreen() {
         {/* === CREATE / JOIN TAB (profile form) === */}
         {(activeTab === "create" || activeTab === "join" || activeTab === "benchou") && (
           <div>
-            <h2 className="font-display text-2xl font-bold text-gold-gradient sm:text-3xl">
-              {activeTab === "create"
-                ? "Créer un salon"
-                : activeTab === "benchou"
-                  ? "Jouer contre Benchou"
-                  : "Rejoindre un salon"}
-            </h2>
+            <div className="mb-5">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-300/25 bg-amber-300/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-200/90">
+                {activeTab === "benchou" ? <Swords className="h-3.5 w-3.5" /> : <Gamepad2 className="h-3.5 w-3.5" />}
+                {activeTab === "benchou" ? "Duel privé" : "Multijoueur"}
+              </div>
+              <h2 className="font-display text-3xl font-black tracking-tight text-gold-gradient drop-shadow-[0_4px_18px_rgba(245,158,11,0.18)] sm:text-4xl">
+                {activeTab === "create"
+                  ? "Créer un salon"
+                  : activeTab === "benchou"
+                    ? "Jouer contre Benchou"
+                    : "Rejoindre un salon"}
+              </h2>
+            </div>
 
             {/* Benchou Ferrari preview */}
             {activeTab === "benchou" && (
-              <div className="mt-4 flex items-center gap-3 rounded-xl border border-violet-400/30 bg-violet-500/5 p-3">
+              <div className="relative mt-4 flex items-center gap-3 overflow-hidden rounded-2xl border border-violet-300/30 bg-gradient-to-br from-violet-400/[0.14] via-fuchsia-500/[0.05] to-transparent p-4 shadow-[0_10px_28px_rgba(0,0,0,0.18)]">
                 <img
                   src={onlineBenchouAvatar}
                   alt="Benchou Ferrari"
@@ -724,7 +745,7 @@ export function OnlineSetupScreen() {
                   height={56}
                   loading="eager"
                   fetchPriority="high"
-                  className="h-14 w-14 rounded-full object-cover ring-2 ring-violet-400/40"
+                  className="h-14 w-14 rounded-full object-cover ring-2 ring-violet-200/50 shadow-[0_0_22px_rgba(167,139,250,0.25)]"
                 />
                 <div>
                   <p className="font-display text-sm font-bold text-violet-200">Benchou Ferrari</p>
@@ -734,19 +755,22 @@ export function OnlineSetupScreen() {
             )}
 
             {/* Profile */}
-            <div className="mt-6 rounded-xl border border-border/60 bg-card/40 p-4 sm:p-5">
-              <Label className="flex items-center gap-1 text-base text-muted-foreground">
+            <div className="relative mt-4 overflow-hidden rounded-2xl border border-amber-200/15 bg-gradient-to-br from-rose-400/[0.08] via-card/70 to-amber-300/[0.07] p-4 shadow-[0_12px_36px_rgba(0,0,0,0.2)] sm:p-5">
+              <div className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-amber-300/[0.08] blur-3xl" />
+              <Label className="relative flex items-center gap-1 text-sm font-semibold text-amber-100/90 sm:text-base">
                 Ton profil <span className="text-rose-400">*</span>
               </Label>
-              <div className="mt-2 flex items-center gap-3">
-                <Avatar avatar={emoji} color={color} size={52} emojiSize="text-2xl" />
+              <div className="relative mt-2 flex items-center gap-3">
+                <div className="shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.2)]">
+                  <Avatar avatar={emoji} color={color} size={50} emojiSize="text-2xl" ring={false} />
+                </div>
                 <div className="flex-1">
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Saisis ton nom"
                     maxLength={18}
-                    className={`h-14 bg-background/60 text-lg ${
+                    className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
                       !name.trim() ? "border-rose-400/60" : "border-border/60"
                     }`}
                   />
@@ -754,7 +778,7 @@ export function OnlineSetupScreen() {
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <label
-                  className="flex h-12 cursor-pointer items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
+                  className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-sm font-semibold text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95 sm:text-base"
                   title="Téléverser une photo (optionnel)"
                 >
                   <Camera className="h-5 w-5" />
@@ -777,7 +801,7 @@ export function OnlineSetupScreen() {
                 )}
               </div>
               {/* Color picker */}
-              <div className="mt-3 grid w-full grid-cols-6 items-center justify-items-center gap-y-2">
+              <div className="relative mt-4 grid w-full grid-cols-6 items-center justify-items-center gap-y-2 rounded-xl border border-white/[0.06] bg-black/15 px-2 py-2.5">
                 {COLOR_PALETTE.map((c) => {
                   const taken =
                     serverState?.players.some((p) => p.color === c) ?? false;
@@ -799,7 +823,7 @@ export function OnlineSetupScreen() {
 
             {/* Round choice (create only) */}
             {(activeTab === "create" || activeTab === "benchou") && (
-              <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-amber-200/15 bg-gradient-to-br from-amber-300/[0.08] via-card/60 to-rose-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-amber-300" />
                   <span className="font-medium">Longueur du match</span>
@@ -826,7 +850,7 @@ export function OnlineSetupScreen() {
 
             {/* Max players choice (create only — host defines how many can join) */}
             {activeTab === "create" && (
-              <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-amber-200/15 bg-gradient-to-br from-amber-300/[0.08] via-card/60 to-rose-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-amber-300" />
                   <span className="font-medium">Joueurs dans le salon</span>
@@ -854,14 +878,14 @@ export function OnlineSetupScreen() {
 
             {/* Join code input (join only) */}
             {activeTab === "join" && (
-              <div className="mt-4 rounded-xl border border-border/60 bg-card/40 p-4">
-                <Label className="text-base text-muted-foreground">Code du salon</Label>
+              <div className="mt-4 rounded-2xl border border-emerald-200/15 bg-gradient-to-br from-emerald-400/[0.08] via-card/60 to-sky-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)]">
+                <Label className="text-sm font-semibold text-emerald-100/90 sm:text-base">Code du salon</Label>
                 <Input
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                   placeholder="ex : AB3K7M"
                   maxLength={6}
-                  className="mt-1 bg-background/60 font-display text-lg tracking-[0.3em] uppercase"
+                  className="mt-2 h-12 rounded-xl border-white/10 bg-black/25 font-display text-lg tracking-[0.3em] uppercase shadow-inner shadow-black/20"
                 />
                 {inviteRoomCode && (
                   <p className="mt-2 text-sm text-emerald-200/80">
@@ -875,11 +899,13 @@ export function OnlineSetupScreen() {
               onClick={activeTab === "benchou" ? handleBenchou : activeTab === "create" ? handleCreate : handleJoin}
               disabled={!profileValid || onlinePending || (activeTab === "join" && joinCode.trim().length < 4)}
               size="lg"
-              className={
+              className={`group relative mt-4 h-14 w-full overflow-hidden rounded-2xl text-base font-bold text-white shadow-[0_10px_28px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${
                 activeTab === "benchou"
-                  ? "mt-4 w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 disabled:opacity-50"
-                  : "mt-4 w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-50"
-              }
+                  ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-500 shadow-[0_10px_28px_rgba(168,85,247,0.2)] hover:brightness-110"
+                  : activeTab === "join"
+                    ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 shadow-[0_10px_28px_rgba(16,185,129,0.18)] hover:brightness-110"
+                    : "bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 shadow-[0_10px_28px_rgba(244,63,94,0.2)] hover:brightness-110"
+              }`}
             >
               {activeTab === "benchou" ? (
                 <>

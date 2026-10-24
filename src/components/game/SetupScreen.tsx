@@ -193,12 +193,17 @@ export function SetupScreen() {
           </Button>
         </div>
 
-        <h2 className="font-display text-4xl font-bold text-gold-gradient sm:text-5xl">
-          Composer votre jeu
-        </h2>
+        <div className="mb-1">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-300/25 bg-amber-300/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-200/90">
+            <Swords className="h-3.5 w-3.5" /> Partie locale
+          </div>
+          <h2 className="font-display text-4xl font-black tracking-tight text-gold-gradient drop-shadow-[0_4px_18px_rgba(245,158,11,0.18)] sm:text-5xl">
+            Composer votre jeu
+          </h2>
+        </div>
 
         {/* Player count */}
-        <div className="mt-8 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative mt-7 flex flex-col gap-3 overflow-hidden rounded-2xl border border-amber-200/15 bg-gradient-to-br from-amber-300/[0.08] via-card/60 to-rose-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-amber-300" />
             <span className="font-medium">Nombre de joueurs</span>
@@ -229,7 +234,7 @@ export function SetupScreen() {
         </div>
 
         {/* Round choice */}
-        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative mt-4 flex flex-col gap-3 overflow-hidden rounded-2xl border border-rose-200/15 bg-gradient-to-br from-rose-300/[0.07] via-card/60 to-violet-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Target className="h-5 w-5 text-rose-300" />
             <span className="font-medium">Longueur du match</span>
@@ -262,21 +267,22 @@ export function SetupScreen() {
             return (
             <div
               key={i}
-              className={`rounded-xl border p-4 transition ${
+              className={`relative overflow-hidden rounded-2xl border p-4 shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition ${
                 nameMissing
-                  ? "border-rose-400/40 bg-card/40"
+                  ? "border-rose-300/30 bg-gradient-to-br from-rose-400/[0.09] via-card/60 to-transparent"
                   : isAI[i]
-                    ? "border-violet-400/40 bg-violet-500/5"
-                    : "border-border/60 bg-card/40"
+                    ? "border-violet-300/25 bg-gradient-to-br from-violet-400/[0.09] via-card/60 to-transparent"
+                    : "border-amber-200/15 bg-gradient-to-br from-amber-300/[0.06] via-card/60 to-transparent"
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="relative">
+                <div className="relative shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.18)]">
                   <Avatar
                     avatar={emojis[i]}
                     color={colors[i]}
-                    size={52}
+                    size={50}
                     emojiSize="text-2xl"
+                    ring={false}
                   />
                 </div>
                 <div className="flex-1">
@@ -291,7 +297,7 @@ export function SetupScreen() {
                     placeholder="Saisis ton nom"
                     maxLength={18}
                     disabled={isAI[i]}
-                    className={`mt-1 h-14 text-lg bg-background/60 ${
+                    className={`mt-1 h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
                       isAI[i]
                         ? "cursor-not-allowed opacity-60"
                         : nameMissing
@@ -349,7 +355,7 @@ export function SetupScreen() {
                 )}
               </div>
               {count === 2 && i === 1 && isAI[i] && (
-                <div className="mt-4 rounded-lg border border-violet-400/20 bg-violet-950/20 p-3">
+                <div className="mt-4 rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-400/[0.1] to-fuchsia-500/[0.04] p-3 shadow-inner shadow-black/20">
                   <p className="mb-2 text-base font-semibold text-violet-100">Choisis ton adversaire IA</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {AI_OPTIONS.map((option) => (
@@ -381,7 +387,7 @@ export function SetupScreen() {
                 </div>
               )}
               {/* Color picker */}
-              <div className="mt-3 grid w-full grid-cols-6 items-center justify-items-center gap-y-2">
+              <div className="mt-4 grid w-full grid-cols-6 items-center justify-items-center gap-y-2 rounded-xl border border-white/[0.06] bg-black/15 px-2 py-2.5">
                 {COLOR_PALETTE.map((color) => {
                   const selected = colors[i] === color;
                   const usedByOther = colors
@@ -415,7 +421,7 @@ export function SetupScreen() {
           onClick={handleStart}
           size="lg"
           disabled={!playersValid}
-          className="mt-6 h-14 w-full bg-gradient-to-r from-rose-600 to-rose-500 text-base text-white hover:from-rose-500 hover:to-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 h-14 w-full rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 text-base font-bold text-white shadow-[0_10px_28px_rgba(244,63,94,0.2)] transition duration-300 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Swords className="mr-2 h-5 w-5" />
           Lancer le match ({rounds} rounds)
