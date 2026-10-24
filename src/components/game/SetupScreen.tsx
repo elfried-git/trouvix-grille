@@ -10,7 +10,7 @@ import { Avatar } from "./Avatar";
 import { ColorSwatch } from "./ColorSwatch";
 import { isPhotoAvatar } from "@/lib/types";
 import { AI_PROFILE_AVATARS, type AIProfile } from "@/lib/types";
-import { ArrowLeft, ArrowRight, Swords, Users, Minus, Plus, Target, Camera, X, Bot } from "lucide-react";
+import { Swords, Users, Minus, Plus, Target, X } from "lucide-react";
 
 // Six couleurs très distinctes pour les six joueurs maximum.
 const COLOR_PALETTE = [
@@ -189,7 +189,7 @@ export function SetupScreen() {
             onClick={backHome}
             className="h-12 px-4 text-base text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="mr-1 h-5 w-5" /> Retour
+            Retour
           </Button>
         </div>
 
@@ -324,7 +324,6 @@ export function SetupScreen() {
                       : "Activer l'IA (joue automatiquement)"
                   }
                 >
-                  <Bot className="h-5 w-5" />
                   {isAI[i] ? "IA active" : "IA"}
                 </button>
                 {/* Upload photo button (hidden for AI players) — photo is optional */}
@@ -333,7 +332,6 @@ export function SetupScreen() {
                     className="flex h-12 cursor-pointer items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
                     title="Téléverser une photo (optionnel)"
                   >
-                  <Camera className="h-5 w-5" />
                     {isPhoto ? "Photo ✓" : "Photo"}
                     <input
                       type="file"
@@ -423,9 +421,7 @@ export function SetupScreen() {
           disabled={!playersValid}
           className="mt-6 h-14 w-full rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 text-base font-bold text-white shadow-[0_10px_28px_rgba(244,63,94,0.2)] transition duration-300 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Swords className="mr-2 h-5 w-5" />
           Lancer le match ({rounds} rounds)
-          <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </motion.div>
     </div>

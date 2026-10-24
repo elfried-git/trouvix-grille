@@ -14,25 +14,17 @@ import { AdminRoomsBoard } from "./AdminRoomsBoard";
 import { ReviewsBoard } from "./ReviewsBoard";
 import { isPhotoAvatar } from "@/lib/types";
 import {
-  ArrowLeft,
-  Camera,
   X,
   Users,
   Copy,
   Check,
-  Plus,
   Swords,
-  LogIn,
   Wifi,
   WifiOff,
   AlertCircle,
-  Bot,
   Bell,
   ShieldCheck,
-  UserMinus,
   Gamepad2,
-  Trash2,
-  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -291,7 +283,6 @@ export function OnlineSetupScreen() {
             }}
             className="h-11 px-3 text-base text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="mr-1 h-4 w-4" />
             {activeTab === "lobby" ? "Quitter le salon" : activeTab === "menu" ? "Retour" : "Menu"}
           </Button>
           <span
@@ -367,7 +358,7 @@ export function OnlineSetupScreen() {
                   className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-base font-medium text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95"
                   title="Téléverser une photo (optionnel)"
                 >
-                  <Camera className="h-5 w-5" />
+                  Photo
                   <input
                     type="file"
                     accept="image/*"
@@ -401,9 +392,6 @@ export function OnlineSetupScreen() {
                 onClick={() => setTab("join")}
                 className="group relative min-h-36 overflow-hidden rounded-2xl border border-emerald-300/25 bg-gradient-to-br from-emerald-400/[0.13] via-emerald-500/[0.04] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-emerald-200/60 hover:shadow-[0_14px_32px_rgba(16,185,129,0.14)] active:translate-y-0 sm:min-h-40 sm:p-6"
               >
-                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/20 bg-emerald-300/10 shadow-[0_0_20px_rgba(52,211,153,0.1)] transition group-hover:scale-105 group-hover:bg-emerald-300/15">
-                  <LogIn className="h-6 w-6 text-emerald-200" />
-                </span>
                 <p className="font-display text-lg font-bold text-foreground sm:text-xl">Rejoindre un salon</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">Entre le code pour retrouver tes amis.</p>
               </button>
@@ -411,9 +399,6 @@ export function OnlineSetupScreen() {
                 onClick={() => setTab("create")}
                 className="group relative min-h-36 overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-amber-400/[0.14] via-orange-500/[0.05] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-amber-200/60 hover:shadow-[0_14px_32px_rgba(245,158,11,0.14)] active:translate-y-0 sm:min-h-40 sm:p-6"
               >
-                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10 shadow-[0_0_20px_rgba(251,191,36,0.1)] transition group-hover:scale-105 group-hover:bg-amber-300/15">
-                  <Plus className="h-7 w-7 text-amber-200" />
-                </span>
                 <p className="font-display text-xl font-bold text-foreground">
                   Créer un salon
                 </p>
@@ -435,9 +420,6 @@ export function OnlineSetupScreen() {
                     fetchPriority="high"
                     className="h-12 w-12 rounded-full object-cover ring-2 ring-violet-400/40"
                   />
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-200/20 bg-violet-300/10">
-                    <Bot className="h-6 w-6 text-violet-200" />
-                  </span>
                 </div>
                 <p className="font-display text-xl font-bold text-foreground">
                   Jouer contre Benchou
@@ -670,7 +652,7 @@ export function OnlineSetupScreen() {
                           <span className="text-sm">Complet</span>
                         ) : (
                           <>
-                            <LogIn className="h-3.5 w-3.5" /> Rejoindre
+                            Rejoindre
                           </>
                         )}
                       </Button>
@@ -694,7 +676,7 @@ export function OnlineSetupScreen() {
                               disabled={onlinePending}
                               title={`Supprimer le salon ${room.roomCode}`}
                             >
-                              <Trash2 className="h-3.5 w-3.5" /> Suppr.
+                              Suppr.
                             </Button>
                           </div>
                         ) : (
@@ -706,7 +688,7 @@ export function OnlineSetupScreen() {
                             disabled={onlinePending}
                             title={`Supprimer le salon ${room.roomCode}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" /> Supprimer
+                            Supprimer
                           </Button>
                         )
                       )}
@@ -781,7 +763,6 @@ export function OnlineSetupScreen() {
                   className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-sm font-semibold text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95 sm:text-base"
                   title="Téléverser une photo (optionnel)"
                 >
-                  <Camera className="h-5 w-5" />
                   {isPhotoAvatar(emoji) ? "Photo ✓" : "Photo"}
                   <input
                     type="file"
@@ -908,17 +889,11 @@ export function OnlineSetupScreen() {
               }`}
             >
               {activeTab === "benchou" ? (
-                <>
-                  <Swords className="mr-2 h-5 w-5" /> Lancer le défi
-                </>
+                "Lancer le défi"
               ) : activeTab === "create" ? (
-                <>
-                  <Plus className="mr-2 h-5 w-5" /> Créer le salon
-                </>
+                "Créer le salon"
               ) : (
-                <>
-                  <LogIn className="mr-2 h-5 w-5" /> Rejoindre
-                </>
+                "Rejoindre"
               )}
             </Button>
           </div>
@@ -952,7 +927,7 @@ export function OnlineSetupScreen() {
                     onClick={shareRoomInvite}
                     className="h-auto min-h-12 min-w-0 flex-1 gap-2 whitespace-normal bg-gradient-to-r from-emerald-700 to-emerald-600 px-3 py-2 text-sm text-white hover:from-emerald-600 hover:to-emerald-500 sm:text-base"
                   >
-                    <Share2 className="h-4 w-4 shrink-0" /> <span>Partager l’invitation</span>
+                    <span>Partager l’invitation</span>
                   </Button>
                   <Button
                     type="button"
@@ -1022,7 +997,7 @@ export function OnlineSetupScreen() {
                         disabled={onlinePending}
                         title={`Retirer ${p.name} du salon`}
                       >
-                        <UserMinus className="h-3.5 w-3.5" /> Retirer
+                        Retirer
                       </Button>
                     )}
                   </div>
@@ -1051,7 +1026,6 @@ export function OnlineSetupScreen() {
                   size="lg"
                   className="w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40"
                 >
-                  <Swords className="mr-2 h-5 w-5" />
                   {roomFull
                     ? "Lancer la partie"
                     : `En attente de joueurs (${connectedCount}/${roomMaxPlayers})`}
@@ -1077,7 +1051,7 @@ export function OnlineSetupScreen() {
                       disabled={onlinePending}
                       className="flex-1 bg-rose-600 text-white hover:bg-rose-500"
                     >
-                      <Trash2 className="mr-1.5 h-4 w-4" /> Confirmer la fermeture
+                      Confirmer la fermeture
                     </Button>
                   </div>
                 ) : (
@@ -1088,7 +1062,7 @@ export function OnlineSetupScreen() {
                     disabled={onlinePending}
                     className="w-full text-muted-foreground hover:text-rose-300"
                   >
-                    <Trash2 className="mr-1.5 h-4 w-4" /> Fermer le salon
+                    Fermer le salon
                   </Button>
                 )}
               </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, Dices, MousePointerClick, Globe, Star, Bell, Pause } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { enableNotifications, prepareNotificationAudio } from "@/lib/admin-notifications";
@@ -107,7 +107,7 @@ export function HomeScreen() {
               size="sm"
               className="h-10 gap-2 rounded-full border-sky-300/40 bg-sky-500/10 px-4 text-sky-100 hover:bg-sky-500/20"
             >
-              <Bell className="h-4 w-4" /> Activer les notifications
+              Activer les notifications
             </Button>
           )}
           <Button
@@ -115,7 +115,6 @@ export function HomeScreen() {
             size="lg"
             className="h-14 w-full rounded-full bg-gradient-to-r from-rose-600 to-rose-500 px-8 text-base font-semibold text-white shadow-[0_8px_30px_-6px_oklch(0.60_0.215_25/0.6)] transition hover:from-rose-500 hover:to-rose-400 hover:shadow-[0_8px_36px_-4px_oklch(0.60_0.215_25/0.8)] sm:w-auto"
           >
-            <Dices className="mr-2 h-5 w-5" />
             Jouer en local
           </Button>
           <Button
@@ -127,7 +126,6 @@ export function HomeScreen() {
             variant="outline"
             className="h-14 w-full rounded-full border-amber-400/50 bg-amber-500/10 px-8 text-base font-semibold text-amber-200 transition hover:bg-amber-500/20 sm:w-auto"
           >
-            <Globe className="mr-2 h-5 w-5" />
             Jouer en ligne
           </Button>
         </motion.div>
@@ -176,7 +174,7 @@ export function HomeScreen() {
             size="sm"
             className="review-button-blink group h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110"
           >
-            <Star className="h-4 w-4 fill-current transition-transform group-hover:rotate-12 group-hover:scale-110" /> Votre avis
+            Votre avis
           </Button>
                 </motion.div>
               </motion.div>
