@@ -460,32 +460,47 @@ interface AdminRoomInfo {
   totalRounds: number
   currentRound: number
   isBenchouChallenge?: boolean
-  players: { id: string; name: string; color: string; emoji: string; score: number; connected: boolean; isAI: boolean }[]
+  winnerId?: string | null
+  tiedPlayerIds?: string[]
+  players: { id: string; name: string; color: string; emoji: string; score: number; isHost?: boolean; connected: boolean; isAI: boolean }[]
   createdAt: number
 }
 
 function getAdminRoomList(): AdminRoomInfo[] {
-  return Array.from(rooms.values()).map((room) => ({
-    roomCode: room.roomCode,
-    hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
-    hostId: room.hostId,
-    playerCount: room.state.players.filter((p) => p.connected !== false).length,
-    maxPlayers: room.maxPlayers,
-    phase: room.state.phase,
-    totalRounds: room.totalRounds,
-    currentRound: room.state.currentRound,
-    isBenchouChallenge: room.isBenchouChallenge ?? false,
-    players: room.state.players.map((p) => ({
-      id: p.id,
-      name: p.name,
-      color: p.color,
-      emoji: p.emoji,
-      score: p.score,
-      connected: p.connected !== false,
-      isAI: p.isAI ?? false,
-    })),
-    createdAt: room.createdAt ?? Date.now(),
-  }))
+  return Array.from(rooms.values()).map((room) => {
+    const s = room.state
+    let tiedPlayerIds: string[] = []
+    if (s.phase === 'gameover' && s.players.length > 0) {
+      const maxScore = Math.max(...s.players.map((p) => p.score))
+      if (maxScore > 0) {
+        tiedPlayerIds = s.players.filter((p) => p.score === maxScore).map((p) => p.id)
+      }
+    }
+    return {
+      roomCode: room.roomCode,
+      hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
+      hostId: room.hostId,
+      playerCount: room.state.players.filter((p) => p.connected !== false).length,
+      maxPlayers: room.maxPlayers,
+      phase: room.state.phase,
+      totalRounds: room.totalRounds,
+      currentRound: room.state.currentRound,
+      isBenchouChallenge: room.isBenchouChallenge ?? false,
+      winnerId: s.winnerId ?? (s.phase === 'gameover' ? computeWinner(s.players) : null),
+      tiedPlayerIds,
+      players: room.state.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        color: p.color,
+        emoji: p.emoji,
+        score: p.score,
+        isHost: p.id === room.hostId,
+        connected: p.connected !== false,
+        isAI: p.isAI ?? false,
+      })),
+      createdAt: room.createdAt ?? Date.now(),
+    }
+  })
 }
 
 function sendAdminRoomList(socket: any): void {

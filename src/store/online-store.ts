@@ -65,6 +65,8 @@ export interface AdminRoom {
   currentRound: number;
   createdAt: number;
   isBenchouChallenge?: boolean;
+  winnerId?: string | null;
+  tiedPlayerIds?: string[];
   players: AdminRoomPlayer[];
 }
 
