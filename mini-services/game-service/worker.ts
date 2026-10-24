@@ -1,7 +1,10 @@
 import {
+  type AdminRoomInfo,
   configureGame,
+  getPendingArchivedRooms,
   getBenchouAvatar,
   io,
+  markArchivedRoomsPersisted,
   restoreGameState,
   runScheduledMaintenance,
   serializeGameState,
@@ -83,7 +86,8 @@ export class GameCoordinator {
       this.state.storage.get<string>('game-state'),
       this.state.storage.get<string>('benchou-avatar'),
     ])
-    restoreGameState(snapshot, avatar)
+    const history = await this.state.storage.list<AdminRoomInfo>({ prefix: 'room-history:' })
+    restoreGameState(snapshot, avatar, [...history.values()])
     if (avatar === undefined) {
       await this.state.storage.put('benchou-avatar', getBenchouAvatar())
     }
@@ -102,11 +106,14 @@ export class GameCoordinator {
 
   private async persistSnapshot(): Promise<void> {
     try {
+      const history = getPendingArchivedRooms()
+      for (const room of history) {
+        await this.state.storage.put(`room-history:${room.roomCode}`, room)
+        markArchivedRoomsPersisted([room.roomCode])
+      }
       await this.state.storage.put('game-state', serializeGameState())
     } catch (error) {
-      // A user-uploaded avatar can make the snapshot exceed DO's value limit.
-      // Keep the live game running and report the durability problem clearly.
-      console.error('[durable-object] could not persist game state:', error)
+      console.error('[durable-object] could not persist game state or room history:', error)
     }
   }
 

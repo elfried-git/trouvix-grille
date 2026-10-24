@@ -103,7 +103,7 @@ export function AdminRoomsBoard() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "active" | "gameover">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "gameover" | "history">("all");
 
   useEffect(() => {
     adminListRooms();
@@ -125,7 +125,7 @@ export function AdminRoomsBoard() {
     await adminDeleteRoom(roomCode);
     setBusyId(null);
     setConfirmDelete(null);
-    setToast(`Salon ${roomCode} supprimé.`);
+    setToast(`Salon ${roomCode} déplacé dans l'historique.`);
     setTimeout(() => setToast(null), 2500);
   };
 
@@ -142,11 +142,13 @@ export function AdminRoomsBoard() {
   const filteredRooms = useMemo(() => {
     if (filter === "active") return rooms.filter((r) => r.phase === "lobby" || r.phase === "playing");
     if (filter === "gameover") return rooms.filter((r) => r.phase === "gameover");
+    if (filter === "history") return rooms.filter((r) => r.archivedAt !== undefined);
     return rooms;
   }, [rooms, filter]);
 
   const completedCount = useMemo(() => rooms.filter((r) => r.phase === "gameover").length, [rooms]);
-  const activeCount = useMemo(() => rooms.filter((r) => r.phase !== "gameover").length, [rooms]);
+  const activeCount = useMemo(() => rooms.filter((r) => !r.archivedAt && (r.phase === "lobby" || r.phase === "playing")).length, [rooms]);
+  const historyCount = useMemo(() => rooms.filter((r) => r.archivedAt !== undefined).length, [rooms]);
 
   return (
     <div className="rounded-2xl border border-rose-400/30 bg-rose-500/5 p-4 sm:p-5">
@@ -218,16 +220,28 @@ export function AdminRoomsBoard() {
           >
             En cours ({activeCount})
           </button>
+          <button
+            onClick={() => setFilter("history")}
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
+              filter === "history"
+                ? "bg-slate-500/25 text-slate-200 border border-slate-400/50 font-bold"
+                : "bg-background/40 text-muted-foreground hover:text-foreground border border-border/20"
+            }`}
+          >
+            Historique ({historyCount})
+          </button>
         </div>
       )}
 
       {/* Liste des salons */}
       {filteredRooms.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/30 bg-card/20 p-6 text-center">
-          <p className="text-2xl">{filter === "gameover" ? "🏆" : "📭"}</p>
+          <p className="text-2xl">{filter === "gameover" ? "🏆" : filter === "history" ? "🗂️" : "📭"}</p>
           <p className="mt-2 text-xs text-muted-foreground">
             {filter === "gameover"
               ? "Aucun match terminé avec un vainqueur pour l'instant."
+              : filter === "history"
+                ? "Aucun salon archivé pour l'instant."
               : rooms.length === 0
                 ? "Aucun salon actif pour l'instant."
                 : "Aucun salon dans cette catégorie."}
@@ -272,6 +286,16 @@ export function AdminRoomsBoard() {
                           ⚔️ Défi 1v1
                         </span>
                       )}
+                      {room.archivedAt !== undefined && (
+                        <span className="rounded-full border border-slate-400/40 bg-slate-500/15 px-2 py-0.5 text-[9px] font-bold uppercase text-slate-200">
+                          Historique
+                        </span>
+                      )}
+                      {room.archivedAt !== undefined && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Créé le {new Date(room.createdAt).toLocaleDateString("fr-FR")}
+                        </span>
+                      )}
                       {room.phase === "playing" && (
                         <span className="text-[10px] text-muted-foreground font-medium">
                           Carré {room.currentRound}/{room.totalRounds}
@@ -284,7 +308,7 @@ export function AdminRoomsBoard() {
                         <Users className="h-3 w-3" />
                         {room.playerCount}/{room.maxPlayers}
                       </span>
-                      {confirmDelete === room.roomCode ? (
+                      {room.archivedAt !== undefined ? null : confirmDelete === room.roomCode ? (
                         <div className="flex items-center gap-1">
                           <Button
                             size="sm"
@@ -442,18 +466,20 @@ export function AdminRoomsBoard() {
                           {p.isAI && <Bot className="h-2.5 w-2.5 text-violet-300" />}
                           {p.connected === false && <WifiOff className="h-2.5 w-2.5 text-rose-400" />}
 
-                          <button
-                            onClick={() => handleKick(room.roomCode, p.id, p.name)}
-                            disabled={busyId === `${room.roomCode}-${p.id}`}
-                            className="ml-0.5 flex h-5 w-5 items-center justify-center rounded text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200 disabled:opacity-40"
-                            title={`Retirer ${p.name}`}
-                          >
-                            {busyId === `${room.roomCode}-${p.id}` ? (
-                              <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-2.5 w-2.5" />
-                            )}
-                          </button>
+                          {!room.archivedAt && (
+                            <button
+                              onClick={() => handleKick(room.roomCode, p.id, p.name)}
+                              disabled={busyId === `${room.roomCode}-${p.id}`}
+                              className="ml-0.5 flex h-5 w-5 items-center justify-center rounded text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200 disabled:opacity-40"
+                              title={`Retirer ${p.name}`}
+                            >
+                              {busyId === `${room.roomCode}-${p.id}` ? (
+                                <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-2.5 w-2.5" />
+                              )}
+                            </button>
+                          )}
                         </div>
                       );
                     })}

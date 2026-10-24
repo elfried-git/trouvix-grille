@@ -13,7 +13,7 @@ Prérequis : un compte Cloudflare gratuit et Node.js/npm sur le PC.
 5. Vérifie son URL : `https://trouvix-game-service.trouvix-grille.workers.dev/health` doit répondre avec `"status":"ok"`.
 6. Si tu utilises le mode Benchou Ferrari, configure le secret : `npx wrangler secret put BENCHOU_PIN`, puis redéploie.
 
-Wrangler crée le namespace SQLite du Durable Object lors du premier déploiement. Les salons et défis sont sauvegardés dans ce stockage; les connexions WebSocket reprennent leurs associations après une hibernation. Les chronomètres de tour, animations de résolution et expirations de salon sont déclenchés par des alarmes ponctuelles, et le navigateur anime le décompte entre les mises à jour serveur. Après un déploiement, les connexions peuvent être coupées; le client se reconnecte et rejoint de nouveau son salon.
+Wrangler crée le namespace SQLite du Durable Object lors du premier déploiement. Les salons, défis et archives de salons supprimés sont sauvegardés dans ce stockage; l’administration conserve les joueurs et leurs scores, avec les vainqueurs mis en évidence, même après la fermeture d’un salon par son hôte. Les connexions WebSocket reprennent leurs associations après une hibernation. Les chronomètres de tour, animations de résolution et expirations de salon sont déclenchés par des alarmes ponctuelles, et le navigateur anime le décompte entre les mises à jour serveur. Après un déploiement, les connexions peuvent être coupées; le client se reconnecte et rejoint de nouveau son salon.
 
 ## Raccorder Vercel
 

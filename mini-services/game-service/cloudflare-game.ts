@@ -98,6 +98,8 @@ interface SocketBinding {
 
 // ====== In-memory stores ======
 const rooms = new Map<string, Room>()
+const archivedRooms = new Map<string, AdminRoomInfo>()
+const pendingArchivedRoomCodes = new Set<string>()
 const socketBindings = new Map<string, SocketBinding>()
 
 function setSocketAttachment(socket: any, patch: Record<string, unknown>): void {
@@ -141,24 +143,48 @@ export function serializeGameState(): string {
   return JSON.stringify({ rooms: savedRooms, challenges: [...challenges.values()] })
 }
 
+export function getPendingArchivedRooms(): AdminRoomInfo[] {
+  return [...pendingArchivedRoomCodes]
+    .map((roomCode) => archivedRooms.get(roomCode))
+    .filter((room): room is AdminRoomInfo => room !== undefined)
+    .map((room) => ({
+      ...room,
+      players: room.players.map((player) => ({
+        ...player,
+        emoji: player.name === 'Benchou Ferrari'
+          ? DEFAULT_BENCHOU_AVATAR
+          : player.emoji.startsWith('data:') ? '' : player.emoji,
+      })),
+    }))
+}
+
+export function markArchivedRoomsPersisted(roomCodes: string[]): void {
+  for (const roomCode of roomCodes) pendingArchivedRoomCodes.delete(roomCode)
+}
+
 export function getBenchouAvatar(): string {
   return benchouAvatar
 }
 
-export function restoreGameState(snapshot?: string, storedAvatar?: string): void {
+export function restoreGameState(snapshot?: string, storedAvatar?: string, savedHistory: AdminRoomInfo[] = []): void {
   rooms.clear()
+  archivedRooms.clear()
+  pendingArchivedRoomCodes.clear()
   socketBindings.clear()
   challenges.clear()
   benchouSocketId = null
   benchouAvatar = DEFAULT_BENCHOU_AVATAR
+  for (const room of savedHistory) archivedRooms.set(room.roomCode, room)
   if (!snapshot) return
 
   try {
-    const saved = JSON.parse(snapshot) as { rooms?: Room[]; challenges?: Challenge[]; benchouAvatar?: string }
+    const saved = JSON.parse(snapshot) as { rooms?: Room[]; challenges?: Challenge[]; archivedRooms?: AdminRoomInfo[]; benchouAvatar?: string }
+    for (const room of saved.archivedRooms ?? []) archivedRooms.set(room.roomCode, room)
     if (isValidBenchouAvatar(storedAvatar)) benchouAvatar = storedAvatar
     else if (isValidBenchouAvatar(saved.benchouAvatar)) benchouAvatar = saved.benchouAvatar
     const now = Date.now()
     for (const room of saved.rooms ?? []) {
+      if (archivedRooms.has(room.roomCode)) continue
       room.state.players = room.state.players.map((player) => ({ ...player, connected: false }))
       for (const player of [...room.state.players, ...room.state.initialPlayers]) {
         if (player.name === 'Benchou Ferrari') player.emoji = benchouAvatar
@@ -269,7 +295,7 @@ function generateRoomCode(): string {
 
 function uniqueRoomCode(): string {
   let code = generateRoomCode()
-  while (rooms.has(code)) code = generateRoomCode()
+  while (rooms.has(code) || archivedRooms.has(code)) code = generateRoomCode()
   return code
 }
 
@@ -436,6 +462,12 @@ function cancelEmptyTimer(room: Room): void {
 function destroyRoom(code: string, reason: string): void {
   const room = rooms.get(code)
   if (!room) return
+  const archived = getAdminRoomInfo(room)
+  archived.archivedAt = Date.now()
+  archived.playerCount = 0
+  archived.players = archived.players.map((player) => ({ ...player, connected: false }))
+  archivedRooms.set(code, archived)
+  pendingArchivedRoomCodes.add(code)
   io.to(code).emit('room-destroyed', { reason })
   io.in(code).socketsLeave(code)
   rooms.delete(code)
@@ -450,7 +482,7 @@ function destroyRoom(code: string, reason: string): void {
 // WebSocket listeners are attached by the Durable Object in worker.ts.
 
 // ====== Admin helpers ======
-interface AdminRoomInfo {
+export interface AdminRoomInfo {
   roomCode: string
   hostName: string
   hostId: string
@@ -464,43 +496,48 @@ interface AdminRoomInfo {
   tiedPlayerIds?: string[]
   players: { id: string; name: string; color: string; emoji: string; score: number; isHost?: boolean; connected: boolean; isAI: boolean }[]
   createdAt: number
+  archivedAt?: number
+}
+
+function getAdminRoomInfo(room: Room): AdminRoomInfo {
+  const s = room.state
+  let tiedPlayerIds: string[] = []
+  if (s.phase === 'gameover' && s.players.length > 0) {
+    const maxScore = Math.max(...s.players.map((p) => p.score))
+    if (maxScore > 0) {
+      tiedPlayerIds = s.players.filter((p) => p.score === maxScore).map((p) => p.id)
+    }
+  }
+  return {
+    roomCode: room.roomCode,
+    hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
+    hostId: room.hostId,
+    playerCount: room.state.players.filter((p) => p.connected !== false).length,
+    maxPlayers: room.maxPlayers,
+    phase: room.state.phase,
+    totalRounds: room.totalRounds,
+    currentRound: room.state.currentRound,
+    isBenchouChallenge: room.isBenchouChallenge ?? false,
+    winnerId: s.winnerId ?? (s.phase === 'gameover' ? computeWinner(s.players) : null),
+    tiedPlayerIds,
+    players: room.state.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      emoji: p.emoji,
+      score: p.score,
+      isHost: p.id === room.hostId,
+      connected: p.connected !== false,
+      isAI: p.isAI ?? false,
+    })),
+    createdAt: room.createdAt ?? Date.now(),
+  }
 }
 
 function getAdminRoomList(): AdminRoomInfo[] {
-  return Array.from(rooms.values()).map((room) => {
-    const s = room.state
-    let tiedPlayerIds: string[] = []
-    if (s.phase === 'gameover' && s.players.length > 0) {
-      const maxScore = Math.max(...s.players.map((p) => p.score))
-      if (maxScore > 0) {
-        tiedPlayerIds = s.players.filter((p) => p.score === maxScore).map((p) => p.id)
-      }
-    }
-    return {
-      roomCode: room.roomCode,
-      hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
-      hostId: room.hostId,
-      playerCount: room.state.players.filter((p) => p.connected !== false).length,
-      maxPlayers: room.maxPlayers,
-      phase: room.state.phase,
-      totalRounds: room.totalRounds,
-      currentRound: room.state.currentRound,
-      isBenchouChallenge: room.isBenchouChallenge ?? false,
-      winnerId: s.winnerId ?? (s.phase === 'gameover' ? computeWinner(s.players) : null),
-      tiedPlayerIds,
-      players: room.state.players.map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: p.color,
-        emoji: p.emoji,
-        score: p.score,
-        isHost: p.id === room.hostId,
-        connected: p.connected !== false,
-        isAI: p.isAI ?? false,
-      })),
-      createdAt: room.createdAt ?? Date.now(),
-    }
-  })
+  const activeRooms = Array.from(rooms.values(), getAdminRoomInfo)
+  const history = Array.from(archivedRooms.values()).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0))
+  return [...activeRooms, ...history]
 }
 
 function sendAdminRoomList(socket: any): void {

@@ -96,6 +96,7 @@ interface SocketBinding {
 
 // ====== In-memory stores ======
 const rooms = new Map<string, Room>()
+const archivedRooms = new Map<string, AdminRoomInfo>()
 const socketBindings = new Map<string, SocketBinding>()
 
 // ====== Challenge system (Benchou Ferrari notifications) ======
@@ -207,7 +208,7 @@ function generateRoomCode(): string {
 
 function uniqueRoomCode(): string {
   let code = generateRoomCode()
-  while (rooms.has(code)) code = generateRoomCode()
+  while (rooms.has(code) || archivedRooms.has(code)) code = generateRoomCode()
   return code
 }
 
@@ -364,6 +365,11 @@ function cancelEmptyTimer(room: Room): void {
 function destroyRoom(code: string, reason: string): void {
   const room = rooms.get(code)
   if (!room) return
+  const archived = getAdminRoomInfo(room)
+  archived.archivedAt = Date.now()
+  archived.playerCount = 0
+  archived.players = archived.players.map((player) => ({ ...player, connected: false }))
+  archivedRooms.set(code, archived)
   io.to(code).emit('room-destroyed', { reason })
   io.in(code).socketsLeave(code)
   rooms.delete(code)
@@ -418,43 +424,48 @@ interface AdminRoomInfo {
   tiedPlayerIds?: string[]
   players: { id: string; name: string; color: string; emoji: string; score: number; isHost?: boolean; connected: boolean; isAI: boolean }[]
   createdAt: number
+  archivedAt?: number
+}
+
+function getAdminRoomInfo(room: Room): AdminRoomInfo {
+  const s = room.state
+  let tiedPlayerIds: string[] = []
+  if (s.phase === 'gameover' && s.players.length > 0) {
+    const maxScore = Math.max(...s.players.map((p) => p.score))
+    if (maxScore > 0) {
+      tiedPlayerIds = s.players.filter((p) => p.score === maxScore).map((p) => p.id)
+    }
+  }
+  return {
+    roomCode: room.roomCode,
+    hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
+    hostId: room.hostId,
+    playerCount: room.state.players.filter((p) => p.connected !== false).length,
+    maxPlayers: room.maxPlayers,
+    phase: room.state.phase,
+    totalRounds: room.totalRounds,
+    currentRound: room.state.currentRound,
+    isBenchouChallenge: room.isBenchouChallenge ?? false,
+    winnerId: s.winnerId ?? (s.phase === 'gameover' ? computeWinner(s.players) : null),
+    tiedPlayerIds,
+    players: room.state.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      emoji: p.emoji,
+      score: p.score,
+      isHost: p.id === room.hostId,
+      connected: p.connected !== false,
+      isAI: p.isAI ?? false,
+    })),
+    createdAt: room.createdAt ?? Date.now(),
+  }
 }
 
 function getAdminRoomList(): AdminRoomInfo[] {
-  return Array.from(rooms.values()).map((room) => {
-    const s = room.state
-    let tiedPlayerIds: string[] = []
-    if (s.phase === 'gameover' && s.players.length > 0) {
-      const maxScore = Math.max(...s.players.map((p) => p.score))
-      if (maxScore > 0) {
-        tiedPlayerIds = s.players.filter((p) => p.score === maxScore).map((p) => p.id)
-      }
-    }
-    return {
-      roomCode: room.roomCode,
-      hostName: room.state.players.find((p) => p.id === room.hostId)?.name ?? 'Inconnu',
-      hostId: room.hostId,
-      playerCount: room.state.players.filter((p) => p.connected !== false).length,
-      maxPlayers: room.maxPlayers,
-      phase: room.state.phase,
-      totalRounds: room.totalRounds,
-      currentRound: room.state.currentRound,
-      isBenchouChallenge: room.isBenchouChallenge ?? false,
-      winnerId: s.winnerId ?? (s.phase === 'gameover' ? computeWinner(s.players) : null),
-      tiedPlayerIds,
-      players: room.state.players.map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: p.color,
-        emoji: p.emoji,
-        score: p.score,
-        isHost: p.id === room.hostId,
-        connected: p.connected !== false,
-        isAI: p.isAI ?? false,
-      })),
-      createdAt: room.createdAt ?? Date.now(),
-    }
-  })
+  const activeRooms = Array.from(rooms.values(), getAdminRoomInfo)
+  const history = Array.from(archivedRooms.values()).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0))
+  return [...activeRooms, ...history]
 }
 
 function sendAdminRoomList(socket: any): void {
@@ -1616,7 +1627,7 @@ setInterval(() => {
     if (room.emptySince !== null && now - room.emptySince < EMPTY_ROOM_TTL_MS) continue
     // If emptySince was never set (legacy room), treat it as stale if in lobby.
     if (room.emptySince === null && room.state.phase !== 'lobby') continue
-    rooms.delete(code)
+    destroyRoom(code, 'expired-empty')
     cleaned++
   }
   if (cleaned > 0) {
