@@ -6,10 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
+import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
-import { Home, Timer, Pause, Crown, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
+import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
 
 // ===== Reaction emojis =====
@@ -368,123 +369,60 @@ export function OnlineGameScreen() {
 
     // === SINGLE WINNER SCREEN ===
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-10">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 150, damping: 18 }}
-          className="flex w-full flex-col items-center text-center"
-        >
-            <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-            className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 shadow-[0_0_50px_-5px_oklch(0.80_0.14_84/0.7)] sm:h-28 sm:w-28"
-          >
-            <Avatar
-              avatar={singleWinner?.emoji ?? ""}
-              color={singleWinner?.color ?? "#52525b"}
-              size={96}
-              emojiSize="text-5xl"
-              ring={false}
-              className="ring-4 ring-white/40"
-            />
-          </motion.div>
-          <p className="mt-6 font-display text-sm uppercase tracking-[0.3em] text-amber-200/80">
-            Le Champion Ultime
-          </p>
-          <h1 className="mt-2 font-display text-5xl font-black text-gold-gradient sm:text-6xl">
-            {singleWinner?.name ?? "—"}
-          </h1>
-          <p className="mt-3 flex items-center gap-2 text-amber-200/80">
-            <Crown className="h-5 w-5 text-amber-300" />
-            avec {singleWinner?.score ?? 0} points
-          </p>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-6 sm:justify-center sm:py-10">
+        {singleWinner && <WinnerHero winner={singleWinner} />}
+        {singleWinner && (
+          <ResultRanking players={ranked} winnerId={singleWinner.id} showConnectionStatus />
+        )}
 
-          {/* Ranking — all players with their names and scores */}
-          <div className="mt-8 w-full max-w-md">
-              <p className="mb-2 font-display text-base uppercase tracking-widest text-muted-foreground">
-              Classement
-            </p>
-            <div className="flex flex-col gap-2">
-              {ranked.map((p, i) => (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.1 }}
-                  className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${
-                    p.id === singleWinner?.id
-                      ? "border-amber-400/50 bg-amber-500/10"
-                      : "border-border/50 bg-card/40"
-                  } ${p.connected === false ? "opacity-50" : ""}`}
-                >
-              <span className="w-8 text-center font-display text-2xl font-bold text-amber-200">
-                    {i + 1}
-                  </span>
-              <Avatar avatar={p.emoji} color={p.color} size={52} emojiSize="text-2xl" />
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className={`truncate font-display text-lg font-semibold ${p.connected === false ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                      {p.name}
-                    </p>
-                    {p.id === singleWinner?.id && p.connected !== false && (
-                      <span className="text-sm font-bold uppercase tracking-widest text-amber-300">Champion</span>
-                    )}
-                    {p.connected === false && (
-                      <span className="text-sm font-bold text-rose-300">A quitté le salon</span>
-                    )}
-                  </div>
-                <span className="font-display text-2xl font-bold">{p.score} pts</span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            {amHost ? (
-              <>
-                <Button
-                  onClick={restartAction}
-                  size="lg"
-                  disabled={!hasEnoughPlayersToRestart}
-                  className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
-                </Button>
-                <Button
-                  onClick={handleNewGame}
-                  size="lg"
-                  variant="outline"
-                  className="h-12 px-6 text-base"
-                >
-                  <Plus className="mr-2 h-5 w-5" /> Nouvelle partie
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  onClick={handleNewGame}
-                  size="lg"
-                  className="h-12 px-6 text-base bg-gradient-to-r from-amber-600 to-amber-500 text-white hover:from-amber-500 hover:to-amber-400 shadow-md"
-                >
-                  <Plus className="mr-2 h-5 w-5" /> Nouvelle partie (Créer un salon)
-                </Button>
-              </>
-            )}
-            <Button onClick={handleQuit} size="lg" variant="outline" className="h-12 px-6 text-base">
-              <Home className="mr-2 h-5 w-5" /> Accueil
+        <div className="mt-6 flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+          {amHost ? (
+            <>
+              <Button
+                onClick={restartAction}
+                size="lg"
+                disabled={!hasEnoughPlayersToRestart}
+                className="h-12 w-full rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-6 text-base text-white shadow-[0_10px_28px_-12px_rgba(244,63,94,0.75)] transition hover:-translate-y-0.5 hover:from-rose-500 hover:to-rose-400 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+              >
+                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+              </Button>
+              <Button
+                onClick={handleNewGame}
+                size="lg"
+                variant="outline"
+                className="h-12 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-base hover:bg-white/[0.08] sm:w-auto"
+              >
+                <Plus className="mr-2 h-5 w-5" /> Nouvelle partie
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={handleNewGame}
+              size="lg"
+              className="h-12 w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-6 text-base text-white shadow-[0_10px_28px_-12px_rgba(245,158,11,0.7)] transition hover:-translate-y-0.5 hover:from-amber-500 hover:to-amber-400"
+            >
+              <Plus className="mr-2 h-5 w-5" /> Nouvelle partie
             </Button>
-            {amHost && !hasEnoughPlayersToRestart && (
-              <p className="w-full text-center text-sm text-rose-300/90 mt-2 font-medium">
-                ⚠️ Plus aucun autre joueur dans le salon. Crée une nouvelle partie ou retourne à l'accueil.
-              </p>
-            )}
-            {!amHost && (
-              <p className="w-full text-center text-sm text-amber-200/80 mt-1">
-                ⏳ Tu peux aussi attendre que l'hôte relance la partie.
-              </p>
-            )}
-          </div>
-        </motion.div>
+          )}
+          <Button
+            onClick={handleQuit}
+            size="lg"
+            variant="outline"
+            className="h-12 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-base hover:bg-white/[0.08] sm:w-auto"
+          >
+            <Home className="mr-2 h-5 w-5" /> Accueil
+          </Button>
+          {amHost && !hasEnoughPlayersToRestart && (
+            <p className="w-full text-center text-sm text-rose-300/90">
+              Plus aucun autre joueur dans le salon. Crée une nouvelle partie ou retourne à l’accueil.
+            </p>
+          )}
+          {!amHost && (
+            <p className="w-full text-center text-sm text-amber-200/80">
+              Tu peux aussi attendre que l’hôte relance la partie.
+            </p>
+          )}
+        </div>
       </div>
     );
   }

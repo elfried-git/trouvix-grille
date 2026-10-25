@@ -4,18 +4,11 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
-import { Crown, RotateCcw, Home, Trophy, Sparkles, Brain, Star, Swords } from "lucide-react";
-
-const PERKS = [
-  { icon: Brain, label: "Tu choisis la categorie de la prochaine manche" },
-  { icon: Star, label: "Tu relances en premier a la prochaine partie" },
-  { icon: Trophy, label: "Tu portes fièrement le titre pour la soiree" },
-];
+import { RotateCcw, Home, Sparkles, Swords } from "lucide-react";
+import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 
 export function WinnerScreen() {
   const players = useGameStore((s) => s.players);
-  const winnerId = useGameStore((s) => s.winnerId);
-  const endReason = useGameStore((s) => s.endReason);
   const restart = useGameStore((s) => s.restart);
   const backHome = useGameStore((s) => s.backHome);
   const rematchTied = useGameStore((s) => s.rematchTied);
@@ -105,96 +98,32 @@ export function WinnerScreen() {
 
   // === SINGLE WINNER SCREEN ===
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-10">
-      {/* Confetti */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 14 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute text-3xl"
-            style={{ left: `${5 + i * 7}%` }}
-            initial={{ y: -50, opacity: 0, rotate: 0 }}
-            animate={{ y: "110vh", opacity: [0, 1, 1, 0], rotate: 360 }}
-            transition={{ duration: 6 + (i % 4), repeat: Infinity, delay: i * 0.4 }}
-          >
-            {['🏆', '⭐', '✨', '👑', '🎉'][i % 5]}
-          </motion.div>
-        ))}
+    <div className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-6 sm:justify-center sm:py-10">
+      <div className="pointer-events-none absolute left-[12%] top-10 text-2xl text-amber-300/70">✦</div>
+      <div className="pointer-events-none absolute right-[12%] top-24 text-lg text-rose-300/70">✧</div>
+      <WinnerHero winner={winner!} />
+      <ResultRanking players={ranked} winnerId={winner!.id} />
+      <div className="mt-6 flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:justify-center">
+        <Button
+          onClick={restart}
+          size="lg"
+          className="h-12 w-full rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-7 text-base text-white shadow-[0_10px_28px_-12px_rgba(244,63,94,0.75)] transition hover:-translate-y-0.5 hover:from-rose-500 hover:to-rose-400 sm:w-auto"
+        >
+          <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+        </Button>
+        <Button
+          onClick={backHome}
+          size="lg"
+          variant="outline"
+          className="h-12 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-base hover:bg-white/[0.08] sm:w-auto"
+        >
+          <Home className="mr-2 h-5 w-5" /> Accueil
+        </Button>
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 150, damping: 18 }}
-        className="relative z-10 flex w-full flex-col items-center text-center"
-      >
-        <div className="mb-6 flex w-full justify-center">
-          <div className="relative flex w-full max-w-3xl items-center justify-center">
-            <div className="absolute -inset-6 rounded-3xl bg-gradient-to-br from-amber-400/10 via-rose-400/6 to-violet-400/6 blur-3xl opacity-80 animate-pulse" />
-            <div className="relative z-10 flex w-full flex-col items-center gap-3 rounded-2xl p-6">
-              <div className="rounded-full bg-white/5 p-1 shadow-xl">
-                <Avatar avatar={winner!.emoji} color={winner!.color} size={120} emojiSize="text-6xl" ring={true} className="ring-8 ring-white/20" />
-              </div>
-              <div className="mt-3 flex flex-col items-center">
-              <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="font-display text-4xl sm:text-5xl font-black text-gold-gradient drop-shadow-lg">{winner!.name}</h1>
-                  <span className="rounded-full bg-amber-400/20 px-3 py-1 text-base font-semibold text-amber-100">Champion</span>
-                </div>
-                <div className="mt-2 flex items-center gap-3 text-amber-200">
-                  <Crown className="h-6 w-6 text-amber-300 drop-shadow" />
-                  <span className="text-lg font-bold">{winner!.score} pts</span>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap justify-center gap-3">
-                <Button onClick={restart} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
-                  <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
-                </Button>
-                <Button onClick={backHome} size="lg" variant="outline" className="h-12 px-6 text-base">
-                  <Home className="mr-2 h-5 w-5" /> Accueil
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ranking */}
-        <div className="mt-8 w-full max-w-md">
-          <p className="mb-2 font-display text-base uppercase tracking-widest text-muted-foreground">Classement</p>
-          <div className="flex flex-col gap-2">
-            {ranked.map((p, i) => (
-              <div
-                key={p.id}
-                className={`flex items-center gap-3 rounded-xl border p-4 ${
-                  p.id === winner!.id
-                    ? "border-amber-400/60 bg-gradient-to-br from-amber-500/10 to-rose-500/5 shadow-lg"
-                    : "border-border/50 bg-card/40"
-                }`}
-              >
-                <span className="w-6 text-center font-display text-lg font-bold text-amber-200">{i + 1}</span>
-                {p.id === winner!.id ? (
-                  <div className="flex items-center gap-3">
-                    <Avatar avatar={p.emoji} color={p.color} size={64} emojiSize="text-3xl" />
-                    <div>
-                      <span className="flex-1 text-left font-bold text-amber-100 text-lg">{p.name}</span>
-                      <div className="mt-1 text-base text-amber-200/90 font-display font-black">{p.score} pts</div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Avatar avatar={p.emoji} color={p.color} size={52} emojiSize="text-2xl" />
-                    <span className="flex-1 text-left font-medium">{p.name}</span>
-                    <span className="font-display text-2xl font-bold">{p.score} pts</span>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="mt-6 flex items-center gap-2 text-base text-muted-foreground">
-          <Sparkles className="h-4 w-4 text-amber-400" /> Merci d'avoir joue a Trouvix - Le Jeu du Carre
-        </p>
-      </motion.div>
+      <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
+        <Sparkles className="h-4 w-4 text-amber-300" />
+        Bien joué ! Une autre manche ?
+      </p>
     </div>
   );
 }
