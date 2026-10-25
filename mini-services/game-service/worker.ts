@@ -68,7 +68,7 @@ export default {
   },
 }
 
-export class GameCoordinator {
+export class GameCoordinatorV2 {
   private initialization: Promise<void> | null = null
   private readonly adminPin: string
 

@@ -8,7 +8,7 @@
     "bindings": [
       {
         "name": "GAME",
-        "class_name": "GameCoordinator"
+        "class_name": "GameCoordinatorV2"
       }
     ]
   },
@@ -16,6 +16,15 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["GameCoordinator"]
+    },
+    {
+      "tag": "v2",
+      "renamed_classes": [
+        {
+          "from": "GameCoordinator",
+          "to": "GameCoordinatorV2"
+        }
+      ]
     }
   ],
   "vars": {
