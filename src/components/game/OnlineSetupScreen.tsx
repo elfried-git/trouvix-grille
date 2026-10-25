@@ -25,6 +25,8 @@ import {
   Bell,
   ShieldCheck,
   Gamepad2,
+  Globe2,
+  LockKeyhole,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -77,6 +79,7 @@ export function OnlineSetupScreen() {
   const [emoji, setEmoji] = useState(""); // data URL or empty
   const [rounds, setRounds] = useState(10);
   const [maxPlayers, setMaxPlayers] = useState(2); // default room size is 1v1; host can choose 2-6
+  const [roomVisibility, setRoomVisibility] = useState<"public" | "private">("public");
   const [joinCode, setJoinCode] = useState("");
   const [inviteRoomCode, setInviteRoomCode] = useState("");
   const [copied, setCopied] = useState(false);
@@ -160,7 +163,7 @@ export function OnlineSetupScreen() {
 
   const handleCreate = async () => {
     if (!profileValid) return;
-    await onlineCreateRoom({ name: name.trim(), color, emoji }, rounds, maxPlayers);
+    await onlineCreateRoom({ name: name.trim(), color, emoji }, rounds, maxPlayers, roomVisibility === "private");
   };
 
   const handleJoin = async () => {
@@ -829,6 +832,51 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
+            {/* Room visibility (create only) */}
+            {activeTab === "create" && (
+              <fieldset className="mt-4 rounded-2xl border border-amber-200/15 bg-gradient-to-br from-amber-300/[0.08] via-card/60 to-rose-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)]">
+                <legend className="px-1 text-sm font-semibold text-amber-100/90">Visibilité du salon</legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    aria-pressed={roomVisibility === "public"}
+                    onClick={() => setRoomVisibility("public")}
+                    className={`flex min-h-24 items-start gap-3 rounded-xl border p-3 text-left transition ${
+                      roomVisibility === "public"
+                        ? "border-emerald-300/60 bg-emerald-400/[0.12] shadow-[0_0_18px_rgba(16,185,129,0.1)]"
+                        : "border-white/10 bg-black/15 hover:border-emerald-300/30"
+                    }`}
+                  >
+                    <Globe2 className={`mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "public" ? "text-emerald-300" : "text-muted-foreground"}`} />
+                    <span>
+                      <span className="block text-sm font-bold text-foreground">Public</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                        Visible dans la liste des salons. Tout le monde peut le rejoindre.
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={roomVisibility === "private"}
+                    onClick={() => setRoomVisibility("private")}
+                    className={`flex min-h-24 items-start gap-3 rounded-xl border p-3 text-left transition ${
+                      roomVisibility === "private"
+                        ? "border-violet-300/60 bg-violet-400/[0.12] shadow-[0_0_18px_rgba(139,92,246,0.12)]"
+                        : "border-white/10 bg-black/15 hover:border-violet-300/30"
+                    }`}
+                  >
+                    <LockKeyhole className={`mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "private" ? "text-violet-300" : "text-muted-foreground"}`} />
+                    <span>
+                      <span className="block text-sm font-bold text-foreground">Privé · sur invitation</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                        Caché de la liste publique. Seuls les joueurs avec le code ou le lien peuvent le rejoindre.
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </fieldset>
+            )}
+
             {/* Max players choice (create only — host defines how many can join) */}
             {activeTab === "create" && (
               <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-amber-200/15 bg-gradient-to-br from-amber-300/[0.08] via-card/60 to-rose-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:flex-row sm:items-center sm:justify-between">
@@ -904,8 +952,9 @@ export function OnlineSetupScreen() {
           <div>
             {/* Room code */}
             <div className="mb-4 min-w-0 rounded-2xl border border-amber-400/30 bg-amber-500/5 p-3 text-center sm:p-4">
-              <p className="text-sm uppercase tracking-widest text-amber-200/70">
-                Code du salon
+              <p className="flex items-center justify-center gap-1.5 text-sm uppercase tracking-widest text-amber-200/70">
+                {serverState.isPrivate ? <LockKeyhole className="h-3.5 w-3.5 text-violet-300" /> : <Globe2 className="h-3.5 w-3.5 text-emerald-300" />}
+                {serverState.isPrivate ? "Salon privé · sur invitation" : "Salon public"}
               </p>
               <div className="mt-1 flex min-w-0 items-center justify-center gap-2">
                 <p className="min-w-0 break-all font-display text-3xl font-black tracking-[0.14em] text-gold-gradient sm:text-4xl sm:tracking-[0.2em]">
@@ -920,7 +969,9 @@ export function OnlineSetupScreen() {
                 </button>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Envoie ce code à tes amis.
+                {serverState.isPrivate
+                  ? "Partage le code ou le lien d’invitation uniquement avec les personnes que tu souhaites inviter."
+                  : "Envoie ce code à tes amis ou partage le lien d’invitation."}
               </p>
               <div className="mt-3 flex min-w-0 flex-wrap gap-2">
                   <Button

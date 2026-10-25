@@ -15,6 +15,7 @@ import {
   Bot,
   WifiOff,
   Trophy,
+  LockKeyhole,
 } from "lucide-react";
 
 interface WinnerInfo {
@@ -284,6 +285,12 @@ export function AdminRoomsBoard() {
                       {room.isBenchouChallenge && (
                         <span className="rounded-full border border-violet-400/50 bg-violet-500/20 px-2 py-0.5 text-[9px] font-bold uppercase text-violet-200">
                           ⚔️ Défi 1v1
+                        </span>
+                      )}
+                      {room.isPrivate && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase text-violet-200">
+                          <LockKeyhole className="h-2.5 w-2.5" />
+                          Privé
                         </span>
                       )}
                       {room.archivedAt !== undefined && (

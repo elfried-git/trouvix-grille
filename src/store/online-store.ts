@@ -64,6 +64,7 @@ export interface AdminRoom {
   totalRounds: number;
   currentRound: number;
   createdAt: number;
+  isPrivate?: boolean;
   isBenchouChallenge?: boolean;
   winnerId?: string | null;
   tiedPlayerIds?: string[];
@@ -98,7 +99,7 @@ interface OnlineStore {
   teardown: () => void;
 
   // actions
-  createRoom: (player: SetupPlayer, totalRounds: number, maxPlayers?: number) => Promise<void>;
+  createRoom: (player: SetupPlayer, totalRounds: number, maxPlayers?: number, isPrivate?: boolean) => Promise<void>;
   joinRoom: (roomCode: string, player: SetupPlayer, allowColorReassignment?: boolean) => Promise<void>;
   challengeBenchou: (player: SetupPlayer, totalRounds: number) => Promise<void>;
   registerAsBenchou: (pin: string) => Promise<boolean>;
@@ -318,7 +319,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     });
   },
 
-  createRoom: async (player, totalRounds, maxPlayers) => {
+  createRoom: async (player, totalRounds, maxPlayers, isPrivate = false) => {
     const socket = getSocket();
     get().init();
     set({ errorMessage: null, pendingAction: true, squareEvent: null });
@@ -362,7 +363,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
       socket.emit(
         "create-room",
-        { player, totalRounds, maxPlayers },
+        { player, totalRounds, maxPlayers, isPrivate },
         (res: { roomCode?: string; playerId?: string; error?: string }) => {
           clearTimeout(timeout);
           set({ pendingAction: false });

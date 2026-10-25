@@ -80,6 +80,7 @@ interface Room {
   totalRounds: number
   maxPlayers: number // host-defined capacity (2-6), clamped to [2, MAX_PLAYERS]
   createdAt: number
+  isPrivate?: boolean
   isBenchouChallenge?: boolean // true if created via "Jouer avec Benchou Ferrari" (private 1v1)
   // Timestamp when the room last became empty (no connected player).
   // null while at least one player is connected. When set, the room is kept
@@ -367,6 +368,7 @@ function publicState(room: Room): any {
     hostId: room.hostId,
     totalRounds: room.totalRounds,
     maxPlayers: room.maxPlayers,
+    isPrivate: room.isPrivate ?? false,
     isBenchouChallenge: room.isBenchouChallenge ?? false,
     phase: s.phase,
     players: s.players.map((p) => ({ ...p })),
@@ -492,6 +494,7 @@ export interface AdminRoomInfo {
   totalRounds: number
   currentRound: number
   isBenchouChallenge?: boolean
+  isPrivate?: boolean
   winnerId?: string | null
   tiedPlayerIds?: string[]
   players: { id: string; name: string; color: string; emoji: string; score: number; isHost?: boolean; connected: boolean; isAI: boolean }[]
@@ -518,6 +521,7 @@ function getAdminRoomInfo(room: Room): AdminRoomInfo {
     totalRounds: room.totalRounds,
     currentRound: room.state.currentRound,
     isBenchouChallenge: room.isBenchouChallenge ?? false,
+    isPrivate: room.isPrivate ?? false,
     winnerId: s.winnerId ?? (s.phase === 'gameover' ? computeWinner(s.players) : null),
     tiedPlayerIds,
     players: room.state.players.map((p) => ({
@@ -576,7 +580,7 @@ interface PublicRoomInfo {
 
 function getPublicRoomList(): PublicRoomInfo[] {
   return Array.from(rooms.values())
-    .filter((room) => !room.isBenchouChallenge)
+    .filter((room) => !room.isBenchouChallenge && !room.isPrivate)
     .map((room) => {
       const host = room.state.players.find((p) => p.id === room.hostId)
       const playerCount = room.state.players.filter((p) => p.connected !== false).length
@@ -623,7 +627,7 @@ io.on('connection', (socket) => {
   // ---- create-room ----
   socket.on(
     'create-room',
-    (payload: { player: SetupPlayer; totalRounds: number; maxPlayers?: number }, ack?: (res: any) => void) => {
+    (payload: { player: SetupPlayer; totalRounds: number; maxPlayers?: number; isPrivate?: boolean }, ack?: (res: any) => void) => {
       try {
         const totalRounds = payload?.totalRounds
         if (![5, 10, 15].includes(totalRounds)) {
@@ -640,6 +644,7 @@ io.on('connection', (socket) => {
           totalRounds,
           maxPlayers,
           createdAt: Date.now(),
+          isPrivate: payload?.isPrivate === true,
           emptySince: null,
           state: freshState(),
         }
@@ -650,9 +655,11 @@ io.on('connection', (socket) => {
         socket.join(roomCode)
         bindSocket(socket, { roomCode, playerId: player.id })
         console.log(`[room ${roomCode}] created by ${player.name} (${player.id}), totalRounds=${totalRounds}, maxPlayers=${maxPlayers}`)
-        for (const [socketId, client] of io.clients) {
-          if (socketId !== socket.id) {
-            client.emit('room-created', { roomCode, hostName: player.name, maxPlayers })
+        if (!room.isPrivate) {
+          for (const [socketId, client] of io.clients) {
+            if (socketId !== socket.id) {
+              client.emit('room-created', { roomCode, hostName: player.name, maxPlayers })
+            }
           }
         }
         if (ack) ack({ roomCode, playerId: player.id })

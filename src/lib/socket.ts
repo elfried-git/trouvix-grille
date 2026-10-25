@@ -299,6 +299,7 @@ export interface OnlineGameState {
   hostId: string;
   totalRounds: number;
   maxPlayers: number;
+  isPrivate?: boolean;
   isBenchouChallenge?: boolean;
   phase: "lobby" | "playing" | "gameover";
   players: OnlinePlayer[];
