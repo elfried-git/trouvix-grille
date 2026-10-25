@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { Crown, RotateCcw, Home, Trophy, Sparkles, Brain, Star, Swords } from "lucide-react";
-import { ResultShareButton } from "./ResultShareButton";
 
 const PERKS = [
   { icon: Brain, label: "Tu choisis la categorie de la prochaine manche" },
@@ -88,7 +87,6 @@ export function WinnerScreen() {
           )}
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <ResultShareButton players={ranked} tiedPlayerIds={tiedPlayers.map((player) => player.id)} />
             <Button onClick={rematchTied} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
               <Swords className="mr-2 h-5 w-5" /> Lancer le challenge decisif
             </Button>
@@ -148,7 +146,6 @@ export function WinnerScreen() {
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap justify-center gap-3">
-                <ResultShareButton players={ranked} />
                 <Button onClick={restart} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
                   <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
                 </Button>
