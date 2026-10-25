@@ -11,6 +11,7 @@ import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
 import { Home, Timer, Pause, Crown, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
+import { ResultShareButton } from "./ResultShareButton";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -306,6 +307,7 @@ export function OnlineGameScreen() {
             )}
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <ResultShareButton players={ranked} tiedPlayerIds={tiedPlayers.map((player) => player.id)} />
               {amHost ? (
                 <>
                   <Button
@@ -440,6 +442,7 @@ export function OnlineGameScreen() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <ResultShareButton players={ranked} tiedPlayerIds={state.tiedPlayerIds} />
             {amHost ? (
               <>
                 <Button
