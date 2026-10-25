@@ -19,16 +19,15 @@ export function WinnerHero({ winner }: { winner: GameResultPlayer }) {
       initial={{ opacity: 0, y: 18, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 145, damping: 20 }}
-      className="relative isolate w-full max-w-xl overflow-hidden rounded-[2rem] border border-amber-300/25 bg-gradient-to-b from-amber-400/[0.12] via-card/75 to-card/55 px-5 py-5 text-center shadow-[0_24px_70px_-38px_rgba(245,158,11,0.52)] sm:px-10 sm:py-9"
+      className="relative isolate w-full max-w-xl overflow-hidden rounded-[2rem] border border-amber-300/35 bg-[radial-gradient(ellipse_at_50%_0%,rgba(245,158,11,0.18),transparent_58%),radial-gradient(ellipse_at_100%_100%,rgba(225,29,72,0.1),transparent_46%),linear-gradient(145deg,rgba(48,30,20,0.96),rgba(31,19,20,0.98)_55%,rgba(24,14,16,0.98))] px-5 py-5 text-center shadow-[0_24px_70px_-38px_rgba(245,158,11,0.52),inset_0_1px_0_rgba(255,229,160,0.12)] sm:px-10 sm:py-9"
     >
-      <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/70 to-transparent" />
-      <div className="pointer-events-none absolute -right-12 -top-16 -z-10 h-48 w-48 rounded-full bg-amber-300/[0.08] blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -left-12 -z-10 h-48 w-48 rounded-full bg-rose-400/[0.08] blur-3xl" />
+      <div className="pointer-events-none absolute inset-2 rounded-[1.6rem] border border-white/[0.035]" />
+      <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/75 to-transparent" />
 
       <motion.div
         animate={{ y: [0, -5, 0], rotate: [0, 2, 0] }}
         transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
-        className="relative mx-auto mb-3 w-fit sm:mb-5"
+        className="relative z-10 mx-auto mb-3 w-fit sm:mb-5"
       >
         <Avatar
           avatar={winner.emoji}
@@ -42,13 +41,13 @@ export function WinnerHero({ winner }: { winner: GameResultPlayer }) {
         </span>
       </motion.div>
 
-      <p className="whitespace-nowrap font-display text-xs font-bold uppercase tracking-[0.2em] text-amber-200/75 sm:text-sm sm:tracking-[0.28em]">
+      <p className="relative z-10 whitespace-nowrap font-display text-xs font-bold uppercase tracking-[0.2em] text-amber-200/75 sm:text-sm sm:tracking-[0.28em]">
         Le champion ultime
       </p>
-      <h1 className="mt-1 break-words font-display text-3xl font-black leading-tight text-gold-gradient drop-shadow-lg sm:mt-2 sm:text-5xl">
+      <h1 className="relative z-10 mt-1 break-words font-display text-3xl font-black leading-tight text-gold-gradient drop-shadow-lg sm:mt-2 sm:text-5xl">
         {winner.name}
       </h1>
-      <p className="mt-2 hidden text-xs text-muted-foreground sm:mt-4 sm:block sm:text-sm">
+      <p className="relative z-10 mt-2 hidden text-xs text-muted-foreground sm:mt-4 sm:block sm:text-sm">
         La grille a parlé. Place à la revanche ?
       </p>
     </motion.section>
