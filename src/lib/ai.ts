@@ -50,15 +50,42 @@ function checkSquare(
   return false;
 }
 
+function countSquaresCompletedByMove(
+  grid: AIGrid,
+  row: number,
+  col: number,
+  playerId: string
+): number {
+  const offsets: [number, number][] = [
+    [0, 0],
+    [0, -1],
+    [-1, 0],
+    [-1, -1],
+  ];
+  let count = 0;
+  for (const [dr, dc] of offsets) {
+    const r0 = row + dr;
+    const c0 = col + dc;
+    if (!inBounds(r0, c0) || !inBounds(r0 + 1, c0 + 1)) continue;
+    if (
+      (r0 === row && c0 === col || grid[r0][c0] === playerId) &&
+      (r0 === row && c0 + 1 === col || grid[r0][c0 + 1] === playerId) &&
+      (r0 + 1 === row && c0 === col || grid[r0 + 1][c0] === playerId) &&
+      (r0 + 1 === row && c0 + 1 === col || grid[r0 + 1][c0 + 1] === playerId)
+    ) {
+      count++;
+    }
+  }
+  return count;
+}
+
 // Find all empty cells that would complete a 2x2 square for playerId.
 function findWinningCells(grid: AIGrid, playerId: string): AICell[] {
   const wins: AICell[] = [];
   for (let r = 0; r < AI_ROWS; r++) {
     for (let c = 0; c < AI_COLS; c++) {
       if (grid[r][c] !== null) continue;
-      const test = grid.map((row) => [...row]);
-      test[r][c] = playerId;
-      if (checkSquare(test, r, c, playerId)) {
+      if (countSquaresCompletedByMove(grid, r, c, playerId) > 0) {
         wins.push({ row: r, col: c });
       }
     }
@@ -160,7 +187,12 @@ export function findBestMove(
   // === 1. Immediate win ===
   const myWins = findWinningCells(grid, aiPlayerId);
   if (myWins.length > 0) {
-    return myWins[0];
+    return myWins.reduce((best, move) =>
+      countSquaresCompletedByMove(grid, move.row, move.col, aiPlayerId) >
+      countSquaresCompletedByMove(grid, best.row, best.col, aiPlayerId)
+        ? move
+        : best
+    );
   }
 
   // === 2. Block opponent's immediate win ===
@@ -181,6 +213,8 @@ export function findBestMove(
   };
   const strategy = strategies[profile] ?? strategies.gpt;
   const threatsBefore = opponentIds.map((id) => countImmediateThreats(grid, id));
+  const candidateScores: { cell: AICell; score: number; opponentWins: number }[] = [];
+  let fewestOpponentWins = Infinity;
 
   for (const cell of empties) {
     const { row, col } = cell;
@@ -226,6 +260,7 @@ export function findBestMove(
       score += (oppPotentialBefore - oppPotentialAfter) * 900 * difficulty;
       score -= Math.max(0, winsAfter - threatsBefore[i]) * 16000 * difficulty;
     }
+    fewestOpponentWins = Math.min(fewestOpponentWins, oppImmediateWinCount);
     if (oppImmediateWinCount > 0) {
       score -= oppImmediateWinCount > 1 ? strategy.risk * 4 : strategy.risk * 1.8;
     }
@@ -250,16 +285,6 @@ export function findBestMove(
     if (opponentForks > 0) {
       score -= opponentForks * 45000 * difficulty;
     }
-
-    // One-ply minimax: estimate the opponent's best tactical reply. This
-    // prevents moves that look strong locally but hand over an easy square.
-    let worstReply = 0;
-    for (const oppId of opponentIds) {
-      const replyWins = countImmediateThreats(afterAI, oppId);
-      const replyThreats = countThreats(afterAI, oppId);
-      worstReply = Math.max(worstReply, replyWins * 24000 + replyThreats * 3200);
-    }
-    score -= worstReply * difficulty;
 
     // === 6. Center preference ===
     const centerR = (AI_ROWS - 1) / 2;
@@ -297,11 +322,54 @@ export function findBestMove(
     }
     score -= oppAdj * 5;
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestMoves = [cell];
-    } else if (score === bestScore) {
-      bestMoves.push(cell);
+    candidateScores.push({ cell, score, opponentWins: oppImmediateWinCount });
+  }
+
+  // Never prefer a positional bonus over preventing an opponent's immediate win.
+  const safestCandidates = candidateScores.filter(
+    (candidate) => candidate.opponentWins === fewestOpponentWins
+  );
+  const shortlist = safestCandidates
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
+
+  for (const candidate of shortlist) {
+    const afterAI = cloneGrid(grid);
+    afterAI[candidate.cell.row][candidate.cell.col] = aiPlayerId;
+    let worstReply = 0;
+
+    for (let i = 0; i < opponentIds.length; i++) {
+      const opponentId = opponentIds[i];
+      const threatsBeforeReply = countThreats(afterAI, opponentId);
+      const potentialBeforeReply = countPotential(afterAI, opponentId);
+
+      for (const reply of emptyCells(afterAI)) {
+        afterAI[reply.row][reply.col] = opponentId;
+        const completedSquares = countSquaresCompletedByMove(
+          afterAI,
+          reply.row,
+          reply.col,
+          opponentId
+        );
+        const threatsAfterReply = countThreats(afterAI, opponentId);
+        const potentialAfterReply = countPotential(afterAI, opponentId);
+        const aiWinningReplies = countImmediateThreats(afterAI, aiPlayerId);
+        const replyScore =
+          completedSquares * 100000 +
+          Math.max(0, threatsAfterReply - threatsBeforeReply) * 10000 +
+          Math.max(0, potentialAfterReply - potentialBeforeReply) * 500 -
+          aiWinningReplies * 14000;
+        worstReply = Math.max(worstReply, replyScore);
+        afterAI[reply.row][reply.col] = null;
+      }
+    }
+
+    const finalScore = candidate.score - worstReply * difficulty;
+    if (finalScore > bestScore) {
+      bestScore = finalScore;
+      bestMoves = [candidate.cell];
+    } else if (finalScore === bestScore) {
+      bestMoves.push(candidate.cell);
     }
   }
 
