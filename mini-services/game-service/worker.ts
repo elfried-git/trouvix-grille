@@ -1,9 +1,11 @@
 import {
   type AdminRoomInfo,
   configureGame,
+  getPendingDeletedArchivedRoomCodes,
   getPendingArchivedRooms,
   getBenchouAvatar,
   io,
+  markArchivedRoomsDeleted,
   markArchivedRoomsPersisted,
   restoreGameState,
   runScheduledMaintenance,
@@ -106,6 +108,11 @@ export class GameCoordinator {
 
   private async persistSnapshot(): Promise<void> {
     try {
+      const deletedRoomCodes = getPendingDeletedArchivedRoomCodes()
+      if (deletedRoomCodes.length > 0) {
+        await this.state.storage.delete(deletedRoomCodes.map((roomCode) => `room-history:${roomCode}`))
+        markArchivedRoomsDeleted(deletedRoomCodes)
+      }
       const history = getPendingArchivedRooms()
       for (const room of history) {
         await this.state.storage.put(`room-history:${room.roomCode}`, room)

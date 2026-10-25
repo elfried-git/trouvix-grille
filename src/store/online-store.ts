@@ -122,6 +122,7 @@ interface OnlineStore {
   adminListRooms: () => void;
   adminKickPlayer: (roomCode: string, playerId: string) => Promise<void>;
   adminDeleteRoom: (roomCode: string) => Promise<void>;
+  adminPurgeRooms: (roomCodes: string[]) => Promise<number>;
   clearKicked: () => void;
   sendReaction: (emoji: string) => void;
 }
@@ -720,6 +721,27 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         set({ pendingAction: false });
         if (res?.error) set({ errorMessage: res.error });
         resolve();
+      });
+    });
+  },
+
+  adminPurgeRooms: async (roomCodes) => {
+    const socket = getSocket();
+    if (!socket.connected) throw new Error("Connexion au serveur indisponible.");
+    set({ pendingAction: true });
+    return new Promise<number>((resolve, reject) => {
+      socket.emit("admin-purge-rooms", { roomCodes }, (res: { ok?: boolean; deletedCount?: number; error?: string }) => {
+        set({ pendingAction: false });
+        if (res?.error) {
+          set({ errorMessage: res.error });
+          reject(new Error(res.error));
+          return;
+        }
+        if (!res?.ok || typeof res.deletedCount !== "number") {
+          reject(new Error("Le serveur n’a pas confirmé la suppression des salons."));
+          return;
+        }
+        resolve(res.deletedCount);
       });
     });
   },

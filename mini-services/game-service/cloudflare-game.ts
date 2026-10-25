@@ -101,6 +101,7 @@ interface SocketBinding {
 const rooms = new Map<string, Room>()
 const archivedRooms = new Map<string, AdminRoomInfo>()
 const pendingArchivedRoomCodes = new Set<string>()
+const pendingDeletedArchivedRoomCodes = new Set<string>()
 const socketBindings = new Map<string, SocketBinding>()
 
 function setSocketAttachment(socket: any, patch: Record<string, unknown>): void {
@@ -163,6 +164,14 @@ export function markArchivedRoomsPersisted(roomCodes: string[]): void {
   for (const roomCode of roomCodes) pendingArchivedRoomCodes.delete(roomCode)
 }
 
+export function getPendingDeletedArchivedRoomCodes(): string[] {
+  return [...pendingDeletedArchivedRoomCodes]
+}
+
+export function markArchivedRoomsDeleted(roomCodes: string[]): void {
+  for (const roomCode of roomCodes) pendingDeletedArchivedRoomCodes.delete(roomCode)
+}
+
 export function getBenchouAvatar(): string {
   return benchouAvatar
 }
@@ -171,6 +180,7 @@ export function restoreGameState(snapshot?: string, storedAvatar?: string, saved
   rooms.clear()
   archivedRooms.clear()
   pendingArchivedRoomCodes.clear()
+  pendingDeletedArchivedRoomCodes.clear()
   socketBindings.clear()
   challenges.clear()
   benchouSocketId = null
@@ -724,6 +734,40 @@ io.on('connection', (socket) => {
     }
     destroyRoom(code, 'admin-deleted')
     if (ack) ack({ ok: true, rooms: getAdminRoomList() })
+  })
+
+  // ---- admin-purge-rooms ----
+  // Permanently remove archived rooms from the admin history.
+  socket.on('admin-purge-rooms', (payload: { roomCodes?: unknown }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const input = payload?.roomCodes
+    if (
+      !Array.isArray(input) ||
+      input.length === 0 ||
+      input.length > 200 ||
+      input.some((code) => typeof code !== 'string' || code.trim().length === 0 || code.length > 16)
+    ) {
+      if (ack) ack({ error: 'Sélection de salons invalide.' })
+      return
+    }
+
+    const roomCodes = [...new Set((input as string[]).map((code) => code.trim().toUpperCase()))]
+    const deletedRoomCodes = roomCodes.filter((code) => archivedRooms.has(code))
+    if (deletedRoomCodes.length === 0) {
+      if (ack) ack({ error: 'Aucun salon archivé correspondant.' })
+      return
+    }
+    for (const code of deletedRoomCodes) {
+      archivedRooms.delete(code)
+      pendingArchivedRoomCodes.delete(code)
+      pendingDeletedArchivedRoomCodes.add(code)
+    }
+    broadcastAdminRoomList()
+    console.log(`[admin] permanently deleted ${deletedRoomCodes.length} archived room(s)`)
+    if (ack) ack({ ok: true, deletedCount: deletedRoomCodes.length, rooms: getAdminRoomList() })
   })
 
   // ---- kick-player (host only) ----

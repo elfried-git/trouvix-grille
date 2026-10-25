@@ -98,11 +98,14 @@ export function AdminRoomsBoard() {
   const adminListRooms = useOnlineStore((s) => s.adminListRooms);
   const adminKickPlayer = useOnlineStore((s) => s.adminKickPlayer);
   const adminDeleteRoom = useOnlineStore((s) => s.adminDeleteRoom);
+  const adminPurgeRooms = useOnlineStore((s) => s.adminPurgeRooms);
   const pending = useOnlineStore((s) => s.pendingAction);
 
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [selectedRoomCodes, setSelectedRoomCodes] = useState<string[]>([]);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "gameover" | "history">("all");
 
@@ -112,6 +115,12 @@ export function AdminRoomsBoard() {
     setTimeout(() => setLoading(false), 1500);
     return () => clearInterval(id);
   }, [adminListRooms]);
+
+  useEffect(() => {
+    setSelectedRoomCodes((selected) =>
+      selected.filter((code) => rooms.some((room) => room.roomCode === code && room.archivedAt !== undefined))
+    );
+  }, [rooms]);
 
   const handleKick = async (roomCode: string, playerId: string, playerName: string) => {
     setBusyId(`${roomCode}-${playerId}`);
@@ -128,6 +137,34 @@ export function AdminRoomsBoard() {
     setConfirmDelete(null);
     setToast(`Salon ${roomCode} déplacé dans l'historique.`);
     setTimeout(() => setToast(null), 2500);
+  };
+
+  const handlePurgeRooms = async (roomCodes: string[]) => {
+    setBusyId("purge-history");
+    try {
+      const deletedCount = await adminPurgeRooms(roomCodes);
+      setSelectedRoomCodes((selected) => selected.filter((code) => !roomCodes.includes(code)));
+      setConfirmDelete(null);
+      setConfirmBulkDelete(false);
+      setToast(`${deletedCount} salon${deletedCount > 1 ? "s" : ""} supprimé${deletedCount > 1 ? "s" : ""} définitivement.`);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Impossible de supprimer les salons.");
+    } finally {
+      setBusyId(null);
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  const toggleRoomSelection = (roomCode: string) => {
+    setSelectedRoomCodes((selected) => {
+      if (selected.includes(roomCode)) return selected.filter((code) => code !== roomCode);
+      if (selected.length >= 200) {
+        setToast("Tu peux sélectionner au maximum 200 salons à la fois.");
+        setTimeout(() => setToast(null), 2500);
+        return selected;
+      }
+      return [...selected, roomCode];
+    });
   };
 
   const phaseLabel = (phase: string) =>
@@ -234,6 +271,57 @@ export function AdminRoomsBoard() {
         </div>
       )}
 
+      {historyCount > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-400/20 bg-slate-500/5 px-3 py-2">
+          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-100">
+            <input
+              type="checkbox"
+              checked={historyCount <= 200 && selectedRoomCodes.length === historyCount}
+              disabled={historyCount > 200}
+              onChange={(event) =>
+                setSelectedRoomCodes(event.target.checked ? rooms.filter((room) => room.archivedAt !== undefined).map((room) => room.roomCode) : [])
+              }
+              className="h-4 w-4 accent-slate-400"
+              aria-label="Sélectionner tous les salons de l’historique"
+            />
+            Tout l’historique ({selectedRoomCodes.length}/{historyCount})
+          </label>
+          {confirmBulkDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-rose-200">Supprimer définitivement les {selectedRoomCodes.length} salons sélectionnés ?</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => setConfirmBulkDelete(false)}
+                disabled={busyId === "purge-history"}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 bg-rose-600 px-2 text-xs text-white hover:bg-rose-500"
+                onClick={() => void handlePurgeRooms(selectedRoomCodes)}
+                disabled={busyId === "purge-history" || selectedRoomCodes.length === 0}
+              >
+                {busyId === "purge-history" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Supprimer"}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmBulkDelete(true)}
+              disabled={selectedRoomCodes.length === 0 || pending}
+              className="h-8 border-rose-400/40 px-2 text-xs text-rose-200 hover:bg-rose-500/10"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              Supprimer la sélection
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Liste des salons */}
       {filteredRooms.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/30 bg-card/20 p-6 text-center">
@@ -315,7 +403,49 @@ export function AdminRoomsBoard() {
                         <Users className="h-3 w-3" />
                         {room.playerCount}/{room.maxPlayers}
                       </span>
-                      {room.archivedAt !== undefined ? null : confirmDelete === room.roomCode ? (
+                      {room.archivedAt !== undefined ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedRoomCodes.includes(room.roomCode)}
+                            onChange={() => toggleRoomSelection(room.roomCode)}
+                            className="h-4 w-4 accent-slate-400"
+                            aria-label={`Sélectionner le salon ${room.roomCode}`}
+                          />
+                          {confirmDelete === room.roomCode ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                                onClick={() => setConfirmDelete(null)}
+                                disabled={busyId === `purge-${room.roomCode}`}
+                              >
+                                Non
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-6 bg-rose-600 px-1.5 text-[10px] text-white hover:bg-rose-500"
+                                onClick={() => void handlePurgeRooms([room.roomCode])}
+                                disabled={busyId === "purge-history"}
+                              >
+                                {busyId === "purge-history" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : "Suppr. ?"}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 shrink-0 gap-1 whitespace-nowrap border-rose-400/50 bg-rose-500/10 px-2 text-[10px] font-semibold text-rose-200 hover:bg-rose-500/20"
+                              onClick={() => setConfirmDelete(room.roomCode)}
+                              disabled={busyId === "purge-history"}
+                              title={`Supprimer définitivement le salon ${room.roomCode}`}
+                            >
+                              <Trash2 className="h-3 w-3" /> Supprimer
+                            </Button>
+                          )}
+                        </div>
+                      ) : confirmDelete === room.roomCode ? (
                         <div className="flex items-center gap-1">
                           <Button
                             size="sm"

@@ -632,6 +632,36 @@ io.on('connection', (socket) => {
     if (ack) ack({ ok: true, rooms: getAdminRoomList() })
   })
 
+  // ---- admin-purge-rooms ----
+  // Permanently remove archived rooms from the admin history.
+  socket.on('admin-purge-rooms', (payload: { roomCodes?: unknown }, ack?: (res: any) => void) => {
+    if (!(socket as any).__isBenchou) {
+      if (ack) ack({ error: 'Accès refusé.' })
+      return
+    }
+    const input = payload?.roomCodes
+    if (
+      !Array.isArray(input) ||
+      input.length === 0 ||
+      input.length > 200 ||
+      input.some((code) => typeof code !== 'string' || code.trim().length === 0 || code.length > 16)
+    ) {
+      if (ack) ack({ error: 'Sélection de salons invalide.' })
+      return
+    }
+
+    const roomCodes = [...new Set((input as string[]).map((code) => code.trim().toUpperCase()))]
+    const deletedRoomCodes = roomCodes.filter((code) => archivedRooms.has(code))
+    if (deletedRoomCodes.length === 0) {
+      if (ack) ack({ error: 'Aucun salon archivé correspondant.' })
+      return
+    }
+    for (const code of deletedRoomCodes) archivedRooms.delete(code)
+    broadcastAdminRoomList()
+    console.log(`[admin] permanently deleted ${deletedRoomCodes.length} archived room(s)`)
+    if (ack) ack({ ok: true, deletedCount: deletedRoomCodes.length, rooms: getAdminRoomList() })
+  })
+
   // ---- kick-player (host only) ----
   // The host removes a player from their own room (lobby only).
   socket.on('kick-player', (payload: { playerId: string }, ack?: (res: any) => void) => {
