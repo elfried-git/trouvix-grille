@@ -28,7 +28,7 @@ export function Avatar({
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full ${
         ring ? "ring-2 ring-white/20" : ""
       } ${className}`}
-      style={{ backgroundColor: color, width: size, height: size, ...style }}
+      style={{ backgroundColor: isPhoto ? "transparent" : color, width: size, height: size, ...style }}
     >
       {isPhoto ? (
         <img
