@@ -75,7 +75,7 @@ export function HomeScreen() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
+          className="mt-8 flex w-full max-w-xl flex-col items-center gap-3 sm:w-auto"
         >
           {notificationPermission !== "granted" && notificationPermission !== "unsupported" && (
             <Button
@@ -87,14 +87,14 @@ export function HomeScreen() {
               Activer les notifications
             </Button>
           )}
-          <Button
-            onClick={goToSetup}
-            size="lg"
-            className="h-14 w-full rounded-full bg-gradient-to-r from-rose-600 to-rose-500 px-8 text-base font-semibold text-white shadow-[0_8px_30px_-6px_oklch(0.60_0.215_25/0.6)] transition hover:from-rose-500 hover:to-rose-400 hover:shadow-[0_8px_36px_-4px_oklch(0.60_0.215_25/0.8)] sm:w-auto"
-          >
-            Jouer en local
-          </Button>
-          <div className="flex w-full flex-col items-center gap-3 sm:w-auto">
+          <div className="grid w-full grid-cols-2 items-start gap-3 sm:w-auto sm:flex sm:items-start">
+            <Button
+              onClick={goToSetup}
+              size="lg"
+              className="h-14 w-full min-w-0 rounded-full bg-gradient-to-r from-rose-600 to-rose-500 px-3 text-sm font-semibold text-white shadow-[0_8px_30px_-6px_oklch(0.60_0.215_25/0.6)] transition hover:from-rose-500 hover:to-rose-400 hover:shadow-[0_8px_36px_-4px_oklch(0.60_0.215_25/0.8)] sm:w-auto sm:px-8 sm:text-base"
+            >
+              Jouer en local
+            </Button>
             <Button
               onClick={() => {
                 prepareNotificationAudio();
@@ -102,19 +102,31 @@ export function HomeScreen() {
               }}
               size="lg"
               variant="outline"
-              className="h-14 w-full rounded-full border-amber-400/50 bg-amber-500/10 px-8 text-base font-semibold text-amber-200 transition hover:bg-amber-500/20 sm:w-auto"
+              className="h-14 w-full min-w-0 rounded-full border-amber-400/50 bg-amber-500/10 px-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 sm:w-auto sm:px-8 sm:text-base"
             >
               Jouer en ligne
             </Button>
+          </div>
+          <div className="col-span-2 grid w-full grid-cols-2 gap-3 sm:hidden">
+            <span className="col-span-2 flex justify-center">
             <Button
               onClick={() => setReviewOpen(true)}
               variant="outline"
               size="sm"
-              className="review-button-blink group h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110"
+              className="review-button-blink group h-11 w-full gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-3 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110"
             >
               Votre avis
             </Button>
+            </span>
           </div>
+          <Button
+            onClick={() => setReviewOpen(true)}
+            variant="outline"
+            size="sm"
+            className="review-button-blink group hidden h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110 sm:inline-flex"
+          >
+            Votre avis
+          </Button>
         </motion.div>
 
         <motion.div
