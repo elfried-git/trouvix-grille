@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
@@ -15,7 +15,7 @@ const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
   { icon: Grid3x3, label: "Placement libre", desc: "Pose où tu veux", color: "text-amber-300" },
   { icon: Timer, label: "10 s / coup", desc: "Joue vite ou perds la main", color: "text-emerald-300" },
-  { icon: MousePointerClick, label: "Gérer la partie", desc: "Ton profil : pause · autre profil : terminer", color: "text-fuchsia-300" },
+  { icon: MousePointerClick, label: "Gérer la partie", desc: "Clique sur ton profil pour mettre la partie en pause. Clique sur le profil de ton adversaire pour quitter la partie.", color: "text-fuchsia-300" },
   { icon: Users, label: "2 à 6 joueurs", desc: "Couleurs au choix", color: "text-lime-300" },
   { icon: Trophy, label: "Champion Ultime", desc: "Meilleur score gagne", color: "text-sky-300" },
 ];
@@ -94,17 +94,59 @@ export function HomeScreen() {
           >
             Jouer en local
           </Button>
-          <Button
-            onClick={() => {
-              prepareNotificationAudio();
-              goToOnlineSetup();
-            }}
-            size="lg"
-            variant="outline"
-            className="h-14 w-full rounded-full border-amber-400/50 bg-amber-500/10 px-8 text-base font-semibold text-amber-200 transition hover:bg-amber-500/20 sm:w-auto"
+          <div className="flex w-full flex-col items-center gap-3 sm:w-auto">
+            <Button
+              onClick={() => {
+                prepareNotificationAudio();
+                goToOnlineSetup();
+              }}
+              size="lg"
+              variant="outline"
+              className="h-14 w-full rounded-full border-amber-400/50 bg-amber-500/10 px-8 text-base font-semibold text-amber-200 transition hover:bg-amber-500/20 sm:w-auto"
+            >
+              Jouer en ligne
+            </Button>
+            <Button
+              onClick={() => setReviewOpen(true)}
+              variant="outline"
+              size="sm"
+              className="review-button-blink group h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110"
+            >
+              Votre avis
+            </Button>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.38 }}
+          className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
           >
-            Jouer en ligne
-          </Button>
+            <Globe2 className="h-10 w-10 text-emerald-300" />
+            <p className="font-display text-base font-semibold">Salon public</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Visible dans la liste, rejoignable par tous.
+            </p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.48 }}
+            className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
+          >
+            <LockKeyhole className="h-10 w-10 text-violet-300" />
+            <p className="font-display text-base font-semibold">Salon privé</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Caché de la liste, accessible par code ou invitation.
+            </p>
+          </motion.div>
         </motion.div>
 
         {/* Features grid */}
@@ -138,22 +180,6 @@ export function HomeScreen() {
           </motion.div>
         </div>
 
-        {/* Rubrique avis / suggestions */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-3"
-        >
-          <Button
-            onClick={() => setReviewOpen(true)}
-            variant="outline"
-            size="sm"
-            className="review-button-blink group h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110"
-          >
-            Votre avis
-          </Button>
-                </motion.div>
               </motion.div>
 
               {/* Démo — hors du conteneur centré, sinon poussée hors écran et coupée */}
