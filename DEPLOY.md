@@ -15,6 +15,8 @@ Prérequis : un compte Cloudflare gratuit et Node.js/npm sur le PC.
 
 Wrangler crée le namespace SQLite du Durable Object lors du premier déploiement. Les salons, défis et archives de salons supprimés sont sauvegardés dans ce stockage; l’administration conserve les joueurs et leurs scores, avec les vainqueurs mis en évidence, même après la fermeture d’un salon par son hôte. Les salons privés ne figurent pas dans la liste publique et sont accessibles avec leur code ou leur lien d’invitation. Les connexions WebSocket reprennent leurs associations après une hibernation. Les chronomètres de tour, animations de résolution et expirations de salon sont déclenchés par des alarmes ponctuelles, et le navigateur anime le décompte entre les mises à jour serveur. Après un déploiement, les connexions peuvent être coupées; le client se reconnecte et rejoint de nouveau son salon.
 
+Les créations privées utilisent l’événement dédié `create-private-room`. Déploie le Worker Cloudflare avant ou en même temps que le front Vercel : un Worker ancien ne reconnaît pas cet événement et le client affiche alors un message de mise à jour requise au lieu de créer par erreur un salon public.
+
 ## Raccorder Vercel
 
 Dans **Vercel > projet Trouvix > Settings > Environment Variables**, définis `NEXT_PUBLIC_GAME_SERVICE_URL` sur `https://trouvix-game-service.trouvix-grille.workers.dev`. Ne mets ni `/health` ni `/ws` à la fin. Redéploie le front pour appliquer la variable.

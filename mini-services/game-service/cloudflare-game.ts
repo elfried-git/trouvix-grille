@@ -625,9 +625,10 @@ io.on('connection', (socket) => {
   socket.emit('benchou-avatar-update', { avatar: benchouAvatar })
 
   // ---- create-room ----
-  socket.on(
-    'create-room',
-    (payload: { player: SetupPlayer; totalRounds: number; maxPlayers?: number; isPrivate?: boolean }, ack?: (res: any) => void) => {
+  const handleCreateRoom = (
+    payload: { player: SetupPlayer; totalRounds: number; maxPlayers?: number; isPrivate?: boolean },
+    ack?: (res: any) => void,
+  ) => {
       try {
         const totalRounds = payload?.totalRounds
         if (![5, 10, 15].includes(totalRounds)) {
@@ -662,15 +663,18 @@ io.on('connection', (socket) => {
             }
           }
         }
-        if (ack) ack({ roomCode, playerId: player.id })
+        if (ack) ack({ roomCode, playerId: player.id, isPrivate: room.isPrivate === true })
         broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
       } catch (err) {
         console.error('[create-room] error', err)
         if (ack) ack({ error: 'Erreur interne' })
         else socket.emit('error', { message: 'Erreur interne' })
       }
-    }
-  )
+  }
+  socket.on('create-room', handleCreateRoom)
+  socket.on('create-private-room', (payload: { player: SetupPlayer; totalRounds: number; maxPlayers?: number }, ack?: (res: any) => void) => {
+    handleCreateRoom({ ...payload, isPrivate: true }, ack)
+  })
 
   // ---- register-as-benchou ----
   // Benchou Ferrari identifies himself with a secret PIN to receive challenge notifications + admin access.

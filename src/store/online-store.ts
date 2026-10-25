@@ -356,26 +356,32 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       const timeout = setTimeout(() => {
         set({
           pendingAction: false,
-          errorMessage: "La création du salon n’a pas été confirmée. Vérifie si le salon apparaît avant de réessayer.",
+          errorMessage: isPrivate
+            ? "Le serveur de salons doit être mis à jour pour créer un salon privé. Réessaie plus tard."
+            : "La création du salon n’a pas été confirmée. Vérifie si le salon apparaît avant de réessayer.",
         });
         resolve();
       }, 20_000);
 
       socket.emit(
-        "create-room",
+        isPrivate ? "create-private-room" : "create-room",
         { player, totalRounds, maxPlayers, isPrivate },
-        (res: { roomCode?: string; playerId?: string; error?: string }) => {
+        (res: { roomCode?: string; playerId?: string; isPrivate?: boolean; error?: string }) => {
           clearTimeout(timeout);
           set({ pendingAction: false });
           if (res?.error) {
             set({ errorMessage: res.error });
           } else if (res?.roomCode && res?.playerId) {
-            set({ myPlayerId: res.playerId, roomCode: res.roomCode, errorMessage: null });
-            persistPlayerProfile(player);
-            try {
-              localStorage.setItem("trouvix_room", res.roomCode);
-              localStorage.setItem("trouvix_player", res.playerId);
-            } catch {}
+            if (isPrivate && res.isPrivate !== true) {
+              set({ errorMessage: "Le serveur n’a pas confirmé la confidentialité du salon. Aucun salon privé n’a été créé." });
+            } else {
+              set({ myPlayerId: res.playerId, roomCode: res.roomCode, errorMessage: null });
+              persistPlayerProfile(player);
+              try {
+                localStorage.setItem("trouvix_room", res.roomCode);
+                localStorage.setItem("trouvix_player", res.playerId);
+              } catch {}
+            }
           }
           resolve();
         }
