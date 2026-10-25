@@ -80,14 +80,14 @@ export function WinnerScreen() {
           )}
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button onClick={rematchTied} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
-              <Swords className="mr-2 h-5 w-5" /> Lancer le challenge decisif
+            <Button onClick={rematchTied} size="lg" className="h-14 px-7 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
+              <Swords className="mr-2 h-6 w-6" /> Lancer le challenge decisif
             </Button>
-            <Button onClick={restart} size="lg" className="h-12 px-6 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
-              <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+            <Button onClick={restart} size="lg" className="h-14 px-7 text-lg bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
+              <RotateCcw className="mr-2 h-6 w-6" /> Rejouer
             </Button>
-            <Button onClick={backHome} size="lg" variant="outline" className="h-12 px-6 text-base">
-              <Home className="mr-2 h-5 w-5" /> Accueil
+            <Button onClick={backHome} size="lg" variant="outline" className="h-14 px-7 text-lg">
+              <Home className="mr-2 h-6 w-6" /> Accueil
             </Button>
           </div>
 
@@ -107,21 +107,21 @@ export function WinnerScreen() {
         <Button
           onClick={restart}
           size="lg"
-          className="h-12 w-full rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-7 text-base text-white shadow-[0_10px_28px_-12px_rgba(244,63,94,0.75)] transition hover:-translate-y-0.5 hover:from-rose-500 hover:to-rose-400 sm:w-auto"
+          className="h-14 w-full rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-7 text-lg text-white shadow-[0_10px_28px_-12px_rgba(244,63,94,0.75)] transition hover:-translate-y-0.5 hover:from-rose-500 hover:to-rose-400 sm:w-auto"
         >
-          <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+          <RotateCcw className="mr-2 h-6 w-6" /> Rejouer
         </Button>
         <Button
           onClick={backHome}
           size="lg"
           variant="outline"
-          className="h-12 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-base hover:bg-white/[0.08] sm:w-auto"
+          className="h-14 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-lg hover:bg-white/[0.08] sm:w-auto"
         >
-          <Home className="mr-2 h-5 w-5" /> Accueil
+          <Home className="mr-2 h-6 w-6" /> Accueil
         </Button>
       </div>
-      <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
-        <Sparkles className="h-4 w-4 text-amber-300" />
+      <p className="mt-5 flex items-center gap-2 text-base text-muted-foreground">
+        <Sparkles className="h-5 w-5 text-amber-300" />
         Bien joué ! Une autre manche ?
       </p>
     </div>

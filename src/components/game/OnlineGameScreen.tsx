@@ -313,26 +313,27 @@ export function OnlineGameScreen() {
                     onClick={rematchTiedAction}
                     size="lg"
                     disabled={!hasEnoughTiedToRematch}
-                    className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="h-14 px-6 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Swords className="mr-2 h-5 w-5" />
+                    <Swords className="mr-2 h-6 w-6" />
                     Lancer le challenge décisif
                   </Button>
                   <Button
                     onClick={restartAction}
                     size="lg"
                     disabled={!hasEnoughPlayersToRestart}
-                    className="h-12 px-6 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="h-14 px-6 text-lg bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <RotateCcw className="mr-2 h-5 w-5" />
+                    <RotateCcw className="mr-2 h-6 w-6" />
                     Rejouer
                   </Button>
                   <Button
                     onClick={handleNewGame}
                     size="lg"
                     variant="outline"
+                    className="h-14 px-6 text-lg"
                   >
-                    <Plus className="mr-2 h-5 w-5" />
+                    <Plus className="mr-2 h-6 w-6" />
                     Nouvelle partie
                   </Button>
                 </>
@@ -341,15 +342,15 @@ export function OnlineGameScreen() {
                   <Button
                     onClick={handleNewGame}
                     size="lg"
-                    className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 shadow-md"
+                    className="h-14 px-6 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 shadow-md"
                   >
-                    <Plus className="mr-2 h-5 w-5" />
+                    <Plus className="mr-2 h-6 w-6" />
                     Nouvelle partie (Créer un salon)
                   </Button>
                 </>
               )}
-              <Button onClick={handleQuit} size="lg" variant="outline">
-                <Home className="mr-2 h-5 w-5" /> Accueil
+              <Button onClick={handleQuit} size="lg" variant="outline" className="h-14 px-6 text-lg">
+                <Home className="mr-2 h-6 w-6" /> Accueil
               </Button>
               {amHost && !hasEnoughPlayersToRestart && (
                 <p className="w-full text-center text-sm text-rose-300/90 mt-2 font-medium">
@@ -382,17 +383,17 @@ export function OnlineGameScreen() {
                 onClick={restartAction}
                 size="lg"
                 disabled={!hasEnoughPlayersToRestart}
-                className="h-12 w-full rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-6 text-base text-white shadow-[0_10px_28px_-12px_rgba(244,63,94,0.75)] transition hover:-translate-y-0.5 hover:from-rose-500 hover:to-rose-400 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+                className="h-14 w-full rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-6 text-lg text-white shadow-[0_10px_28px_-12px_rgba(244,63,94,0.75)] transition hover:-translate-y-0.5 hover:from-rose-500 hover:to-rose-400 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
               >
-                <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
+                <RotateCcw className="mr-2 h-6 w-6" /> Rejouer
               </Button>
               <Button
                 onClick={handleNewGame}
                 size="lg"
                 variant="outline"
-                className="h-12 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-base hover:bg-white/[0.08] sm:w-auto"
+                className="h-14 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-lg hover:bg-white/[0.08] sm:w-auto"
               >
-                <Plus className="mr-2 h-5 w-5" /> Nouvelle partie
+                <Plus className="mr-2 h-6 w-6" /> Nouvelle partie
               </Button>
             </>
           ) : (
@@ -408,9 +409,9 @@ export function OnlineGameScreen() {
             onClick={handleQuit}
             size="lg"
             variant="outline"
-            className="h-12 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-base hover:bg-white/[0.08] sm:w-auto"
+            className="h-14 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-lg hover:bg-white/[0.08] sm:w-auto"
           >
-            <Home className="mr-2 h-5 w-5" /> Accueil
+            <Home className="mr-2 h-6 w-6" /> Accueil
           </Button>
           {amHost && !hasEnoughPlayersToRestart && (
             <p className="w-full text-center text-sm text-rose-300/90">
