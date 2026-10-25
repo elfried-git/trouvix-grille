@@ -30,19 +30,14 @@ export function WinnerHero({ winner }: { winner: GameResultPlayer }) {
         transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
         className="relative mx-auto mb-3 w-fit sm:mb-5"
       >
-        <div className="rounded-full border border-amber-200/35 bg-amber-300/[0.08] p-1.5 shadow-[0_0_36px_-12px_rgba(251,191,36,0.7)] sm:p-2">
-          <div className="rounded-full border-2 border-amber-300/75 bg-background/50 p-1">
-            <Avatar
-              avatar={winner.emoji}
-              color={winner.color}
-              size={62}
-              emojiSize="text-4xl"
-              ring={false}
-              className="ring-4 ring-white/25"
-            />
-          </div>
-        </div>
-        <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 shadow-lg sm:h-9 sm:w-9">
+        <Avatar
+          avatar={winner.emoji}
+          color={winner.color}
+          size={80}
+          emojiSize="text-5xl"
+          ring={false}
+        />
+        <span className="absolute -bottom-1 -right-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 shadow-lg sm:h-10 sm:w-10">
           <Crown className="h-4 w-4 sm:h-5 sm:w-5" />
         </span>
       </motion.div>
