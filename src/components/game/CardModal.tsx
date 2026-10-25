@@ -5,7 +5,7 @@ import { useGameStore } from "@/store/game-store";
 import { CATEGORY_META } from "@/lib/cells";
 import type { CardCategory } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Eye, EyeOff, Check, X, Star, Ban, Gift } from "lucide-react";
+import { Eye, EyeOff, Check, X, Star, Ban, Gift } from "lucide-react";
 
 export function CardModal() {
   const card = useGameStore((s) => s.currentCard);
@@ -213,7 +213,6 @@ function CardContent({
       <div className="pointer-events-none absolute -right-6 -top-6 text-6xl opacity-10">
         {meta.emoji}
       </div>
-      <Sparkles className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 text-amber-300/40" />
     </div>
   );
 }

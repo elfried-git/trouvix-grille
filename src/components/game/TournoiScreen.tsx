@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Trophy, ArrowLeft, Sparkles, Users, Crown, Clock } from "lucide-react";
+import { Trophy, ArrowLeft, Users, Crown, Clock } from "lucide-react";
 
 export function TournoiScreen() {
   const backHome = useGameStore((s) => s.backHome);
@@ -31,7 +31,6 @@ export function TournoiScreen() {
           transition={{ delay: 0.3 }}
           className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-5 py-2 text-sm uppercase tracking-[0.15em] text-amber-200"
         >
-          <Sparkles className="h-3 w-3" />
           Bientôt disponible
         </motion.div>
 

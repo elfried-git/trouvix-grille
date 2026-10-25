@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Check, Sparkles } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { StarRating } from "./StarRating";
 import { useToast } from "@/hooks/use-toast";
 import { useOnlineStore } from "@/store/online-store";
@@ -137,7 +137,7 @@ export function ReviewForm({ open, onOpenChange, onSubmitted }: ReviewFormProps)
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={handleClose} disabled={loading} className="border-amber-400/30 bg-amber-500/5 text-amber-100 hover:bg-amber-500/15">Annuler</Button>
               <Button onClick={handleSubmit} disabled={!isValid || loading} className="bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
-                {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</> : <><Sparkles className="mr-2 h-4 w-4" /> Soumettre l’avis</>}
+                {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</> : "Soumettre l’avis"}
               </Button>
             </DialogFooter>
           </>

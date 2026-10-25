@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
-import { RotateCcw, Home, Sparkles, Swords } from "lucide-react";
+import { RotateCcw, Home, Swords } from "lucide-react";
 import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 
 export function WinnerScreen() {
@@ -120,8 +120,7 @@ export function WinnerScreen() {
           <Home className="mr-2 h-6 w-6" /> Accueil
         </Button>
       </div>
-      <p className="mt-5 flex items-center gap-2 text-base text-muted-foreground">
-        <Sparkles className="h-5 w-5 text-amber-300" />
+      <p className="mt-5 text-base text-muted-foreground">
         Bien joué ! Une autre manche ?
       </p>
     </div>
