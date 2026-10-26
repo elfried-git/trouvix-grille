@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Bomb } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
@@ -129,7 +130,13 @@ export function HomeScreen() {
         </motion.div>
 
         <div className="glass-card mt-3 flex w-full items-center gap-4 rounded-2xl p-4 text-left sm:p-5">
-          <Bomb className="h-9 w-9 shrink-0 text-orange-300" />
+          <Image
+            src="/images/boule-de-feu.png"
+            alt=""
+            width={224}
+            height={230}
+            className="h-9 w-9 shrink-0 object-contain"
+          />
           <div>
             <p className="font-display text-base font-semibold">Bombardement</p>
             <p className="text-sm leading-relaxed text-muted-foreground">

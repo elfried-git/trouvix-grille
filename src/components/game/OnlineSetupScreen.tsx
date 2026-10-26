@@ -334,7 +334,6 @@ export function OnlineSetupScreen() {
               <h2 className="font-display text-4xl font-black tracking-tight text-gold-gradient drop-shadow-[0_4px_18px_rgba(245,158,11,0.18)] sm:text-5xl">
                 Jouer en ligne
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">La partie commence avec toi.</p>
             </div>
 
             {/* Compact profile — name + color, shared with create/benchou */}

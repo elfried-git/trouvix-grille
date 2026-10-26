@@ -173,7 +173,8 @@
   letter-spacing: -0.075em;
   line-height: 0.98;
   transform: rotate(-1deg);
-  filter: drop-shadow(0 3px 0 rgb(29 9 12 / 70%)) drop-shadow(0 0 16px rgb(231 93 42 / 24%));
+  isolation: isolate;
+  filter: drop-shadow(0 3px 0 rgb(29 9 12 / 85%)) drop-shadow(0 0 16px rgb(245 158 11 / 30%));
 }
 .trouvix-hero-wordmark {
   position: relative;
@@ -184,7 +185,8 @@
   letter-spacing: -0.075em;
   line-height: 0.98;
   transform: rotate(-1deg);
-  filter: drop-shadow(0 4px 0 rgb(29 9 12 / 80%)) drop-shadow(0 0 24px rgb(244 63 94 / 35%)) drop-shadow(0 0 45px rgb(245 158 11 / 25%));
+  isolation: isolate;
+  filter: drop-shadow(0 4px 0 rgb(29 9 12 / 90%)) drop-shadow(0 0 24px rgb(245 158 11 / 45%)) drop-shadow(0 0 45px rgb(245 158 11 / 30%));
 }
 .trouvix-wordmark::after {
   content: "✦";
@@ -200,15 +202,20 @@
 }
 .trouvix-wordmark-red,
 .trouvix-wordmark-gold {
+  position: relative;
+  z-index: 1;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.025em #572700;
+  paint-order: stroke fill;
+  text-shadow: 0 0.035em 0 rgb(255 245 170 / 55%);
 }
 .trouvix-wordmark-red {
-  background-image: linear-gradient(145deg, #ff786e 0%, #f02f49 52%, #b91340 100%);
+  background-image: linear-gradient(180deg, #fff8a8 0%, #ffd733 24%, #ff9f00 48%, #ffe65a 60%, #d97900 78%, #fff08a 100%);
 }
 .trouvix-wordmark-gold {
-  background-image: linear-gradient(145deg, #fff0a3 0%, #ffc13b 48%, #e28020 100%);
+  background-image: linear-gradient(180deg, #fff8a8 0%, #ffd733 24%, #ff9f00 48%, #ffe65a 60%, #d97900 78%, #fff08a 100%);
 }
 @keyframes trouvix-sparkle {
   0%, 100% { opacity: 0.55; transform: scale(0.78) rotate(-12deg); }

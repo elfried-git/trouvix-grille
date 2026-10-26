@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { playTrouvixMagicChime } from "@/lib/reaction-sounds";
 
@@ -169,7 +170,7 @@ export function TrouvixHeroTitle() {
           })}
         </div>
 
-        {/* The Official Trouvix Logo: emerges in full glory from the impact */}
+        {/* Administrator portrait in the title frame */}
         <motion.div
           initial={{ opacity: 0, scale: 0.3, rotate: -12 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -182,12 +183,12 @@ export function TrouvixHeroTitle() {
           }}
           className="relative z-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-105"
         >
-          <img
-            src="/trouvix-logo.svg"
-            alt="Logo Trouvix Grille"
+          <Image
+            src="/benchou-ferrari-small.jpg"
+            alt="Photo de Benchou Ferrari, administrateur"
             width={112}
             height={112}
-            className="h-24 w-24 sm:h-28 sm:w-28 drop-shadow-[0_10px_28px_-6px_oklch(0.60_0.215_25/0.7)]"
+            className="h-24 w-24 rounded-2xl border-4 border-amber-300 object-cover shadow-[0_0_24px_rgba(245,158,11,0.65)] ring-2 ring-black/80 sm:h-28 sm:w-28"
           />
         </motion.div>
       </div>
