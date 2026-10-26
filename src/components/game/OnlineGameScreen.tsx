@@ -10,8 +10,9 @@ import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
-import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
+import { Bomb, Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
+import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -32,6 +33,7 @@ export function OnlineGameScreen() {
   }, [state?.phase, state?.isPaused, state?.turnDeadlineAt]);
   const myId = useOnlineStore((s) => s.myPlayerId);
   const placePawnAction = useOnlineStore((s) => s.placePawn);
+  const bombardAction = useOnlineStore((s) => s.bombard);
   const togglePauseAction = useOnlineStore((s) => s.togglePause);
   const endGameAction = useOnlineStore((s) => s.endGame);
   const rematchTiedAction = useOnlineStore((s) => s.rematchTied);
@@ -82,6 +84,14 @@ export function OnlineGameScreen() {
       const opponentIds = s.players
         .filter((p) => p.id !== aiPlayer.id)
         .map((p) => p.id);
+      if (
+        aiPlayer.score >= BOMBARDMENT_UNLOCK_SCORE &&
+        !aiPlayer.bombardmentUsed &&
+        findBombardmentTargets(s.grid, opponentIds).length > 0
+      ) {
+        useOnlineStore.getState().bombard();
+        return;
+      }
       const move = findBestMove(s.grid, aiPlayer.id, opponentIds);
       if (move) {
         useOnlineStore.getState().placePawn(move.row, move.col);
@@ -98,6 +108,17 @@ export function OnlineGameScreen() {
   const [reactionBoardRect, setReactionBoardRect] = useState<DOMRect | null>(null);
   const [activeSquareEvent, setActiveSquareEvent] = useState<{ eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] } | null>(null);
   const handledSquareEventRef = useRef<number | null>(null);
+  const [bombardmentFlash, setBombardmentFlash] = useState(false);
+  const handledBombardmentRef = useRef<number | null>(state?.bombardmentEventId ?? null);
+
+  useEffect(() => {
+    const eventId = state?.bombardmentEventId;
+    if (eventId == null || eventId === handledBombardmentRef.current) return;
+    handledBombardmentRef.current = eventId;
+    setBombardmentFlash(true);
+    const timeout = window.setTimeout(() => setBombardmentFlash(false), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [state?.bombardmentEventId]);
 
   useEffect(() => {
     const board = boardRef.current;
@@ -181,6 +202,12 @@ export function OnlineGameScreen() {
   const current = players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myId;
   const amHost = state.hostId === myId;
+  const bombTargets = current
+    ? findBombardmentTargets(
+        state.grid,
+        players.filter((player) => player.id !== current.id).map((player) => player.id),
+      )
+    : [];
 
   const inAnySquare = (r: number, c: number) =>
     state.formedSquares.some((sq) =>
@@ -231,9 +258,8 @@ export function OnlineGameScreen() {
 
     // === TIE SCREEN ===
     if (isTie) {
-      const eliminated = ranked.filter((p) => !tiedPlayerIds.includes(p.id));
       return (
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-10">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -241,39 +267,30 @@ export function OnlineGameScreen() {
             className="flex w-full flex-col items-center text-center"
           >
             <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 2.5, repeat: Infinity }}
-              className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-6xl shadow-[0_0_50px_-5px_oklch(0.60_0.20_300/0.6)] sm:h-28 sm:w-28"
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-3xl shadow-[0_0_30px_-5px_oklch(0.60_0.20_300/0.6)]"
             >
               ⚖️
             </motion.div>
-            <p className="mt-6 font-display text-sm uppercase tracking-[0.3em] text-violet-200/80">
-              Égalité parfaite
+            <p className="mt-3 font-display text-sm uppercase tracking-[0.2em] text-violet-200/80">
+              Égalité
             </p>
-            <h1 className="mt-2 font-display text-5xl font-black text-violet-200 sm:text-6xl">
+            <h1 className="mt-1 font-display text-4xl font-black text-violet-200 sm:text-5xl">
               {maxScore} pts
             </h1>
-            <p className="mt-3 text-base text-muted-foreground">
-              {tiedPlayers.length} joueurs sont à égalité. Un challenge décisif va les départager.
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tiedPlayers.length} joueurs à départager
             </p>
 
-            <div className="mt-8 w-full max-w-md">
-              <p className="mb-2 font-display text-base uppercase tracking-widest text-violet-300/80">
-                En lice pour le challenge
-              </p>
+            <div className="mt-4 w-full max-w-md">
               <div className="flex flex-col gap-2">
-                {tiedPlayers.map((p, i) => (
+                {tiedPlayers.map((p) => (
                   <motion.div
                     key={p.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + i * 0.1 }}
                     style={{ background: `linear-gradient(#1b111c, #1b111c) padding-box, linear-gradient(110deg, ${p.color}, ${p.color}45 65%, #ffffff22) border-box`, boxShadow: `0 0 22px ${p.color}35` }}
-                    className={`flex items-center gap-3 rounded-2xl border-2 border-transparent p-4 shadow-xl sm:p-3 ${
+                    className={`flex items-center gap-3 rounded-2xl border-2 border-transparent px-3 py-2 shadow-xl ${
                       p.connected === false ? "opacity-50" : ""
                     }`}
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black text-white" style={{ backgroundColor: `${p.color}66` }}>{i + 1}</span>
                     <div className="rounded-full p-[2px]" style={{ background: `linear-gradient(135deg, #fff, ${p.color})` }}><Avatar avatar={p.emoji} color={p.color} size={40} emojiSize="text-xl" ring={false} /></div>
                     <div className="min-w-0 flex-1 text-left">
                       <p className={`font-display font-bold text-white truncate ${p.connected === false ? "line-through text-muted-foreground" : ""}`}>
@@ -283,58 +300,41 @@ export function OnlineGameScreen() {
                         <span className="text-sm font-bold text-rose-300">A quitté le salon</span>
                       )}
                     </div>
-                    <span className="rounded-xl px-3 py-1 font-display text-xl font-black text-white sm:text-lg" style={{ backgroundColor: `${p.color}33` }}>{p.score} pts</span>
+                    <span className="rounded-xl px-3 py-1 font-display text-base font-black text-white" style={{ backgroundColor: `${p.color}33` }}>{p.score} pts</span>
                   </motion.div>
                 ))}
               </div>
             </div>
 
-            {eliminated.length > 0 && (
-              <div className="mt-4 w-full max-w-md">
-                <p className="mb-2 font-display text-base uppercase tracking-widest text-muted-foreground/60">
-                  Éliminés
-                </p>
-                <div className="flex flex-col gap-2">
-                  {eliminated.map((p) => (
-                    <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/20 p-3 opacity-40">
-                      <Avatar avatar={p.emoji} color={p.color} size={36} emojiSize="text-lg" />
-                      <span className="flex-1 text-left font-medium line-through">{p.name}</span>
-                      <span className="font-display text-lg font-bold">{p.score} pts</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {amHost ? (
                 <>
                   <Button
                     onClick={rematchTiedAction}
                     size="lg"
                     disabled={!hasEnoughTiedToRematch}
-                    className="h-14 px-6 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="h-12 px-5 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Swords className="mr-2 h-6 w-6" />
-                    Lancer le challenge décisif
+                    <Swords className="mr-2 h-5 w-5" />
+                    Départager
                   </Button>
                   <Button
                     onClick={restartAction}
                     size="lg"
                     disabled={!hasEnoughPlayersToRestart}
-                    className="h-14 px-6 text-lg bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="h-12 px-5 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <RotateCcw className="mr-2 h-6 w-6" />
+                    <RotateCcw className="mr-2 h-5 w-5" />
                     Rejouer
                   </Button>
                   <Button
                     onClick={handleNewGame}
                     size="lg"
                     variant="outline"
-                    className="h-14 px-6 text-lg"
+                    className="h-12 px-5 text-base"
                   >
-                    <Plus className="mr-2 h-6 w-6" />
-                    Nouvelle partie
+                    <Plus className="mr-2 h-5 w-5" />
+                    Nouveau salon
                   </Button>
                 </>
               ) : (
@@ -342,24 +342,24 @@ export function OnlineGameScreen() {
                   <Button
                     onClick={handleNewGame}
                     size="lg"
-                    className="h-14 px-6 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 shadow-md"
+                    className="h-12 px-5 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 shadow-md"
                   >
-                    <Plus className="mr-2 h-6 w-6" />
-                    Nouvelle partie (Créer un salon)
+                    <Plus className="mr-2 h-5 w-5" />
+                    Nouveau salon
                   </Button>
                 </>
               )}
-              <Button onClick={handleQuit} size="lg" variant="outline" className="h-14 px-6 text-lg">
-                <Home className="mr-2 h-6 w-6" /> Accueil
+              <Button onClick={handleQuit} size="lg" variant="outline" className="h-12 px-5 text-base">
+                <Home className="mr-2 h-5 w-5" /> Accueil
               </Button>
               {amHost && !hasEnoughPlayersToRestart && (
-                <p className="w-full text-center text-sm text-rose-300/90 mt-2 font-medium">
-                  ⚠️ Plus aucun autre joueur dans le salon. Crée une nouvelle partie ou retourne à l'accueil.
+                <p className="w-full text-center text-xs text-rose-300/90 mt-1 font-medium">
+                  Aucun autre joueur connecté.
                 </p>
               )}
               {!amHost && (
-                <p className="w-full text-center text-sm text-violet-200/80 mt-1">
-                  ⏳ Tu peux aussi attendre que l'hôte lance le challenge décisif.
+                <p className="w-full text-center text-xs text-violet-200/80 mt-1">
+                  En attente de l&apos;hôte pour le départage.
                 </p>
               )}
             </div>
@@ -504,6 +504,9 @@ export function OnlineGameScreen() {
                           IA
                         </span>
                       )}
+                      {p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.bombardmentUsed && (
+                        <Bomb aria-label="Bombardement disponible" className="h-3.5 w-3.5 text-orange-300 sm:h-4 sm:w-4" />
+                      )}
                     </div>
                     <span className={`font-display text-sm font-black leading-none sm:text-lg ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                       {p.score} <span className="text-[10px] font-normal text-muted-foreground sm:text-xs">pts</span>
@@ -548,9 +551,29 @@ export function OnlineGameScreen() {
             </div>
           </div>
 
+          {isMyTurn && !current?.isAI && current && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (
+            <div className="mx-auto w-full max-w-md shrink-0 text-center">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={state.resolving || state.isPaused || bombTargets.length === 0}
+                onClick={bombardAction}
+                aria-label="Utiliser le bombardement"
+                title={bombTargets.length > 0 ? "Bombarder les pions adverses qui menacent un carré (consomme le tour)" : "Aucun carré adverse imminent"}
+                className="h-11 gap-2 border-orange-400/60 bg-gradient-to-r from-orange-500/20 to-red-600/20 px-4 text-sm text-orange-100 shadow-[0_0_18px_rgba(249,115,22,0.2)] sm:h-12 sm:px-5 sm:text-base"
+              >
+                <Bomb className="h-5 w-5 text-orange-300" />
+                Bombarder
+              </Button>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Détruit les pions adverses d’un carré presque formé. Utilisable une fois ; ton tour se termine.
+              </p>
+            </div>
+          )}
+
           {/* Board */}
           <div className="mx-auto w-full min-w-0 max-w-[min(640px,calc(100vw-1rem))] shrink-0">
-            <div ref={boardRef} className="relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2">
+            <div ref={boardRef} className={`relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}>
               <div className="relative z-20 grid gap-[2px] rounded-xl bg-[oklch(0.18_0.02_22)] p-px sm:gap-1.5 sm:p-1" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {

@@ -24,7 +24,7 @@ export function WinnerScreen() {
   // === TIE SCREEN ===
   if (isTie) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-10">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -32,62 +32,40 @@ export function WinnerScreen() {
           className="relative z-10 flex w-full flex-col items-center text-center"
         >
           <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity }}
-            className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-6xl shadow-[0_0_50px_-5px_rgba(139,92,246,0.6)]"
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-3xl shadow-[0_0_30px_-5px_rgba(139,92,246,0.6)]"
           >
             ⚖️
           </motion.div>
 
-          <p className="mt-6 font-display text-base uppercase tracking-[0.3em] text-violet-200/80">Égalité parfaite</p>
-          <h1 className="mt-2 font-display text-5xl font-black text-violet-200 sm:text-6xl">{maxScore} pts</h1>
-          <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{tiedPlayers.length} joueurs sont à égalité. Un challenge décisif va les départager.</p>
+          <p className="mt-3 font-display text-sm uppercase tracking-[0.2em] text-violet-200/80">Égalité</p>
+          <h1 className="mt-1 font-display text-4xl font-black text-violet-200 sm:text-5xl">{maxScore} pts</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{tiedPlayers.length} joueurs à départager</p>
 
-          <div className="mt-8 w-full max-w-md">
-            <p className="mb-2 font-display text-base uppercase tracking-widest text-violet-300/80">En lice pour le challenge</p>
+          <div className="mt-4 w-full max-w-md">
             <div className="flex flex-col gap-2">
-              {tiedPlayers.map((p, i) => (
+              {tiedPlayers.map((p) => (
                 <motion.div
                   key={p.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + i * 0.1 }}
                   style={{ background: `linear-gradient(#1b111c, #1b111c) padding-box, linear-gradient(110deg, ${p.color}, ${p.color}45 65%, #ffffff22) border-box`, boxShadow: `0 0 22px ${p.color}35` }}
-                  className="flex min-h-16 items-center gap-3 rounded-2xl border-2 border-transparent p-4 shadow-xl"
+                  className="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-transparent px-3 py-2 shadow-xl"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black text-white" style={{ backgroundColor: `${p.color}66` }}>{i + 1}</span>
-                  <div className="rounded-full p-[2px]" style={{ background: `linear-gradient(135deg, #fff, ${p.color})` }}><Avatar avatar={p.emoji} color={p.color} size={48} emojiSize="text-2xl" ring={false} /></div>
+                  <div className="rounded-full p-[2px]" style={{ background: `linear-gradient(135deg, #fff, ${p.color})` }}><Avatar avatar={p.emoji} color={p.color} size={40} emojiSize="text-xl" ring={false} /></div>
                   <span className="flex-1 text-left text-lg font-bold text-white">{p.name}</span>
-                  <span className="rounded-xl px-3 py-1 font-display text-xl font-black text-white sm:text-lg" style={{ backgroundColor: `${p.color}33` }}>{p.score} pts</span>
+                  <span className="rounded-xl px-3 py-1 font-display text-base font-black text-white" style={{ backgroundColor: `${p.color}33` }}>{p.score} pts</span>
                 </motion.div>
               ))}
             </div>
           </div>
 
-          {ranked.filter((p) => p.score < maxScore).length > 0 && (
-            <div className="mt-4 w-full max-w-md">
-              <p className="mb-2 font-display text-base uppercase tracking-widest text-muted-foreground/60">Éliminés</p>
-              <div className="flex flex-col gap-2">
-                {ranked.filter((p) => p.score < maxScore).map((p, i) => (
-                  <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/20 p-3 opacity-40">
-                    <Avatar avatar={p.emoji} color={p.color} size={44} emojiSize="text-xl" />
-                    <span className="flex-1 text-left text-base font-medium line-through">{p.name}</span>
-                    <span className="font-display text-xl font-bold">{p.score} pts</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button onClick={rematchTied} size="lg" className="h-14 px-7 text-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
-              <Swords className="mr-2 h-6 w-6" /> Lancer le challenge decisif
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Button onClick={rematchTied} size="lg" className="h-12 px-5 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
+              <Swords className="mr-2 h-5 w-5" /> Départager
             </Button>
-            <Button onClick={restart} size="lg" className="h-14 px-7 text-lg bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
-              <RotateCcw className="mr-2 h-6 w-6" /> Rejouer
+            <Button onClick={restart} size="lg" className="h-12 px-5 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
+              <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
             </Button>
-            <Button onClick={backHome} size="lg" variant="outline" className="h-14 px-7 text-lg">
-              <Home className="mr-2 h-6 w-6" /> Accueil
+            <Button onClick={backHome} size="lg" variant="outline" className="h-12 px-5 text-base">
+              <Home className="mr-2 h-5 w-5" /> Accueil
             </Button>
           </div>
 

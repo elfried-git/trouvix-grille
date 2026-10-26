@@ -18,6 +18,7 @@ export interface Player {
   emoji: string; // emoji string OR data URL (uploaded photo) — used as avatar
   score: number;
   alignments: number; // number of 4-in-a-row made
+  bombardmentUsed?: boolean;
   isAI?: boolean; // true for AI-controlled players
   aiProfile?: AIProfile;
 }

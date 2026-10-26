@@ -1,5 +1,6 @@
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from '../../src/lib/bombardment'
 
 // ====== Game constants (must match the client store exactly) ======
 const ROWS = 10
@@ -34,6 +35,7 @@ interface Player {
   emoji: string // emoji string OR data URL (uploaded photo) OR public asset URL
   score: number
   alignments: number
+  bombardmentUsed?: boolean
   isAI?: boolean
   connected?: boolean // false when the player has disconnected mid-game (kept for score tracking)
 }
@@ -71,6 +73,8 @@ interface GameState {
   totalRounds: number
   currentRound: number
   lastDelta: { playerId: string; delta: number } | null
+  bombardmentEventId: number | null
+  bombardedCells: CellCoord[] | null
   initialPlayers: Player[]
 }
 
@@ -228,6 +232,7 @@ function makePlayer(setup: SetupPlayer): Player {
     emoji: setup.emoji || '',
     score: 0,
     alignments: 0,
+    bombardmentUsed: false,
     isAI: (setup as any).isAI ?? false,
     connected: true,
   }
@@ -251,6 +256,8 @@ function freshState(): GameState {
     totalRounds: 10,
     currentRound: 0,
     lastDelta: null,
+    bombardmentEventId: null,
+    bombardedCells: null,
     initialPlayers: [],
   }
 }
@@ -285,6 +292,8 @@ function publicState(room: Room): any {
     lastSquareCells: s.lastSquareCells ? s.lastSquareCells.map((c) => ({ ...c })) : null,
     lastSquareerId: s.lastSquareerId,
     squareEventId: s.squareEventId,
+    bombardmentEventId: s.bombardmentEventId,
+    bombardedCells: s.bombardedCells ? s.bombardedCells.map((cell) => ({ ...cell })) : null,
     formedSquares: s.formedSquares.map((sq) => ({ cells: sq.cells, playerId: sq.playerId })),
     resolving: s.resolving,
     isPaused: s.isPaused,
@@ -1117,6 +1126,8 @@ io.on('connection', (socket) => {
     room.state.lastSquareCells = null
     room.state.lastSquareerId = null
     room.state.squareEventId = null
+    room.state.bombardmentEventId = null
+    room.state.bombardedCells = null
     room.state.formedSquares = []
     room.state.resolving = false
     room.state.isPaused = false
@@ -1286,6 +1297,50 @@ io.on('connection', (socket) => {
     broadcastState(room); broadcastAdminRoomList()
   })
 
+  // ---- bombard (active player only) ----
+  socket.on('bombard', (_payload: unknown, ack?: (res: any) => void) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding) { if (ack) ack({ error: "Tu ne fais pas partie de ce salon." }); return }
+    const room = findRoom(binding.roomCode)
+    if (!room) { if (ack) ack({ error: "Salon introuvable." }); return }
+    const s = room.state
+    const current = s.players[s.currentPlayerIndex]
+    if (s.phase !== 'playing' || s.resolving || s.isPaused || !current) {
+      if (ack) ack({ error: "Le bombardement n'est pas disponible maintenant." })
+      return
+    }
+    if (current.id !== binding.playerId && !(current.isAI && room.hostId === binding.playerId)) {
+      if (ack) ack({ error: "Ce n'est pas votre tour." })
+      return
+    }
+    if (current.score < BOMBARDMENT_UNLOCK_SCORE || current.bombardmentUsed) {
+      if (ack) ack({ error: "Ce joueur n'a pas de bombardement disponible." })
+      return
+    }
+    const opponentIds = s.players.filter((player) => player.id !== current.id).map((player) => player.id)
+    const bombardedCells = findBombardmentTargets(s.grid, opponentIds)
+    if (bombardedCells.length === 0) {
+      if (ack) ack({ error: "Aucun carré adverse imminent à bombarder." })
+      return
+    }
+
+    for (const cell of bombardedCells) s.grid[cell.row][cell.col] = null
+    s.formedSquares = s.formedSquares.filter((square) =>
+      square.cells.every((cell) => s.grid[cell.row][cell.col] === square.playerId)
+    )
+    current.bombardmentUsed = true
+    s.bombardmentEventId = Date.now()
+    s.bombardedCells = bombardedCells
+    const nextIndex = nextPlayerIndex(room)
+    const next = s.players[nextIndex]
+    s.currentPlayerIndex = nextIndex
+    s.turnTimeLeft = TURN_SECONDS
+    s.statusMessage = `💣 ${current.name} bombarde ${bombardedCells.length} pion${bombardedCells.length > 1 ? 's' : ''} ! À ${next?.name ?? '?'} de jouer.`
+    if (ack) ack({ ok: true })
+    broadcastState(room)
+    broadcastAdminRoomList()
+  })
+
   // ---- toggle-pause (any player in the room) ----
   socket.on('toggle-pause', (_payload: unknown, ack?: (res: any) => void) => {
     const binding = socketBindings.get(socket.id)
@@ -1340,6 +1395,7 @@ io.on('connection', (socket) => {
       ...p,
       score: 0,
       alignments: 0,
+      bombardmentUsed: false,
     }))
     room.state = freshState()
     room.state.phase = 'playing'
@@ -1377,7 +1433,7 @@ io.on('connection', (socket) => {
       return
     }
     // Keep only tied players, reset their scores, start a new game
-    const keptTied = tied.map((p) => ({ ...p, score: 0, alignments: 0 }))
+    const keptTied = tied.map((p) => ({ ...p, score: 0, alignments: 0, bombardmentUsed: false }))
     room.state.phase = 'playing'
     room.state.players = keptTied
     room.state.currentPlayerIndex = 0
@@ -1387,6 +1443,8 @@ io.on('connection', (socket) => {
     room.state.lastSquareCells = null
     room.state.lastSquareerId = null
     room.state.squareEventId = null
+    room.state.bombardmentEventId = null
+    room.state.bombardedCells = null
     room.state.formedSquares = []
     room.state.resolving = false
     room.state.isPaused = false

@@ -290,6 +290,7 @@ export interface OnlinePlayer {
   emoji: string;
   score: number;
   alignments: number;
+  bombardmentUsed?: boolean;
   isAI?: boolean;
   connected?: boolean;
 }
@@ -313,6 +314,8 @@ export interface OnlineGameState {
   lastSquareCells: { row: number; col: number }[] | null;
   lastSquareerId: string | null;
   squareEventId?: number | null;
+  bombardmentEventId?: number | null;
+  bombardedCells?: { row: number; col: number }[] | null;
   formedSquares: { cells: { row: number; col: number }[]; playerId: string }[];
   resolving: boolean;
   isPaused: boolean;

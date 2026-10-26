@@ -291,3 +291,43 @@
 .dice-rolling {
   animation: dice-shake 0.18s linear infinite;
 }
+
+@keyframes bombardment-fire {
+  0%, 100% {
+    border-color: rgb(255 82 28 / 95%);
+    box-shadow: 0 0 12px 4px rgb(255 74 20 / 85%), 0 0 28px 10px rgb(255 155 35 / 65%), inset 0 0 18px rgb(255 82 28 / 55%);
+    opacity: 0.92;
+  }
+  50% {
+    border-color: rgb(255 218 88 / 100%);
+    box-shadow: 0 0 20px 8px rgb(255 183 32 / 95%), 0 0 42px 16px rgb(255 56 20 / 82%), inset 0 0 28px rgb(255 180 35 / 75%);
+    opacity: 1;
+  }
+}
+@keyframes bombardment-grid-flash {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.72; }
+}
+.bombardment-flash {
+  isolation: isolate;
+}
+.bombardment-flash::before {
+  position: absolute;
+  z-index: 25;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, rgb(255 194 60 / 48%), rgb(255 54 18 / 28%));
+  content: "";
+  pointer-events: none;
+  animation: bombardment-grid-flash 0.18s steps(2, end) 7 !important;
+}
+.bombardment-flash::after {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  border: 5px solid rgb(255 105 25 / 95%);
+  border-radius: inherit;
+  content: "";
+  pointer-events: none;
+  animation: bombardment-fire 0.18s steps(2, end) 7 !important;
+}

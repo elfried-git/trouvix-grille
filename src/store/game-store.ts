@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import type { Phase, Player } from "@/lib/types";
 import type { AIProfile } from "@/lib/types";
+import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
 
 // ====== Game constants ======
 const ROWS = 10;
@@ -43,6 +44,8 @@ interface GameState {
   totalRounds: number; // chosen match length (5, 10, 15)
   currentRound: number; // rounds elapsed so far (squares formed by anyone)
   lastDelta: { playerId: string; delta: number } | null;
+  bombardmentEventId: number | null;
+  bombardedCells: { row: number; col: number }[] | null;
   endReason: string | null; // 'rounds' | 'board-full' | 'stalemate' | null
   initialPlayers: Player[]; // Store players as they were when startGame was called
 
@@ -53,6 +56,7 @@ interface GameState {
   startGame: (players: SetupPlayer[], rounds: number) => void;
   backHome: () => void;
   placePawn: (row: number, col: number) => void; // free placement
+  bombard: () => void;
   togglePause: () => void;
   tick: (dt: number) => void;
   endGameNow: () => void;
@@ -160,6 +164,8 @@ export const useGameStore = create<GameState>((set, get) => {
     totalRounds: 10,
     currentRound: 0,
     lastDelta: null,
+    bombardmentEventId: null,
+    bombardedCells: null,
     endReason: null,
     initialPlayers: [],
 
@@ -183,6 +189,8 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
+        bombardmentEventId: null,
+        bombardedCells: null,
         endReason: null,
         initialPlayers: [],
       }),
@@ -196,6 +204,7 @@ export const useGameStore = create<GameState>((set, get) => {
         emoji: p.emoji,
         score: 0,
         alignments: 0,
+        bombardmentUsed: false,
         isAI: p.isAI ?? false,
         aiProfile: p.aiProfile,
       }));
@@ -216,6 +225,8 @@ export const useGameStore = create<GameState>((set, get) => {
         totalRounds: rounds,
         currentRound: 0,
         lastDelta: null,
+    bombardmentEventId: null,
+    bombardedCells: null,
     endReason: null,
       });
     },
@@ -383,6 +394,43 @@ export const useGameStore = create<GameState>((set, get) => {
       });
     },
 
+    bombard: () => {
+      const state = get();
+      const current = state.players[state.currentPlayerIndex];
+      if (
+        state.phase !== "playing" ||
+        state.resolving ||
+        state.isPaused ||
+        !current ||
+        current.score < BOMBARDMENT_UNLOCK_SCORE ||
+        current.bombardmentUsed
+      ) return;
+
+      const opponentIds = state.players.filter((player) => player.id !== current.id).map((player) => player.id);
+      const bombardedCells = findBombardmentTargets(state.grid, opponentIds);
+      if (bombardedCells.length === 0) return;
+
+      const grid = state.grid.map((row) => [...row]);
+      for (const cell of bombardedCells) grid[cell.row][cell.col] = null;
+      const players = state.players.map((player) =>
+        player.id === current.id ? { ...player, bombardmentUsed: true } : player
+      );
+      const nextIndex = (state.currentPlayerIndex + 1) % players.length;
+      const next = players[nextIndex];
+      set({
+        grid,
+        players,
+        formedSquares: state.formedSquares.filter((square) =>
+          square.cells.every((cell) => grid[cell.row][cell.col] === square.playerId)
+        ),
+        bombardmentEventId: Date.now(),
+        bombardedCells,
+        currentPlayerIndex: nextIndex,
+        turnTimeLeft: TURN_SECONDS,
+        statusMessage: `💣 ${current.name} bombarde ${bombardedCells.length} pion${bombardedCells.length > 1 ? "s" : ""} ! À ${next.name} de jouer.`,
+      });
+    },
+
     tick: (dt) => {
       const state = get();
       if (
@@ -441,6 +489,8 @@ export const useGameStore = create<GameState>((set, get) => {
           isPaused: false,
           currentRound: 0,
           lastDelta: null,
+          bombardmentEventId: null,
+          bombardedCells: null,
           endReason: null,
         });
         return;
@@ -463,6 +513,8 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
+        bombardmentEventId: null,
+        bombardedCells: null,
         endReason: null,
       });
     },
@@ -480,6 +532,7 @@ export const useGameStore = create<GameState>((set, get) => {
         ...p,
         score: 0,
         alignments: 0,
+        bombardmentUsed: false,
       }));
       set({
         players: newPlayers,
@@ -496,6 +549,8 @@ export const useGameStore = create<GameState>((set, get) => {
         isPaused: false,
         currentRound: 0,
         lastDelta: null,
+    bombardmentEventId: null,
+    bombardedCells: null,
     endReason: null,
       });
     },

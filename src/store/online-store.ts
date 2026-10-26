@@ -5,6 +5,7 @@ import { getSocket, disconnectSocket, wakeGameService } from "@/lib/socket";
 import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
 import { enableNotifications, notifyAdminChallenge, notifyRoomCreated } from "@/lib/admin-notifications";
 import { playReactionSound } from "@/lib/reaction-sounds";
+import { BOMBARDMENT_UNLOCK_SCORE } from "@/lib/bombardment";
 
 export interface Challenge {
   id: string;
@@ -108,6 +109,7 @@ interface OnlineStore {
   challengeDeclined: boolean; // true when Benchou declined the current challenge
   startGame: () => void;
   placePawn: (row: number, col: number) => void;
+  bombard: () => void;
   togglePause: () => void;
   endGame: () => void;
   restart: () => void;
@@ -561,6 +563,22 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           console.log("[place-pawn] server error:", res.error);
         }
       }
+    });
+  },
+
+  bombard: () => {
+    const socket = getSocket();
+    const { state, myPlayerId } = get();
+    const currentPlayer = state?.players[state.currentPlayerIndex];
+    if (
+      !state || !myPlayerId || state.phase !== "playing" ||
+      state.isPaused || state.resolving || !currentPlayer ||
+      currentPlayer.score < BOMBARDMENT_UNLOCK_SCORE || currentPlayer.bombardmentUsed ||
+      (currentPlayer.id !== myPlayerId && !(currentPlayer.isAI && state.hostId === myPlayerId))
+    ) return;
+
+    socket.emit("bombard", {}, (res: { ok?: boolean; error?: string }) => {
+      if (res?.error) set({ errorMessage: res.error });
     });
   },
 

@@ -8,7 +8,8 @@ import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
 import { Button } from "@/components/ui/button";
-import { Home, Timer, ScrollText, Pause } from "lucide-react";
+import { Bomb, Home, Timer, ScrollText, Pause } from "lucide-react";
+import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ export function GameScreen() {
   // === AI auto-play ===
   // When it's an AI's turn (and not resolving/paused), compute its move and play it.
   const placePawn = useGameStore((s) => s.placePawn);
+  const bombard = useGameStore((s) => s.bombard);
   useEffect(() => {
     if (
       phase !== "playing" ||
@@ -70,13 +72,21 @@ export function GameScreen() {
       const opponentIds = s.players
         .filter((p) => p.id !== aiPlayer.id)
         .map((p) => p.id);
+      if (
+        aiPlayer.score >= BOMBARDMENT_UNLOCK_SCORE &&
+        !aiPlayer.bombardmentUsed &&
+        findBombardmentTargets(s.grid, opponentIds).length > 0
+      ) {
+        s.bombard();
+        return;
+      }
       const move = findBestMove(s.grid, aiPlayer.id, opponentIds, aiPlayer.aiProfile);
       if (move) {
         s.placePawn(move.row, move.col);
       }
     }, 900);
     return () => clearTimeout(id);
-  }, [currentPlayerIndex, resolving, isPaused, phase, current, grid, placePawn]);
+  }, [currentPlayerIndex, resolving, isPaused, phase, current, grid, placePawn, bombard]);
 
   const timePct = Math.max(
     0,
@@ -85,6 +95,12 @@ export function GameScreen() {
   const urgent = turnTimeLeft <= 3 && !resolving && !isPaused;
   // Vivid, high-saturation color of the current player — same color the whole turn
   const turnColor = vividColor(current?.color ?? "#f59e0b");
+  const bombTargets = current
+    ? findBombardmentTargets(
+      grid,
+      players.filter((player) => player.id !== current.id).map((player) => player.id),
+    )
+    : [];
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:py-6">
@@ -172,6 +188,9 @@ export function GameScreen() {
                           IA
                         </span>
                       )}
+                      {p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.bombardmentUsed && (
+                        <Bomb aria-label="Bombardement disponible" className="h-4 w-4 text-orange-300" />
+                      )}
                     </div>
                   <span className={`font-display text-xl font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                     {p.score} <span className="text-sm font-normal text-muted-foreground">pts</span>
@@ -215,6 +234,26 @@ export function GameScreen() {
             </div>
           </div>
         </div>
+
+        {current && !current.isAI && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (
+          <div className="mx-auto mb-2 w-full max-w-md text-center">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={resolving || isPaused || bombTargets.length === 0}
+              onClick={bombard}
+              aria-label="Utiliser le bombardement"
+              title={bombTargets.length > 0 ? "Bombarder les pions adverses qui menacent un carré (consomme le tour)" : "Aucun carré adverse imminent"}
+              className="h-12 gap-2 border-orange-400/60 bg-gradient-to-r from-orange-500/20 to-red-600/20 px-5 text-orange-100 shadow-[0_0_18px_rgba(249,115,22,0.2)]"
+            >
+              <Bomb className="h-5 w-5 text-orange-300" />
+              Bombarder
+            </Button>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Détruit les pions adverses d’un carré presque formé. Utilisable une fois ; ton tour se termine.
+            </p>
+          </div>
+        )}
 
         {/* The board */}
         <Grid
@@ -273,6 +312,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
           <li>
             Appuie sur le profil du joueur actif pour mettre la partie en pause ou la reprendre.
           </li>
+          <li>À partir de 3 points, utilise une fois par partie le bombardement pour détruire les pions adverses d’un carré presque formé. Le bombardement termine ton tour.</li>
         </ul>
       </section>
       <section>
