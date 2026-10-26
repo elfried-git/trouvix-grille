@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { MotionConfig } from "framer-motion";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -78,8 +79,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
+        <MotionConfig skipAnimations>
+          {children}
+          <Toaster />
+        </MotionConfig>
       </body>
     </html>
   );

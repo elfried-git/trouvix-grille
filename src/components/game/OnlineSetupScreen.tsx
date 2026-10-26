@@ -393,27 +393,27 @@ export function OnlineSetupScreen() {
               {/* Join by code — the JOIN card */}
               <button
                 onClick={() => setTab("join")}
-                className="group relative min-h-36 overflow-hidden rounded-2xl border border-emerald-300/25 bg-gradient-to-br from-emerald-400/[0.13] via-emerald-500/[0.04] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-emerald-200/60 hover:shadow-[0_14px_32px_rgba(16,185,129,0.14)] active:translate-y-0 sm:min-h-40 sm:p-6"
+                className="relative isolate min-h-36 overflow-hidden rounded-2xl border border-emerald-300/35 bg-gradient-to-br from-emerald-400/[0.15] via-[#11231e]/85 to-slate-950 p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_14px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:min-h-40 sm:p-6"
               >
-                <p className="font-display text-lg font-bold text-foreground sm:text-xl">Rejoindre un salon</p>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">Entre le code pour retrouver tes amis.</p>
+                <p className="relative z-10 font-display text-lg font-bold text-foreground sm:text-xl">Rejoindre un salon</p>
+                <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">Entre le code pour retrouver tes amis.</p>
               </button>
               <button
                 onClick={() => setTab("create")}
-                className="group relative min-h-36 overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-amber-400/[0.14] via-orange-500/[0.05] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-amber-200/60 hover:shadow-[0_14px_32px_rgba(245,158,11,0.14)] active:translate-y-0 sm:min-h-40 sm:p-6"
+                className="relative isolate min-h-36 overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-amber-400/[0.16] via-[#2a1d12]/85 to-slate-950 p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_14px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:min-h-40 sm:p-6"
               >
-                <p className="font-display text-xl font-bold text-foreground">
+                <p className="relative z-10 font-display text-xl font-bold text-foreground">
                   Créer un salon
                 </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
                   Lance ta partie et invite tes amis.
                 </p>
               </button>
               <button
                 onClick={() => setTab("benchou")}
-                className="group relative min-h-36 overflow-hidden rounded-2xl border border-violet-300/25 bg-gradient-to-br from-violet-400/[0.13] via-fuchsia-500/[0.04] to-transparent p-5 text-left shadow-[0_10px_28px_rgba(0,0,0,0.16)] transition duration-300 hover:-translate-y-1 hover:border-violet-200/60 hover:shadow-[0_14px_32px_rgba(168,85,247,0.16)] active:translate-y-0 sm:min-h-40 sm:p-6"
+                className="relative isolate min-h-36 overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_14px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:min-h-40 sm:p-6"
               >
-                <div className="mb-3 flex items-center gap-3">
+                <div className="relative z-10 mb-3 flex items-center gap-3">
                   <img
                     src={onlineBenchouAvatar}
                     alt="Benchou Ferrari"
@@ -424,10 +424,10 @@ export function OnlineSetupScreen() {
                     className="h-12 w-12 rounded-full object-cover ring-2 ring-violet-400/40"
                   />
                 </div>
-                <p className="font-display text-xl font-bold text-foreground">
+                <p className="relative z-10 font-display text-xl font-bold text-foreground">
                   Jouer contre Benchou
                 </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
                   Défie Benchou en duel privé.
                 </p>
               </button>
@@ -834,24 +834,24 @@ export function OnlineSetupScreen() {
 
             {/* Room visibility (create only) */}
             {activeTab === "create" && (
-              <fieldset className="mt-4 rounded-2xl border border-amber-200/15 bg-gradient-to-br from-amber-300/[0.08] via-card/60 to-rose-400/[0.04] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.14)]">
+              <fieldset className="mt-4 rounded-2xl border border-amber-200/15 bg-gradient-to-br from-amber-300/[0.07] via-[#1b1210]/90 to-[#160f10]/95 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
                 <legend className="px-1 text-sm font-semibold text-amber-100/90">Visibilité du salon</legend>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     aria-pressed={roomVisibility === "public"}
                     onClick={() => setRoomVisibility("public")}
-                    className={`flex min-h-24 items-start gap-3 rounded-xl border p-3 text-left transition ${
+                    className={`relative isolate flex min-h-24 items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_5px_12px_rgba(0,0,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${
                       roomVisibility === "public"
-                        ? "border-emerald-300/60 bg-emerald-400/[0.12] shadow-[0_0_18px_rgba(16,185,129,0.1)]"
-                        : "border-white/10 bg-black/15 hover:border-emerald-300/30"
+                        ? "border-emerald-300/80 bg-gradient-to-br from-emerald-400/[0.2] via-emerald-950/80 to-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_20px_rgba(16,185,129,0.12)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-['']"
+                        : "border-white/10 bg-gradient-to-br from-white/[0.035] via-black/20 to-black/40 hover:border-emerald-300/35"
                     }`}
                   >
-                    <Globe2 className={`mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "public" ? "text-emerald-300" : "text-muted-foreground"}`} />
-                    <span>
+                    <Globe2 className={`relative z-10 mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "public" ? "text-emerald-300" : "text-muted-foreground"}`} />
+                    <span className="relative z-10">
                       <span className="block text-sm font-bold text-foreground">Public</span>
                       <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                        Visible dans la liste des salons. Tout le monde peut le rejoindre.
+                        Tout le monde peut rejoindre.
                       </span>
                     </span>
                   </button>
@@ -859,17 +859,17 @@ export function OnlineSetupScreen() {
                     type="button"
                     aria-pressed={roomVisibility === "private"}
                     onClick={() => setRoomVisibility("private")}
-                    className={`flex min-h-24 items-start gap-3 rounded-xl border p-3 text-left transition ${
+                    className={`relative isolate flex min-h-24 items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_5px_12px_rgba(0,0,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 ${
                       roomVisibility === "private"
-                        ? "border-violet-300/60 bg-violet-400/[0.12] shadow-[0_0_18px_rgba(139,92,246,0.12)]"
-                        : "border-white/10 bg-black/15 hover:border-violet-300/30"
+                        ? "border-violet-300/80 bg-gradient-to-br from-violet-400/[0.2] via-violet-950/80 to-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_20px_rgba(139,92,246,0.14)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-['']"
+                        : "border-white/10 bg-gradient-to-br from-white/[0.035] via-black/20 to-black/40 hover:border-violet-300/35"
                     }`}
                   >
-                    <LockKeyhole className={`mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "private" ? "text-violet-300" : "text-muted-foreground"}`} />
-                    <span>
+                    <LockKeyhole className={`relative z-10 mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "private" ? "text-violet-300" : "text-muted-foreground"}`} />
+                    <span className="relative z-10">
                       <span className="block text-sm font-bold text-foreground">Privé · sur invitation</span>
                       <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                        Caché de la liste publique. Seuls les joueurs avec le code ou le lien peuvent le rejoindre.
+                        Rejoindre uniquement avec un code salon ou un lien.
                       </span>
                     </span>
                   </button>

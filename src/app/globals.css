@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -100,6 +106,19 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    font-size: 100%;
+  }
+  @media (min-width: 768px) {
+    html {
+      font-size: 103%;
+    }
+  }
+  @media (min-width: 1280px) {
+    html {
+      font-size: 106.25%;
+    }
+  }
   body {
     @apply bg-background text-foreground;
     background-image:
@@ -107,6 +126,7 @@
       radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.60 0.10 84 / 0.10), transparent 60%);
     background-attachment: fixed;
     min-height: 100dvh;
+    overflow-x: clip;
   }
 }
 
@@ -239,21 +259,8 @@
   animation: ai-selection-border-blink 2s ease-in-out infinite;
 }
 
-@keyframes review-button-blink {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgb(251 191 36 / 22%), 0 5px 18px rgb(251 146 60 / 30%);
-    filter: brightness(1);
-  }
-  50% {
-    box-shadow: 0 0 0 5px rgb(251 191 36 / 18%), 0 0 28px rgb(251 146 60 / 65%);
-    filter: brightness(1.12);
-  }
-}
 .review-button-blink {
-  animation: review-button-blink 1.8s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .review-button-blink { animation: none; }
+  box-shadow: 0 5px 18px rgb(251 146 60 / 30%);
 }
 
 @media (prefers-reduced-motion: reduce) {

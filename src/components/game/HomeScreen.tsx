@@ -20,8 +20,6 @@ const FEATURES = [
   { icon: Trophy, label: "Champion Ultime", desc: "Meilleur score gagne", color: "text-sky-300" },
 ];
 
-const FLOAT_ICONS = ["🟥", "🟨", "🟦", "⏱️", "🎯", "🏆", "⬜", "✨"];
-
 export function HomeScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
@@ -46,37 +44,16 @@ export function HomeScreen() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
-      {/* Floating icons */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute text-2xl opacity-20"
-            style={{ left: `${10 + i * 11}%`, bottom: "-40px" }}
-            initial={{ y: 0, opacity: 0 }}
-            animate={{ y: -800, opacity: [0, 0.4, 0] }}
-            transition={{ duration: 10 + i * 2, repeat: Infinity, delay: i * 1.5 }}
-          >
-            {FLOAT_ICONS[i]}
-          </motion.div>
-        ))}
-      </div>
-
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
         className="relative z-10 flex flex-col items-center text-center"
       >
         {/* Logo & Titre Trouvix avec effet Wow (Assemblage du carré magique & shimmer) */}
         <TrouvixHeroTitle />
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 flex w-full max-w-xl flex-col items-center gap-3 sm:w-auto"
-        >
+        <div className="mt-8 flex w-full max-w-xl flex-col items-center gap-3 sm:w-auto">
           {notificationPermission !== "granted" && notificationPermission !== "unsupported" && (
             <Button
               onClick={handleEnableNotifications}
@@ -113,7 +90,7 @@ export function HomeScreen() {
               onClick={() => setReviewOpen(true)}
               variant="outline"
               size="sm"
-              className="review-button-blink group h-11 w-full gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-3 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110"
+              className="review-button-blink group h-11 w-full gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-3 font-bold text-[#27120b] shadow-lg transition-[filter] hover:brightness-110"
             >
               Votre avis
             </Button>
@@ -123,73 +100,55 @@ export function HomeScreen() {
             onClick={() => setReviewOpen(true)}
             variant="outline"
             size="sm"
-            className="review-button-blink group hidden h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition hover:-translate-y-0.5 hover:brightness-110 sm:inline-flex"
+            className="review-button-blink group hidden h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition-[filter] hover:brightness-110 sm:inline-flex"
           >
             Votre avis
           </Button>
-        </motion.div>
+        </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.38 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35, delay: 0.2 }}
           className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
-          >
+          <div className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4">
             <Globe2 className="h-10 w-10 text-emerald-300" />
             <p className="font-display text-base font-semibold">Salon public</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Visible dans la liste, rejoignable par tous.
             </p>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.48 }}
-            className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
-          >
+          </div>
+          <div className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4">
             <LockKeyhole className="h-10 w-10 text-violet-300" />
             <p className="font-display text-base font-semibold">Salon privé</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Caché de la liste, accessible par code ou invitation.
             </p>
-          </motion.div>
+          </div>
         </motion.div>
 
         {/* Features grid */}
         <div className="mt-14 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-          {FEATURES.map((f, i) => (
-            <motion.div
+          {FEATURES.map((f) => (
+            <div
               key={f.label}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 + i * 0.08 }}
               className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
             >
               <f.icon className={`h-10 w-10 ${f.color}`} />
               <p className="font-display text-base font-semibold">{f.label}</p>
               <p className="text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
 
         {/* Info complémentaire au même format, sans répéter les règles des cartes */}
         <div className="mt-10 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.88 }}
-            className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4"
-          >
+          <div className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4">
             <Grid3x3 className="h-10 w-10 text-rose-300" />
             <p className="font-display text-base font-semibold">Grille 10×10</p>
             <p className="text-sm leading-relaxed text-muted-foreground">100 cases pour jouer</p>
-          </motion.div>
+          </div>
         </div>
 
               </motion.div>
