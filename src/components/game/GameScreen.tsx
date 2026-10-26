@@ -75,13 +75,21 @@ export function GameScreen() {
       const aiPlayer = s.players[s.currentPlayerIndex];
       if (!aiPlayer?.isAI) return;
       const opponentIds = s.players.filter((p) => p.id !== aiPlayer.id).map((p) => p.id);
+      if (
+        aiPlayer.score >= BOMBARDMENT_UNLOCK_SCORE &&
+        !aiPlayer.bombardmentUsed &&
+        findBombardmentTargets(s.grid, opponentIds).length > 0
+      ) {
+        s.bombard();
+        return;
+      }
       const move = findBestMove(s.grid, aiPlayer.id, opponentIds, aiPlayer.aiProfile);
       if (move) {
         s.placePawn(move.row, move.col);
       }
     }, 900);
     return () => clearTimeout(id);
-  }, [currentPlayerIndex, resolving, isPaused, phase, current, grid, placePawn]);
+  }, [currentPlayerIndex, resolving, isPaused, phase, current, grid, placePawn, bombard]);
 
   const timePct = Math.max(
     0,
@@ -199,6 +207,14 @@ export function GameScreen() {
                             onBombard={bombard}
                             onDraggingChange={setBombardmentDragging}
                           />
+                        ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
+                          <span
+                            title="Boule de feu disponible pour cette IA"
+                            aria-label="Boule de feu disponible pour cette IA"
+                            className="inline-flex h-7 w-7 shrink-0"
+                          >
+                            <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
+                          </span>
                         ) : null}
                       </div>
                       {p.isAI && (

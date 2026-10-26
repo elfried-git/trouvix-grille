@@ -85,6 +85,14 @@ export function OnlineGameScreen() {
       const aiPlayer = s.players[s.currentPlayerIndex];
       if (!aiPlayer?.isAI) return;
       const opponentIds = s.players.filter((p) => p.id !== aiPlayer.id).map((p) => p.id);
+      if (
+        aiPlayer.score >= BOMBARDMENT_UNLOCK_SCORE &&
+        !aiPlayer.bombardmentUsed &&
+        findBombardmentTargets(s.grid, opponentIds).length > 0
+      ) {
+        useOnlineStore.getState().bombard();
+        return;
+      }
       const move = findBestMove(s.grid, aiPlayer.id, opponentIds);
       if (move) {
         useOnlineStore.getState().placePawn(move.row, move.col);
@@ -507,6 +515,14 @@ export function OnlineGameScreen() {
                           onBombard={bombardAction}
                           onDraggingChange={setBombardmentDragging}
                         />
+                      ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
+                        <span
+                          title="Boule de feu disponible pour cette IA"
+                          aria-label="Boule de feu disponible pour cette IA"
+                          className="inline-flex h-6 w-6 shrink-0 sm:h-7 sm:w-7"
+                        >
+                          <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
+                        </span>
                       ) : null}
                       {isMe && (
                         <span className="rounded bg-amber-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-amber-200 sm:px-1.5 sm:text-xs">
