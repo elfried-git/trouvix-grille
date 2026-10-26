@@ -133,7 +133,7 @@ export function HomeScreen() {
           <div>
             <p className="font-display text-base font-semibold">Bombardement</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Dès 3 points, détruis les menaces adverses une fois par partie. Ton tour se termine.
+              Dès 3 points, garde la boule jusqu’au tour de ton choix pour détruire les 3 pions du premier carré adverse presque formé. Une fois par partie.
             </p>
           </div>
         </div>

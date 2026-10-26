@@ -1,5 +1,6 @@
 import { SocketIOServerCompat } from './cloudflare-io'
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from '../../src/lib/bombardment'
+import { isValidPlayerName } from '../../src/lib/player-name'
 
 let BENCHOU_PIN = '331991'
 let APP_URL = 'https://trouvix-grille.vercel.app'
@@ -74,6 +75,7 @@ interface GameState {
   currentRound: number
   lastDelta: { playerId: string; delta: number } | null
   bombardmentEventId: number | null
+  bombardmentPlayerId: string | null
   bombardedCells: CellCoord[] | null
   initialPlayers: Player[]
 }
@@ -355,6 +357,7 @@ function freshState(): GameState {
     currentRound: 0,
     lastDelta: null,
     bombardmentEventId: null,
+    bombardmentPlayerId: null,
     bombardedCells: null,
     initialPlayers: [],
   }
@@ -400,6 +403,7 @@ function publicState(room: Room): any {
     lastSquareerId: s.lastSquareerId,
     squareEventId: s.squareEventId,
     bombardmentEventId: s.bombardmentEventId,
+    bombardmentPlayerId: s.bombardmentPlayerId,
     bombardedCells: s.bombardedCells ? s.bombardedCells.map((cell) => ({ ...cell })) : null,
     formedSquares: s.formedSquares.map((sq) => ({ cells: sq.cells, playerId: sq.playerId })),
     resolving: s.resolving,
@@ -653,6 +657,12 @@ io.on('connection', (socket) => {
         if (![5, 10, 15].includes(totalRounds)) {
           if (ack) ack({ error: 'Le nombre de rounds doit être 5, 10 ou 15' })
           else socket.emit('error', { message: 'Le nombre de rounds doit être 5, 10 ou 15' })
+          return
+        }
+        if (!isValidPlayerName(payload?.player?.name ?? '')) {
+          const message = 'Le nom du joueur doit contenir entre 2 et 5 caractères.'
+          if (ack) ack({ error: message })
+          else socket.emit('error', { message })
           return
         }
         const maxPlayers = normalizeMaxPlayers(payload?.maxPlayers)
@@ -949,6 +959,10 @@ io.on('connection', (socket) => {
           if (ack) ack({ error: 'Le nombre de rounds doit être 5, 10 ou 15' })
           return
         }
+        if (!isValidPlayerName(payload?.player?.name ?? '')) {
+          if (ack) ack({ error: 'Le nom du joueur doit contenir entre 2 et 5 caractères.' })
+          return
+        }
         const player = makePlayer(payload.player)
         const roomCode = uniqueRoomCode()
         const room: Room = {
@@ -1136,6 +1150,12 @@ io.on('connection', (socket) => {
           else socket.emit('error', { message: 'Couleur déjà prise' })
           return
         }
+        if (!isValidPlayerName(payload?.player?.name ?? '')) {
+          const message = 'Le nom du joueur doit contenir entre 2 et 5 caractères.'
+          if (ack) ack({ error: message })
+          else socket.emit('error', { message })
+          return
+        }
         const player = makePlayer(payload.player)
         if (colorTaken) {
           const takenColors = new Set(room.state.players.map((p) => p.color))
@@ -1239,6 +1259,7 @@ io.on('connection', (socket) => {
     room.state.lastSquareerId = null
     room.state.squareEventId = null
     room.state.bombardmentEventId = null
+    room.state.bombardmentPlayerId = null
     room.state.bombardedCells = null
     room.state.formedSquares = []
     room.state.resolving = false
@@ -1402,6 +1423,7 @@ io.on('connection', (socket) => {
     )
     current.bombardmentUsed = true
     s.bombardmentEventId = Date.now()
+    s.bombardmentPlayerId = current.id
     s.bombardedCells = bombardedCells
     const nextIndex = nextPlayerIndex(room)
     const next = s.players[nextIndex]
@@ -1526,6 +1548,7 @@ io.on('connection', (socket) => {
     room.state.lastSquareerId = null
     room.state.squareEventId = null
     room.state.bombardmentEventId = null
+    room.state.bombardmentPlayerId = null
     room.state.bombardedCells = null
     room.state.formedSquares = []
     room.state.resolving = false

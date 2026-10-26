@@ -11,7 +11,6 @@ export function findBombardmentTargets(
   grid: BombardmentGrid,
   opponentIds: string[],
 ): BombardmentCell[] {
-  const targets = new Map<string, BombardmentCell>();
   const opponentSet = new Set(opponentIds);
 
   for (let row = 0; row < grid.length - 1; row++) {
@@ -32,9 +31,9 @@ export function findBombardmentTargets(
       ) {
         continue;
       }
-      for (const cell of filled) targets.set(`${cell.row},${cell.col}`, cell);
+      return filled;
     }
   }
 
-  return [...targets.values()];
+  return [];
 }

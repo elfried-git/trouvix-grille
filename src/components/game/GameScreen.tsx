@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Grid } from "./Grid";
 import { Avatar } from "./Avatar";
@@ -8,8 +9,9 @@ import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
 import { Button } from "@/components/ui/button";
-import { Bomb, Home, Timer, ScrollText, Pause } from "lucide-react";
+import { Home, Timer, ScrollText, Pause } from "lucide-react";
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
+import { BombardmentToken } from "./BombardmentToken";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +21,11 @@ import {
 } from "@/components/ui/dialog";
 
 export function GameScreen() {
+  const [bombardmentDragging, setBombardmentDragging] = useState(false);
   const players = useGameStore((s) => s.players);
   const grid = useGameStore((s) => s.grid);
+  const bombardmentEventId = useGameStore((s) => s.bombardmentEventId);
+  const bombardmentPlayerId = useGameStore((s) => s.bombardmentPlayerId);
   const phase = useGameStore((s) => s.phase);
   const currentPlayerIndex = useGameStore((s) => s.currentPlayerIndex);
   const turnTimeLeft = useGameStore((s) => s.turnTimeLeft);
@@ -31,6 +36,7 @@ export function GameScreen() {
   const currentRound = useGameStore((s) => s.currentRound);
   const lastDelta = useGameStore((s) => s.lastDelta);
   const tick = useGameStore((s) => s.tick);
+  const bombard = useGameStore((s) => s.bombard);
   const endGameNow = useGameStore((s) => s.endGameNow);
   const backHome = useGameStore((s) => s.backHome);
 
@@ -46,7 +52,6 @@ export function GameScreen() {
   // === AI auto-play ===
   // When it's an AI's turn (and not resolving/paused), compute its move and play it.
   const placePawn = useGameStore((s) => s.placePawn);
-  const bombard = useGameStore((s) => s.bombard);
   useEffect(() => {
     if (
       phase !== "playing" ||
@@ -69,24 +74,14 @@ export function GameScreen() {
         return;
       const aiPlayer = s.players[s.currentPlayerIndex];
       if (!aiPlayer?.isAI) return;
-      const opponentIds = s.players
-        .filter((p) => p.id !== aiPlayer.id)
-        .map((p) => p.id);
-      if (
-        aiPlayer.score >= BOMBARDMENT_UNLOCK_SCORE &&
-        !aiPlayer.bombardmentUsed &&
-        findBombardmentTargets(s.grid, opponentIds).length > 0
-      ) {
-        s.bombard();
-        return;
-      }
+      const opponentIds = s.players.filter((p) => p.id !== aiPlayer.id).map((p) => p.id);
       const move = findBestMove(s.grid, aiPlayer.id, opponentIds, aiPlayer.aiProfile);
       if (move) {
         s.placePawn(move.row, move.col);
       }
     }, 900);
     return () => clearTimeout(id);
-  }, [currentPlayerIndex, resolving, isPaused, phase, current, grid, placePawn, bombard]);
+  }, [currentPlayerIndex, resolving, isPaused, phase, current, grid, placePawn]);
 
   const timePct = Math.max(
     0,
@@ -166,30 +161,50 @@ export function GameScreen() {
                       : "bg-card/40 border-border/40 opacity-75"
                   }`}
                 >
-                  <Avatar
-                    avatar={p.emoji}
-                    color={p.color}
-                    size={48}
-                    emojiSize="text-xl"
-                    ring={false}
-                    className={isActive ? "ring-2" : "ring-2 ring-white/20"}
-                    style={
-                      isActive
-                        ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 12px 2px ${p.color}cc` }
-                        : undefined
-                    }
-                  />
+                  <span className="relative z-20 inline-flex">
+                    <Avatar
+                      avatar={p.emoji}
+                      color={p.color}
+                      size={48}
+                      emojiSize="text-xl"
+                      ring={false}
+                      className={isActive ? "ring-2" : "ring-2 ring-white/20"}
+                      style={
+                        isActive
+                          ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 12px 2px ${p.color}cc` }
+                          : undefined
+                      }
+                    />
+                  </span>
                     <div className="flex min-w-0 w-full flex-col items-center">
-                      <span className={`w-full truncate text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
+                      <div className="flex max-w-full items-center justify-center gap-1">
+                      <span className={`whitespace-normal break-words text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                         {p.name}
                       </span>
+                        {p.bombardmentUsed ? (
+                          <motion.span
+                            key={`${p.id}-${bombardmentEventId}`}
+                            initial={bombardmentPlayerId === p.id ? { opacity: 0, scale: 0.3 } : false}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.35, ease: "easeOut" }}
+                            className="pointer-events-none h-7 w-7 shrink-0"
+                            aria-hidden="true"
+                          >
+                            <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
+                          </motion.span>
+                        ) : p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.isAI ? (
+                          <BombardmentToken
+                            enabled={isActive && !resolving && !isPaused && phase === "playing"}
+                            hasTargets={isActive && bombTargets.length > 0}
+                            onBombard={bombard}
+                            onDraggingChange={setBombardmentDragging}
+                          />
+                        ) : null}
+                      </div>
                       {p.isAI && (
                         <span className="mt-0.5 rounded bg-violet-400/20 px-1.5 py-0.5 text-xs font-semibold text-violet-200">
                           IA
                         </span>
-                      )}
-                      {p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.bombardmentUsed && (
-                        <Bomb aria-label="Bombardement disponible" className="h-4 w-4 text-orange-300" />
                       )}
                     </div>
                   <span className={`font-display text-xl font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
@@ -237,21 +252,19 @@ export function GameScreen() {
 
         {current && !current.isAI && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (
           <div className="mx-auto mb-2 w-full max-w-md text-center">
-            <Button
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {bombTargets.length > 0
+                ? "Tu peux garder la boule jusqu’à n’importe lequel de tes tours avant la fin. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; ton tour se termine."
+                : "La boule reste disponible jusqu’à la fin de la partie. Utilise-la à ton tour dès qu’un carré adverse est presque formé."}
+            </p>
+            <button
               type="button"
-              variant="outline"
+              className="sr-only focus:not-sr-only focus:fixed focus:bottom-4 focus:left-1/2 focus:z-50 focus:-translate-x-1/2 focus:rounded-lg focus:bg-orange-600 focus:px-4 focus:py-2 focus:text-white"
               disabled={resolving || isPaused || bombTargets.length === 0}
               onClick={bombard}
-              aria-label="Utiliser le bombardement"
-              title={bombTargets.length > 0 ? "Bombarder les pions adverses qui menacent un carré (consomme le tour)" : "Aucun carré adverse imminent"}
-              className="h-12 gap-2 border-orange-400/60 bg-gradient-to-r from-orange-500/20 to-red-600/20 px-5 text-orange-100 shadow-[0_0_18px_rgba(249,115,22,0.2)]"
             >
-              <Bomb className="h-5 w-5 text-orange-300" />
-              Bombarder
-            </Button>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Détruit les pions adverses d’un carré presque formé. Utilisable une fois ; ton tour se termine.
-            </p>
+              Utiliser le bombardement au clavier
+            </button>
           </div>
         )}
 
@@ -260,6 +273,7 @@ export function GameScreen() {
           players={players}
           currentPlayerId={current?.id ?? null}
           isPaused={isPaused}
+          isBombardmentDragging={bombardmentDragging}
         />
 
         {/* Quit button */}
@@ -312,7 +326,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
           <li>
             Appuie sur le profil du joueur actif pour mettre la partie en pause ou la reprendre.
           </li>
-          <li>À partir de 3 points, utilise une fois par partie le bombardement pour détruire les pions adverses d’un carré presque formé. Le bombardement termine ton tour.</li>
+          <li>À partir de 3 points, garde une fois par partie la boule de feu jusqu’au tour de ton choix. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; le bombardement termine ton tour.</li>
         </ul>
       </section>
       <section>

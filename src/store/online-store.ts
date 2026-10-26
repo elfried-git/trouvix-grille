@@ -6,6 +6,7 @@ import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
 import { enableNotifications, notifyAdminChallenge, notifyRoomCreated } from "@/lib/admin-notifications";
 import { playReactionSound } from "@/lib/reaction-sounds";
 import { BOMBARDMENT_UNLOCK_SCORE } from "@/lib/bombardment";
+import { limitPlayerName } from "@/lib/player-name";
 
 export interface Challenge {
   id: string;
@@ -46,7 +47,7 @@ export interface AdminRoomPlayer {
 function persistPlayerProfile(player: SetupPlayer) {
   try {
     localStorage.setItem("trouvix_profile", JSON.stringify({
-      name: player.name.trim().slice(0, 18),
+      name: limitPlayerName(player.name.trim()),
       color: player.color,
       // Avoid putting uploaded photo data URLs into localStorage.
       emoji: player.emoji.startsWith("data:") ? "" : player.emoji.slice(0, 24),

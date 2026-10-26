@@ -10,6 +10,7 @@ import { Avatar } from "./Avatar";
 import { ColorSwatch } from "./ColorSwatch";
 import { isPhotoAvatar } from "@/lib/types";
 import { AI_PROFILE_AVATARS, type AIProfile } from "@/lib/types";
+import { isValidPlayerName, limitPlayerName } from "@/lib/player-name";
 import { Swords, Users, Minus, Plus, Target, X } from "lucide-react";
 
 // Six couleurs très distinctes pour les six joueurs maximum.
@@ -52,7 +53,7 @@ export function SetupScreen() {
 
   // Validation: every visible human player must have a name. AI players are filled automatically.
   const playersValid = Array.from({ length: count }).every(
-    (_, i) => isAI[i] || names[i].trim().length > 0
+    (_, i) => isAI[i] || isValidPlayerName(names[i])
   );
 
   const toggleAI = (i: number) => {
@@ -89,7 +90,7 @@ export function SetupScreen() {
 
   const updateName = (i: number, v: string) => {
     const next = [...names];
-    next[i] = v;
+    next[i] = limitPlayerName(v);
     setNames(next);
   };
 
@@ -262,7 +263,7 @@ export function SetupScreen() {
         <div className="mt-6 flex flex-col gap-3">
           {Array.from({ length: count }).map((_, i) => {
             const isPhoto = isPhotoAvatar(emojis[i]);
-            const hasName = names[i].trim().length > 0;
+            const hasName = isValidPlayerName(names[i]);
             const nameMissing = !hasName && !isAI[i];
             return (
             <div
@@ -295,7 +296,6 @@ export function SetupScreen() {
                     value={names[i]}
                     onChange={(e) => updateName(i, e.target.value)}
                     placeholder="Saisis ton nom"
-                    maxLength={18}
                     disabled={isAI[i]}
                     className={`mt-1 h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
                       isAI[i]
@@ -305,6 +305,11 @@ export function SetupScreen() {
                           : "border-border/60"
                     }`}
                   />
+                  {!isAI[i] && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      2 à 5 caractères · emojis acceptés
+                    </p>
+                  )}
                 </div>
               </div>
               {/* AI toggle + Avatar picker */}

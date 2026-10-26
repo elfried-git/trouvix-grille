@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
@@ -10,9 +11,10 @@ import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { vividColor } from "@/lib/color";
-import { Bomb, Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
+import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
+import { BombardmentToken } from "./BombardmentToken";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -21,6 +23,7 @@ const ROWS = 10;
 const COLS = 10;
 
 export function OnlineGameScreen() {
+  const [bombardmentDragging, setBombardmentDragging] = useState(false);
   const state = useOnlineStore((s) => s.state);
   const optimisticPawn = useOnlineStore((s) => s.optimisticPawn);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -81,17 +84,7 @@ export function OnlineGameScreen() {
       if (!s || s.phase !== "playing" || s.resolving || s.isPaused) return;
       const aiPlayer = s.players[s.currentPlayerIndex];
       if (!aiPlayer?.isAI) return;
-      const opponentIds = s.players
-        .filter((p) => p.id !== aiPlayer.id)
-        .map((p) => p.id);
-      if (
-        aiPlayer.score >= BOMBARDMENT_UNLOCK_SCORE &&
-        !aiPlayer.bombardmentUsed &&
-        findBombardmentTargets(s.grid, opponentIds).length > 0
-      ) {
-        useOnlineStore.getState().bombard();
-        return;
-      }
+      const opponentIds = s.players.filter((p) => p.id !== aiPlayer.id).map((p) => p.id);
       const move = findBestMove(s.grid, aiPlayer.id, opponentIds);
       if (move) {
         useOnlineStore.getState().placePawn(move.row, move.col);
@@ -477,8 +470,9 @@ export function OnlineGameScreen() {
                         : "bg-card/40 border-border/40 opacity-75"
                     } ${isDisconnected ? "opacity-40 line-through" : ""}`}
                   >
-              <Avatar
-                avatar={p.emoji}
+              <span className="relative z-20 inline-flex">
+                <Avatar
+                  avatar={p.emoji}
                       color={p.color}
                         size={36}
                       emojiSize="text-lg"
@@ -489,11 +483,31 @@ export function OnlineGameScreen() {
                           ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 12px 2px ${p.color}cc` }
                           : undefined
                       }
-                    />
+                />
+              </span>
                     <div className="flex min-w-0 w-full flex-wrap items-center justify-center gap-x-1">
-                      <span className={`max-w-full truncate text-xs font-bold leading-tight sm:text-base ${isActive ? "text-white" : "text-foreground"}`}>
+                      <span className={`whitespace-normal break-words text-center text-xs font-bold leading-tight sm:text-base ${isActive ? "text-white" : "text-foreground"}`}>
                         {p.name}
                       </span>
+                      {p.bombardmentUsed ? (
+                        <motion.span
+                          key={`${p.id}-${state.bombardmentEventId}`}
+                          initial={state.bombardmentPlayerId === p.id ? { opacity: 0, scale: 0.3 } : false}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.35, ease: "easeOut" }}
+                          className="pointer-events-none h-6 w-6 shrink-0 sm:h-7 sm:w-7"
+                          aria-hidden="true"
+                        >
+                          <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
+                        </motion.span>
+                      ) : p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.isAI ? (
+                        <BombardmentToken
+                          enabled={isMe && isMyTurn && !state.resolving && !state.isPaused && state.phase === "playing"}
+                          hasTargets={isMe && isMyTurn && bombTargets.length > 0}
+                          onBombard={bombardAction}
+                          onDraggingChange={setBombardmentDragging}
+                        />
+                      ) : null}
                       {isMe && (
                         <span className="rounded bg-amber-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-amber-200 sm:px-1.5 sm:text-xs">
                           Toi
@@ -503,9 +517,6 @@ export function OnlineGameScreen() {
                         <span className="rounded bg-violet-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-violet-200 sm:px-1.5 sm:text-xs">
                           IA
                         </span>
-                      )}
-                      {p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.bombardmentUsed && (
-                        <Bomb aria-label="Bombardement disponible" className="h-3.5 w-3.5 text-orange-300 sm:h-4 sm:w-4" />
                       )}
                     </div>
                     <span className={`font-display text-sm font-black leading-none sm:text-lg ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
@@ -553,27 +564,25 @@ export function OnlineGameScreen() {
 
           {isMyTurn && !current?.isAI && current && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (
             <div className="mx-auto w-full max-w-md shrink-0 text-center">
-              <Button
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {bombTargets.length > 0
+                  ? "Tu peux garder la boule jusqu’à n’importe lequel de tes tours avant la fin. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; ton tour se termine."
+                  : "La boule reste disponible jusqu’à la fin de la partie. Utilise-la à ton tour dès qu’un carré adverse est presque formé."}
+              </p>
+              <button
                 type="button"
-                variant="outline"
+                className="sr-only focus:not-sr-only focus:fixed focus:bottom-4 focus:left-1/2 focus:z-50 focus:-translate-x-1/2 focus:rounded-lg focus:bg-orange-600 focus:px-4 focus:py-2 focus:text-white"
                 disabled={state.resolving || state.isPaused || bombTargets.length === 0}
                 onClick={bombardAction}
-                aria-label="Utiliser le bombardement"
-                title={bombTargets.length > 0 ? "Bombarder les pions adverses qui menacent un carré (consomme le tour)" : "Aucun carré adverse imminent"}
-                className="h-11 gap-2 border-orange-400/60 bg-gradient-to-r from-orange-500/20 to-red-600/20 px-4 text-sm text-orange-100 shadow-[0_0_18px_rgba(249,115,22,0.2)] sm:h-12 sm:px-5 sm:text-base"
               >
-                <Bomb className="h-5 w-5 text-orange-300" />
-                Bombarder
-              </Button>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Détruit les pions adverses d’un carré presque formé. Utilisable une fois ; ton tour se termine.
-              </p>
+                Utiliser le bombardement au clavier
+              </button>
             </div>
           )}
 
           {/* Board */}
           <div className="mx-auto w-full min-w-0 max-w-[min(640px,calc(100vw-1rem))] shrink-0">
-            <div ref={boardRef} className={`relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}>
+            <div ref={boardRef} data-bombardment-board className={`relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""} ${bombardmentDragging ? "ring-4 ring-orange-400/70" : ""}`}>
               <div className="relative z-20 grid gap-[2px] rounded-xl bg-[oklch(0.18_0.02_22)] p-px sm:gap-1.5 sm:p-1" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {

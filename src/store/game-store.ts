@@ -45,6 +45,7 @@ interface GameState {
   currentRound: number; // rounds elapsed so far (squares formed by anyone)
   lastDelta: { playerId: string; delta: number } | null;
   bombardmentEventId: number | null;
+  bombardmentPlayerId: string | null;
   bombardedCells: { row: number; col: number }[] | null;
   endReason: string | null; // 'rounds' | 'board-full' | 'stalemate' | null
   initialPlayers: Player[]; // Store players as they were when startGame was called
@@ -165,6 +166,7 @@ export const useGameStore = create<GameState>((set, get) => {
     currentRound: 0,
     lastDelta: null,
     bombardmentEventId: null,
+    bombardmentPlayerId: null,
     bombardedCells: null,
     endReason: null,
     initialPlayers: [],
@@ -190,6 +192,7 @@ export const useGameStore = create<GameState>((set, get) => {
         currentRound: 0,
         lastDelta: null,
         bombardmentEventId: null,
+        bombardmentPlayerId: null,
         bombardedCells: null,
         endReason: null,
         initialPlayers: [],
@@ -226,6 +229,7 @@ export const useGameStore = create<GameState>((set, get) => {
         currentRound: 0,
         lastDelta: null,
     bombardmentEventId: null,
+    bombardmentPlayerId: null,
     bombardedCells: null,
     endReason: null,
       });
@@ -424,6 +428,7 @@ export const useGameStore = create<GameState>((set, get) => {
           square.cells.every((cell) => grid[cell.row][cell.col] === square.playerId)
         ),
         bombardmentEventId: Date.now(),
+        bombardmentPlayerId: current.id,
         bombardedCells,
         currentPlayerIndex: nextIndex,
         turnTimeLeft: TURN_SECONDS,
@@ -490,6 +495,7 @@ export const useGameStore = create<GameState>((set, get) => {
           currentRound: 0,
           lastDelta: null,
           bombardmentEventId: null,
+          bombardmentPlayerId: null,
           bombardedCells: null,
           endReason: null,
         });
@@ -514,6 +520,7 @@ export const useGameStore = create<GameState>((set, get) => {
         currentRound: 0,
         lastDelta: null,
         bombardmentEventId: null,
+        bombardmentPlayerId: null,
         bombardedCells: null,
         endReason: null,
       });
@@ -550,6 +557,7 @@ export const useGameStore = create<GameState>((set, get) => {
         currentRound: 0,
         lastDelta: null,
     bombardmentEventId: null,
+    bombardmentPlayerId: null,
     bombardedCells: null,
     endReason: null,
       });

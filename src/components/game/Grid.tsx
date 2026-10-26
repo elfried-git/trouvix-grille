@@ -11,9 +11,10 @@ interface GridProps {
   players: Player[];
   currentPlayerId: string | null;
   isPaused: boolean;
+  isBombardmentDragging: boolean;
 }
 
-export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
+export function Grid({ players, currentPlayerId, isPaused, isBombardmentDragging }: GridProps) {
   const grid = useGameStore((s) => s.grid);
   const resolving = useGameStore((s) => s.resolving);
   const lastSquareCells = useGameStore((s) => s.lastSquareCells);
@@ -50,7 +51,10 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
   return (
     <div className="mx-auto w-full max-w-[min(640px,calc(100vw-1rem))]">
       {/* Board */}
-      <div className={`relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}>
+      <div
+        data-bombardment-board
+        className={`relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""} ${isBombardmentDragging ? "ring-4 ring-orange-400/70" : ""}`}
+      >
         <div
           aria-label="Grille de jeu, 10 lignes et 10 colonnes"
           className="relative z-10 grid gap-px rounded-xl bg-[oklch(0.23_0.02_22)] p-px sm:gap-1 sm:p-1"

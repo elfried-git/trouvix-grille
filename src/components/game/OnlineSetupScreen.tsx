@@ -13,6 +13,7 @@ import { ColorSwatch } from "./ColorSwatch";
 import { AdminRoomsBoard } from "./AdminRoomsBoard";
 import { ReviewsBoard } from "./ReviewsBoard";
 import { isPhotoAvatar } from "@/lib/types";
+import { isValidPlayerName, limitPlayerName } from "@/lib/player-name";
 import {
   X,
   Users,
@@ -93,7 +94,7 @@ export function OnlineSetupScreen() {
   // Socket init + reconnect is handled by the parent OnlineRouter (called once)
 
   // Validation: name is required; photo is optional
-  const profileValid = name.trim().length > 0;
+  const profileValid = isValidPlayerName(name);
 
   // Determine which "tab" to show. If we have a room + player id, we're in the lobby
   // (overrides the local tab state so create/join success naturally lands in lobby).
@@ -119,10 +120,11 @@ export function OnlineSetupScreen() {
       } | null;
       if (!savedProfile?.name?.trim()) return;
       const profile = {
-        name: savedProfile.name.trim(),
+        name: limitPlayerName(savedProfile.name.trim()),
         color: COLOR_PALETTE.includes(savedProfile.color ?? "") ? savedProfile.color! : COLOR_PALETTE[0],
         emoji: savedProfile.emoji ?? "",
       };
+      if (!isValidPlayerName(profile.name)) return;
       setName(profile.name);
       setColor(profile.color);
       setEmoji(profile.emoji);
@@ -152,8 +154,8 @@ export function OnlineSetupScreen() {
   const handleJoinPublic = async (room: PublicRoom) => {
     if (room.isFull || onlinePending) return;
     // If no name entered yet, focus the name field and toast
-    if (!name.trim()) {
-      toast.error("Saisis ton prénom pour rejoindre un salon.");
+    if (!profileValid) {
+      toast.error("Saisis un nom de 2 à 5 caractères pour rejoindre un salon.");
       nameInputRef.current?.focus();
       nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
@@ -349,13 +351,13 @@ export function OnlineSetupScreen() {
                   <Input
                     ref={nameInputRef}
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => setName(limitPlayerName(e.target.value))}
                     placeholder="Saisis ton prénom"
-                    maxLength={18}
                     className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
-                      !name.trim() ? "border-rose-400/60" : "border-border/60"
+                      !profileValid ? "border-rose-400/60" : "border-border/60"
                     }`}
                   />
+                  <p className="mt-1 text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
                 </div>
                 <label
                   className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-base font-medium text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95"
@@ -386,6 +388,7 @@ export function OnlineSetupScreen() {
                   );
                 })}
               </div>
+              <p className="mt-1 text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
             </div>
 
             {/* Action cards */}
@@ -752,15 +755,15 @@ export function OnlineSetupScreen() {
                 <div className="flex-1">
                   <Input
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => setName(limitPlayerName(e.target.value))}
                     placeholder="Saisis ton nom"
-                    maxLength={18}
                     className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
-                      !name.trim() ? "border-rose-400/60" : "border-border/60"
+                      !profileValid ? "border-rose-400/60" : "border-border/60"
                     }`}
                   />
                 </div>
               </div>
+              <p className="mt-1 text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <label
                   className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-sm font-semibold text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95 sm:text-base"

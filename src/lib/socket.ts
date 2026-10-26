@@ -315,6 +315,7 @@ export interface OnlineGameState {
   lastSquareerId: string | null;
   squareEventId?: number | null;
   bombardmentEventId?: number | null;
+  bombardmentPlayerId?: string | null;
   bombardedCells?: { row: number; col: number }[] | null;
   formedSquares: { cells: { row: number; col: number }[]; playerId: string }[];
   resolving: boolean;
