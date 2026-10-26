@@ -251,21 +251,14 @@ export function GameScreen() {
         </div>
 
         {current && !current.isAI && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (
-          <div className="mx-auto mb-2 w-full max-w-md text-center">
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {bombTargets.length > 0
-                ? "Tu peux garder la boule jusqu’à n’importe lequel de tes tours avant la fin. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; ton tour se termine."
-                : "La boule reste disponible jusqu’à la fin de la partie. Utilise-la à ton tour dès qu’un carré adverse est presque formé."}
-            </p>
-            <button
-              type="button"
-              className="sr-only focus:not-sr-only focus:fixed focus:bottom-4 focus:left-1/2 focus:z-50 focus:-translate-x-1/2 focus:rounded-lg focus:bg-orange-600 focus:px-4 focus:py-2 focus:text-white"
-              disabled={resolving || isPaused || bombTargets.length === 0}
-              onClick={bombard}
-            >
-              Utiliser le bombardement au clavier
-            </button>
-          </div>
+          <button
+            type="button"
+            className="sr-only focus:not-sr-only focus:fixed focus:bottom-4 focus:left-1/2 focus:z-50 focus:-translate-x-1/2 focus:rounded-lg focus:bg-orange-600 focus:px-4 focus:py-2 focus:text-white"
+            disabled={resolving || isPaused || bombTargets.length === 0}
+            onClick={bombard}
+          >
+            Utiliser le bombardement au clavier
+          </button>
         )}
 
         {/* The board */}
@@ -326,7 +319,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
           <li>
             Appuie sur le profil du joueur actif pour mettre la partie en pause ou la reprendre.
           </li>
-          <li>À partir de 3 points, garde une fois par partie la boule de feu jusqu’au tour de ton choix. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; le bombardement termine ton tour.</li>
+          <li>À partir de 3 points, garde une fois par partie la boule de feu jusqu’à l’un de tes tours. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; le bombardement termine ton tour.</li>
         </ul>
       </section>
       <section>

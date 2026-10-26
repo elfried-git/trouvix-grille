@@ -563,21 +563,14 @@ export function OnlineGameScreen() {
           </div>
 
           {isMyTurn && !current?.isAI && current && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (
-            <div className="mx-auto w-full max-w-md shrink-0 text-center">
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {bombTargets.length > 0
-                  ? "Tu peux garder la boule jusqu’à n’importe lequel de tes tours avant la fin. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; ton tour se termine."
-                  : "La boule reste disponible jusqu’à la fin de la partie. Utilise-la à ton tour dès qu’un carré adverse est presque formé."}
-              </p>
-              <button
-                type="button"
-                className="sr-only focus:not-sr-only focus:fixed focus:bottom-4 focus:left-1/2 focus:z-50 focus:-translate-x-1/2 focus:rounded-lg focus:bg-orange-600 focus:px-4 focus:py-2 focus:text-white"
-                disabled={state.resolving || state.isPaused || bombTargets.length === 0}
-                onClick={bombardAction}
-              >
-                Utiliser le bombardement au clavier
-              </button>
-            </div>
+            <button
+              type="button"
+              className="sr-only focus:not-sr-only focus:fixed focus:bottom-4 focus:left-1/2 focus:z-50 focus:-translate-x-1/2 focus:rounded-lg focus:bg-orange-600 focus:px-4 focus:py-2 focus:text-white"
+              disabled={state.resolving || state.isPaused || bombTargets.length === 0}
+              onClick={bombardAction}
+            >
+              Utiliser le bombardement au clavier
+            </button>
           )}
 
           {/* Board */}
