@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Bomb } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
@@ -128,8 +128,18 @@ export function HomeScreen() {
           </div>
         </motion.div>
 
+        <div className="glass-card mt-3 flex w-full items-center gap-4 rounded-2xl p-4 text-left sm:p-5">
+          <Bomb className="h-9 w-9 shrink-0 text-orange-300" />
+          <div>
+            <p className="font-display text-base font-semibold">Bombardement</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Dès 3 points, détruis les menaces adverses une fois par partie. Ton tour se termine.
+            </p>
+          </div>
+        </div>
+
         {/* Features grid */}
-        <div className="mt-14 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+        <div className="mt-14 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {FEATURES.map((f) => (
             <div
               key={f.label}
