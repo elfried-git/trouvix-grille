@@ -12,6 +12,16 @@ interface BombardmentTokenProps {
   onDraggingChange: (dragging: boolean) => void;
 }
 
+function isPointOnBoard(x: number, y: number) {
+  const board = document.querySelector<HTMLElement>("[data-bombardment-board]");
+  const bounds = board?.getBoundingClientRect();
+  return !!bounds &&
+    x >= bounds.left &&
+    x <= bounds.right &&
+    y >= bounds.top &&
+    y <= bounds.bottom;
+}
+
 export function BombardmentToken({
   enabled,
   hasTargets,
@@ -29,9 +39,10 @@ export function BombardmentToken({
 
     const finishDrag = (event: PointerEvent, shouldDrop: boolean) => {
       if (event.pointerId !== pointerIdRef.current) return;
-      const board = document.elementFromPoint(event.clientX, event.clientY)
-        ?.closest("[data-bombardment-board]");
-      const droppedOnBoard = shouldDrop && !!board && enabled && hasTargets;
+      const droppedOnBoard = shouldDrop &&
+        isPointOnBoard(event.clientX, event.clientY) &&
+        enabled &&
+        hasTargets;
       pointerIdRef.current = null;
       setDragging(false);
       setOverBoard(false);
@@ -44,8 +55,7 @@ export function BombardmentToken({
       if (previewRef.current) {
         previewRef.current.style.transform = `translate3d(${event.clientX - 24}px, ${event.clientY - 24}px, 0)`;
       }
-      const overBoard = !!document.elementFromPoint(event.clientX, event.clientY)
-        ?.closest("[data-bombardment-board]");
+      const overBoard = isPointOnBoard(event.clientX, event.clientY);
       setOverBoard((previous) => previous === overBoard ? previous : overBoard);
     };
     const handleUp = (event: PointerEvent) => finishDrag(event, true);
@@ -85,6 +95,10 @@ export function BombardmentToken({
         aria-label={enabled && hasTargets ? "Boule de feu disponible, à glisser sur la grille" : "Boule de feu disponible à ton prochain tour"}
         title={enabled && hasTargets ? "Glisse la boule de feu sur la grille pour bombarder" : "Boule de feu disponible quand ce joueur pourra jouer"}
         onPointerDown={startDrag}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
         className={`inline-flex h-7 w-7 shrink-0 touch-none select-none ${
           enabled && hasTargets ? "cursor-grab active:cursor-grabbing" : "cursor-default opacity-60"
         }`}
