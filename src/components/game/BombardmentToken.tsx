@@ -23,9 +23,10 @@ export function BombardmentToken({
   });
 
   return (
-    <button
+    <span
       ref={setNodeRef}
-      type="button"
+      data-bombardment-token
+      role="button"
       aria-label={canDrag ? "Glisser la boule de feu sur la grille pour bombarder" : "Boule de feu disponible"}
       title={
         !enabled
@@ -53,6 +54,6 @@ export function BombardmentToken({
         draggable={false}
         className="pointer-events-none h-full w-full object-contain"
       />
-    </button>
+    </span>
   );
 }

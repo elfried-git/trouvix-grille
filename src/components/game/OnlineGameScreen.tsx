@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
@@ -104,7 +105,7 @@ export function OnlineGameScreen() {
 
   // === Ripple shockwave when a square is formed ===
   const boardRef = useRef<HTMLDivElement>(null);
-  const [reactionBoardRect, setReactionBoardRect] = useState<DOMRect | null>(null);
+  const [reactionBounds, setReactionBounds] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [activeSquareEvent, setActiveSquareEvent] = useState<{ eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] } | null>(null);
   const handledSquareEventRef = useRef<number | null>(null);
   const [bombardmentFlash, setBombardmentFlash] = useState(false);
@@ -120,24 +121,27 @@ export function OnlineGameScreen() {
   }, [state?.bombardmentEventId]);
 
   useEffect(() => {
-    const board = boardRef.current;
-    if (!board) {
-      setReactionBoardRect(null);
-      return;
-    }
-
-    const updateBoardRect = () => setReactionBoardRect(board.getBoundingClientRect());
-    updateBoardRect();
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateBoardRect) : null;
-    observer?.observe(board);
-    window.addEventListener("resize", updateBoardRect);
-    window.addEventListener("scroll", updateBoardRect, true);
+    const updateBounds = () => {
+      if (!boardRef.current) return;
+      const rect = boardRef.current.getBoundingClientRect();
+      setReactionBounds({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+      });
+    };
+    updateBounds();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateBounds) : null;
+    if (boardRef.current) observer?.observe(boardRef.current);
+    window.addEventListener("resize", updateBounds);
+    window.addEventListener("scroll", updateBounds, true);
     return () => {
       observer?.disconnect();
-      window.removeEventListener("resize", updateBoardRect);
-      window.removeEventListener("scroll", updateBoardRect, true);
+      window.removeEventListener("resize", updateBounds);
+      window.removeEventListener("scroll", updateBounds, true);
     };
-  }, [state?.phase]);
+  }, []);
 
   useEffect(() => {
     const event = squareEvent ?? stateSquareEvent;
@@ -430,13 +434,26 @@ export function OnlineGameScreen() {
                 const isActive = p.id === current?.id;
                 const isMe = p.id === myId;
                 const isDisconnected = p.connected === false;
+                const canClick = !((state.resolving && isMe) || !myId);
                 return (
-                  <button
-                    type="button"
-                    disabled={(state.resolving && isMe) || !myId}
-                    onClick={() => {
+                  <div
+                    role="button"
+                    tabIndex={canClick ? 0 : -1}
+                    aria-disabled={!canClick}
+                    onClick={(e) => {
+                      if (!canClick) return;
+                      if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
                       if (isMe) togglePauseAction();
                       else endGameAction();
+                    }}
+                    onKeyDown={(e) => {
+                      if (!canClick) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
+                        e.preventDefault();
+                        if (isMe) togglePauseAction();
+                        else endGameAction();
+                      }
                     }}
                     aria-label={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
                     title={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
@@ -450,7 +467,9 @@ export function OnlineGameScreen() {
                           }
                         : undefined
                     }
-                    className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-0.5 rounded-lg border px-1 py-1 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 ${
+                    className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-0.5 rounded-lg border px-1 py-1 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 ${
+                      canClick ? "" : "cursor-wait opacity-80 "
+                    }${
                       isActive
                         ? "border-2 ring-1 ring-white/30 scale-[1.02]"
                         : "bg-card/40 border-border/40 opacity-75"
@@ -515,7 +534,7 @@ export function OnlineGameScreen() {
                     <span className={`font-display text-sm font-black leading-none sm:text-lg ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                       {p.score} <span className="text-[10px] font-normal text-muted-foreground sm:text-xs">pts</span>
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -680,36 +699,38 @@ export function OnlineGameScreen() {
                   </p>
                 </div>
               )}
-              {reactions.length > 0 && (
-                <div data-reaction-overlay className="pointer-events-none absolute inset-0 z-[60] overflow-visible">
-                  <AnimatePresence>
-                    {reactions.map((reaction) => {
-                      const travel = Math.min((reactionBoardRect?.height ?? 360) * 0.68, 420);
-                      const horizontalOffset = ((reaction.timestamp % 5) - 2) * 8;
-                      return (
-                        <motion.div
-                          key={reaction.id}
-                          aria-hidden="true"
-                          initial={{ opacity: 0, y: 0, scale: 0.6 }}
-                          animate={{
-                            opacity: [0, 1, 1, 0],
-                            y: [0, -travel * 0.35, -travel, -travel],
-                            scale: [0.5, 1.3, 1, 0.8],
-                          }}
-                          exit={{ opacity: 0, scale: 0.5 }}
-                          transition={{ duration: 2.4, ease: "easeOut" }}
-                          style={{ left: `calc(50% + ${horizontalOffset}px)`, bottom: "10%" }}
-                          className="absolute -translate-x-1/2 text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
-                        >
-                          {reaction.emoji}
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
-              )}
             </BombardmentDropZone>
           </div>
+
+          {/* Floating emoji reactions portal above grid */}
+          {typeof document !== "undefined" && reactionBounds && reactions.length > 0 && createPortal(
+            <div className="pointer-events-none fixed inset-0" style={{ zIndex: 2147483647 }}>
+              <AnimatePresence>
+                {reactions.map((reaction) => {
+                  const startTop = reactionBounds.top + reactionBounds.height * 0.88;
+                  const middleTop = reactionBounds.top + reactionBounds.height * 0.45;
+                  const centerLeft = reactionBounds.left + reactionBounds.width / 2 + ((reaction.timestamp % 9) - 4) * 24;
+                  return (
+                    <motion.div
+                      key={reaction.id}
+                      initial={{ opacity: 0, top: startTop, left: centerLeft, scale: 0.5 }}
+                      animate={{
+                        opacity: [0, 1, 1, 0],
+                        top: [startTop, reactionBounds.top + reactionBounds.height * 0.72, middleTop, middleTop],
+                        scale: [0.5, 1.3, 1, 0.8],
+                      }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 3, ease: "easeOut" }}
+                      className="absolute -ml-6 -mt-6 select-none text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+                    >
+                      {reaction.emoji}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>,
+            document.body
+          )}
 
           {/* Reaction bar */}
           <div className="mx-auto w-full max-w-[340px] shrink-0 sm:max-w-[390px]">

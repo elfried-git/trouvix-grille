@@ -143,13 +143,26 @@ export function GameScreen() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {players.map((p) => {
               const isActive = p.id === current?.id;
+              const canClick = !(resolving && p.id === current?.id);
               return (
-                <button
-                  type="button"
-                  disabled={resolving && p.id === current?.id}
-                  onClick={() => {
+                <div
+                  role="button"
+                  tabIndex={canClick ? 0 : -1}
+                  aria-disabled={!canClick}
+                  onClick={(e) => {
+                    if (!canClick) return;
+                    if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
                     if (p.id === current?.id) togglePause();
                     else endGameNow();
+                  }}
+                  onKeyDown={(e) => {
+                    if (!canClick) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
+                      e.preventDefault();
+                      if (p.id === current?.id) togglePause();
+                      else endGameNow();
+                    }
                   }}
                   aria-label={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
                   title={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
@@ -163,7 +176,9 @@ export function GameScreen() {
                         }
                       : undefined
                   }
-                  className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-2 rounded-xl border px-3 py-3 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-wait ${
+                  className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-2 rounded-xl border px-3 py-3 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                    canClick ? "" : "cursor-wait opacity-80 "
+                  }${
                     isActive
                       ? "border-2 ring-1 ring-white/30 scale-[1.02]"
                       : "bg-card/40 border-border/40 opacity-75"
@@ -225,7 +240,7 @@ export function GameScreen() {
                   <span className={`font-display text-xl font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                     {p.score} <span className="text-sm font-normal text-muted-foreground">pts</span>
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>

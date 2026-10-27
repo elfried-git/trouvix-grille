@@ -79,7 +79,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased bg-background text-foreground`}
       >
-        <MotionConfig skipAnimations>
+        <MotionConfig reducedMotion="user">
           {children}
           <Toaster />
         </MotionConfig>

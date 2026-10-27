@@ -11,6 +11,7 @@ import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
 import { enableNotifications, prepareNotificationAudio } from "@/lib/admin-notifications";
 import { toast } from "sonner";
+import { BackgroundSlideshow } from "./BackgroundSlideshow";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
@@ -44,7 +45,9 @@ export function HomeScreen() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
+      {/* Animated background slideshow — behind everything */}
+      <BackgroundSlideshow />
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
