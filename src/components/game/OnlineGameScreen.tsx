@@ -681,7 +681,7 @@ export function OnlineGameScreen() {
                 </div>
               )}
               {reactions.length > 0 && (
-                <div className="pointer-events-none absolute inset-0 z-50 overflow-visible">
+                <div data-reaction-overlay className="pointer-events-none absolute inset-0 z-[60] overflow-visible">
                   <AnimatePresence>
                     {reactions.map((reaction) => {
                       const travel = Math.min((reactionBoardRect?.height ?? 360) * 0.68, 420);
@@ -689,6 +689,7 @@ export function OnlineGameScreen() {
                       return (
                         <motion.div
                           key={reaction.id}
+                          aria-hidden="true"
                           initial={{ opacity: 0, y: 0, scale: 0.6 }}
                           animate={{
                             opacity: [0, 1, 1, 0],
@@ -731,6 +732,7 @@ export function OnlineGameScreen() {
             <div className="grid w-full min-w-0 grid-cols-5 items-center gap-1 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:gap-2 sm:p-2">
               {REACTION_EMOJIS.map((emoji) => (
                 <button
+                  type="button"
                   key={emoji}
                   onClick={() => sendReactionAction(emoji)}
                   className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-105 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-2xl"

@@ -770,7 +770,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   sendReaction: (emoji) => {
     playReactionSound(emoji);
-    const socket = getSocket();
     const reactionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const reaction = {
       id: reactionId,
@@ -781,6 +780,6 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     setTimeout(() => {
       set((s) => ({ reactions: s.reactions.filter((item) => item.id !== reaction.id) }));
     }, 3000);
-    if (socket.connected) socket.emit("send-reaction", { emoji, reactionId });
+    getSocket().emit("send-reaction", { emoji, reactionId });
   },
 }));
