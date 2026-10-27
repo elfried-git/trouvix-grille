@@ -57,7 +57,7 @@ export function OnlineGameScreen() {
         color: state.players.find((player) => player.id === state.lastSquareerId)?.color ?? "#f59e0b",
         cells: state.lastSquareCells,
       }
-    : null, [state?.squareEventId, state?.lastSquareCells, state?.lastSquareerId, state?.players]);
+    : null, [state]);
 
   // === AI auto-play (host computes moves for AI players) ===
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
