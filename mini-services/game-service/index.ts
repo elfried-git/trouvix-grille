@@ -1325,7 +1325,7 @@ io.on('connection', (socket) => {
     const opponentIds = s.players.filter((player) => player.id !== current.id).map((player) => player.id)
     const bombardedCells = findBombardmentTargets(s.grid, opponentIds)
     if (bombardedCells.length === 0) {
-      if (ack) ack({ error: "Aucun carré adverse imminent à bombarder." })
+      if (ack) ack({ error: "Aucun pion adverse à bombarder sur la grille." })
       return
     }
 

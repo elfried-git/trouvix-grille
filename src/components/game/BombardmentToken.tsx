@@ -32,7 +32,7 @@ export function BombardmentToken({
         !enabled
           ? "Boule de feu disponible à ton prochain tour"
           : !hasTargets
-            ? "Aucun carré adverse presque formé"
+            ? "Aucun pion adverse sur la grille"
             : "Glisse la boule de feu sur la grille pour bombarder"
       }
       {...listeners}

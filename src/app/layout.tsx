@@ -71,8 +71,6 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        {/* Preload Benchou Ferrari photo for instant display */}
-        <link rel="preload" as="image" href="/benchou-ferrari-small.jpg" fetchPriority="high" />
         {/* Preload logo */}
         <link rel="preload" as="image" href="/trouvix-logo.svg" />
       </head>

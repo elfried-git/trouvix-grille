@@ -48,13 +48,8 @@ export function HomeScreen() {
     <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
       {/* Animated background slideshow — behind everything */}
       <BackgroundSlideshow />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-10 flex flex-col items-center text-center"
-      >
-        {/* Logo & Titre Trouvix avec effet Wow (Assemblage du carré magique & shimmer) */}
+      <div className="relative z-10 flex flex-col items-center text-center">
+        {/* Logo & Titre Trouvix */}
         <TrouvixHeroTitle />
 
         <div className="mt-8 flex w-full max-w-xl flex-col items-center gap-3 sm:w-auto">
@@ -110,10 +105,7 @@ export function HomeScreen() {
           </Button>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.35, delay: 0.2 }}
+        <div
           className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6"
         >
           <div className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 text-center sm:p-4">
@@ -130,7 +122,7 @@ export function HomeScreen() {
               Caché de la liste, accessible par code ou invitation.
             </p>
           </div>
-        </motion.div>
+        </div>
 
         <div className="glass-card mt-3 flex w-full items-center gap-4 rounded-2xl p-4 text-left sm:p-5">
           <Image
@@ -141,9 +133,9 @@ export function HomeScreen() {
             className="h-9 w-9 shrink-0 object-contain"
           />
           <div>
-            <p className="font-display text-base font-semibold">Bombardement</p>
+            <p className="font-display text-base font-semibold">Boule de feu (Bombardement)</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Dès 3 points, glisse la boule sur la grille pour détruire les 3 pions d’un carré adverse presque formé. Une fois par partie.
+              Dès 3 points, glisse la boule sur la grille pour détruire les pions adverses (carrés menaçants ou pions stratégiques). Utilisable à n’importe quel tour de manière totalement autonome ! Une fois par partie.
             </p>
           </div>
         </div>
@@ -171,8 +163,6 @@ export function HomeScreen() {
           </div>
         </div>
 
-              </motion.div>
-
               {/* Démo — hors du conteneur centré, sinon poussée hors écran et coupée */}
               <div className="mt-16 w-full">
                 <div className="mb-6 flex items-center gap-3">
@@ -186,5 +176,6 @@ export function HomeScreen() {
               </div>
             <ReviewForm open={reviewOpen} onOpenChange={setReviewOpen} />
           </div>
-          );
-        }
+        </div>
+  );
+}
