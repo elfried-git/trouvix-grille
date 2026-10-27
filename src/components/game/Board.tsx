@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { CELLS, CATEGORY_META } from "@/lib/cells";
 import type { Player, CellType } from "@/lib/types";
@@ -10,15 +11,15 @@ interface BoardProps {
   currentPlayerId: string | null;
 }
 
-const TYPE_STYLES: Record<CellType, { bg: string; ring: string; label: string; emoji: string }> = {
-  start: { bg: "bg-gradient-to-br from-amber-500/30 to-amber-700/30", ring: "ring-amber-400/50", label: "Départ", emoji: "🚩" },
-  end: { bg: "bg-gradient-to-br from-rose-500/40 to-rose-700/40", ring: "ring-rose-400/60", label: "Arrivée", emoji: "🏆" },
-  histoire: { bg: "bg-rose-500/15", ring: "ring-rose-400/30", label: "Histoire", emoji: "🏛️" },
-  geographie: { bg: "bg-amber-500/15", ring: "ring-amber-400/30", label: "Géographie", emoji: "🌍" },
-  sciences: { bg: "bg-emerald-500/15", ring: "ring-emerald-400/30", label: "Sciences", emoji: "🔬" },
-  arts: { bg: "bg-fuchsia-500/15", ring: "ring-fuchsia-400/30", label: "Arts", emoji: "🎭" },
-  sport: { bg: "bg-lime-500/15", ring: "ring-lime-400/30", label: "Sport", emoji: "🏆" },
-  joker: { bg: "bg-sky-500/15", ring: "ring-sky-400/30", label: "Joker", emoji: "🎁" },
+const TYPE_STYLES: Record<CellType, { bg: string; ring: string; label: string; image?: string; emoji?: string }> = {
+  start: { bg: "bg-gradient-to-br from-amber-500/30 to-amber-700/30", ring: "ring-amber-400/50", label: "Départ", image: "/images/emojis/emoji-military.jpg" },
+  end: { bg: "bg-gradient-to-br from-rose-500/40 to-rose-700/40", ring: "ring-rose-400/60", label: "Arrivée", image: "/images/emojis/emoji-smile-cap.jpg" },
+  histoire: { bg: "bg-rose-500/15", ring: "ring-rose-400/30", label: "Histoire", image: "/images/emojis/emoji-military.jpg" },
+  geographie: { bg: "bg-amber-500/15", ring: "ring-amber-400/30", label: "Géographie", image: "/images/emojis/emoji-cigar-energy.jpg" },
+  sciences: { bg: "bg-emerald-500/15", ring: "ring-emerald-400/30", label: "Sciences", image: "/images/emojis/emoji-smile-cap.jpg" },
+  arts: { bg: "bg-fuchsia-500/15", ring: "ring-fuchsia-400/30", label: "Arts", image: "/images/emojis/emoji-crying.jpg" },
+  sport: { bg: "bg-lime-500/15", ring: "ring-lime-400/30", label: "Sport", image: "/images/emojis/emoji-military.jpg" },
+  joker: { bg: "bg-sky-500/15", ring: "ring-sky-400/30", label: "Joker", image: "/images/emojis/emoji-angry.jpg" },
 };
 
 export function Board({ players, currentPlayerId }: BoardProps) {
@@ -42,7 +43,18 @@ export function Board({ players, currentPlayerId }: BoardProps) {
                 }}
                 title={`Case ${cell.index} — ${style.label}`}
               >
-                <span className="leading-none">{style.emoji}</span>
+                {style.image ? (
+                  <div className="relative h-4 w-4 overflow-hidden rounded-full sm:h-5 sm:w-5">
+                    <Image
+                      src={style.image}
+                      alt={style.label}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <span className="leading-none">{style.emoji}</span>
+                )}
                 {(isStart || isEnd) && (
                   <span className="absolute -bottom-0.5 left-0 right-0 text-center text-[8px] font-black text-amber-50 sm:text-[10px]">
                     {isStart ? "DÉPART" : "ARRIVÉE"}
