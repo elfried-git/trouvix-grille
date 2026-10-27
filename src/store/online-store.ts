@@ -255,14 +255,15 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       } catch {}
     });
     // Floating emoji reactions (broadcast to the room)
-    socket.on("reaction-received", (payload: { playerId: string; emoji: string; timestamp: number }) => {
+    socket.on("reaction-received", (payload: { playerId: string; emoji: string; timestamp: number; reactionId?: string }) => {
       if (!payload?.emoji) return;
       if (payload.playerId !== get().myPlayerId) playReactionSound(payload.emoji);
       const reaction = {
-        id: `${payload.playerId}-${payload.timestamp}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `${payload.playerId}-${payload.reactionId ?? `${payload.timestamp}-${Math.random().toString(36).slice(2, 6)}`}`,
         emoji: payload.emoji,
         timestamp: payload.timestamp,
       };
+      if (get().reactions.some((item) => item.id === reaction.id)) return;
       set((s) => ({ reactions: [...s.reactions, reaction] }));
       // Auto-remove after 3s (matches the animation duration)
       setTimeout(() => {
@@ -770,8 +771,19 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   sendReaction: (emoji) => {
     playReactionSound(emoji);
     const socket = getSocket();
-    if (socket.connected) {
-      socket.emit("send-reaction", { emoji });
-    }
+    const playerId = get().myPlayerId;
+    if (!playerId) return;
+
+    const reactionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const reaction = {
+      id: `${playerId}-${reactionId}`,
+      emoji,
+      timestamp: Date.now(),
+    };
+    set((s) => ({ reactions: [...s.reactions, reaction] }));
+    setTimeout(() => {
+      set((s) => ({ reactions: s.reactions.filter((item) => item.id !== reaction.id) }));
+    }, 3000);
+    if (socket.connected) socket.emit("send-reaction", { emoji, reactionId });
   },
 }));

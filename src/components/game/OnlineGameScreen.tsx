@@ -742,15 +742,15 @@ export function OnlineGameScreen() {
         <AnimatePresence>
           {reactions.map((reaction) => {
             const startTop = reactionBounds.top + reactionBounds.height * 0.88;
-            const middleTop = reactionBounds.top + reactionBounds.height * 0.5;
+            const travel = reactionBounds.height * 0.38;
             const centerLeft = reactionBounds.left + reactionBounds.width / 2 + (reaction.timestamp % 80) - 40;
             return (
               <motion.div
                 key={reaction.id}
-                initial={{ opacity: 0, top: startTop, left: centerLeft, scale: 0.5 }}
+                initial={{ opacity: 0, top: startTop, left: centerLeft, y: 0, scale: 0.5 }}
                 animate={{
                   opacity: [0, 1, 1, 0],
-                  top: [startTop, reactionBounds.top + reactionBounds.height * 0.72, middleTop, middleTop],
+                  y: [0, -travel * 0.42, -travel, -travel],
                   scale: [0.5, 1.3, 1, 0.8],
                 }}
                 exit={{ opacity: 0, scale: 0.5 }}
