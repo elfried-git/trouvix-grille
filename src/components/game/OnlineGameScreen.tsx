@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import Image from "next/image";
-import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnlineStore } from "@/store/online-store";
 import { useGameStore } from "@/store/game-store";
@@ -173,11 +172,6 @@ export function OnlineGameScreen() {
   const turnTimeLeft = state.turnDeadlineAt != null && state.phase === "playing" && !state.isPaused
     ? Math.max(0, (state.turnDeadlineAt - clockNow) / 1000)
     : state.turnTimeLeft;
-  const reactionBounds = typeof window === "undefined"
-    ? null
-    : reactionBoardRect && reactionBoardRect.width > 0 && reactionBoardRect.height > 0
-      ? reactionBoardRect
-      : { left: 0, top: window.innerHeight * 0.1, width: window.innerWidth, height: window.innerHeight * 0.65 };
   const current = players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myId;
   const amHost = state.hostId === myId;
@@ -686,6 +680,33 @@ export function OnlineGameScreen() {
                   </p>
                 </div>
               )}
+              {reactions.length > 0 && (
+                <div className="pointer-events-none absolute inset-0 z-50 overflow-visible">
+                  <AnimatePresence>
+                    {reactions.map((reaction) => {
+                      const travel = Math.min((reactionBoardRect?.height ?? 360) * 0.68, 420);
+                      const horizontalOffset = ((reaction.timestamp % 5) - 2) * 8;
+                      return (
+                        <motion.div
+                          key={reaction.id}
+                          initial={{ opacity: 0, y: 0, scale: 0.6 }}
+                          animate={{
+                            opacity: [0, 1, 1, 0],
+                            y: [0, -travel * 0.35, -travel, -travel],
+                            scale: [0.5, 1.3, 1, 0.8],
+                          }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ duration: 2.4, ease: "easeOut" }}
+                          style={{ left: `calc(50% + ${horizontalOffset}px)`, bottom: "10%" }}
+                          className="absolute -translate-x-1/2 text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+                        >
+                          {reaction.emoji}
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
             </BombardmentDropZone>
           </div>
 
@@ -734,35 +755,6 @@ export function OnlineGameScreen() {
           </div>
       </div>
     </div>
-    {typeof document !== "undefined" && reactionBounds && reactions.length > 0 && createPortal(
-      <div className="pointer-events-none fixed inset-0" style={{ zIndex: 2147483647 }}>
-        <AnimatePresence>
-          {reactions.map((reaction) => {
-            const startTop = reactionBounds.top + reactionBounds.height * 0.88;
-            const travel = reactionBounds.height * 0.38;
-            const centerLeft = reactionBounds.left + reactionBounds.width / 2 + (reaction.timestamp % 80) - 40;
-            return (
-              <motion.div
-                key={reaction.id}
-                initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                animate={{
-                  opacity: [0, 1, 1, 0],
-                  y: [0, -travel * 0.42, -travel, -travel],
-                  scale: [0.5, 1.3, 1, 0.8],
-                }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                transition={{ duration: 3, ease: "easeOut" }}
-                style={{ top: startTop, left: centerLeft }}
-                className="absolute -ml-6 -mt-6 text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
-              >
-                {reaction.emoji}
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>,
-      document.body
-    )}
     </>
     </BombardmentDndProvider>
   );

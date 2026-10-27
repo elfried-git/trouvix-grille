@@ -259,7 +259,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       if (!payload?.emoji) return;
       if (payload.playerId !== get().myPlayerId) playReactionSound(payload.emoji);
       const reaction = {
-        id: `${payload.playerId}-${payload.reactionId ?? `${payload.timestamp}-${Math.random().toString(36).slice(2, 6)}`}`,
+        id: payload.reactionId ?? `${payload.playerId}-${payload.timestamp}-${Math.random().toString(36).slice(2, 6)}`,
         emoji: payload.emoji,
         timestamp: payload.timestamp,
       };
@@ -771,12 +771,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   sendReaction: (emoji) => {
     playReactionSound(emoji);
     const socket = getSocket();
-    const playerId = get().myPlayerId;
-    if (!playerId) return;
-
     const reactionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const reaction = {
-      id: `${playerId}-${reactionId}`,
+      id: reactionId,
       emoji,
       timestamp: Date.now(),
     };
