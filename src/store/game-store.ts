@@ -282,6 +282,16 @@ export const useGameStore = create<GameState>((set, get) => {
           return { row: Number(rowStr), col: Number(colStr) };
         });
 
+        const winnerId = newRound >= state.totalRounds
+          ? computeWinner(players)
+          : !canAnyPlayerFormSquare(grid, players)
+            ? computeWinner(players)
+            : null;
+        const endReason = winnerId
+          ? newRound >= state.totalRounds ? "rounds" : "stalemate"
+          : null;
+        const nextIndex = (state.currentPlayerIndex + 1) % players.length;
+        const nextPlayer = players[nextIndex];
         set({
           grid,
           players,
@@ -291,52 +301,23 @@ export const useGameStore = create<GameState>((set, get) => {
             ...state.formedSquares,
             ...squares.map((cells) => ({ cells, playerId: cur.id })),
           ],
-          resolving: true,
+          resolving: false,
+          phase: winnerId ? "gameover" : "playing",
+          winnerId,
+          endReason,
           lastDelta: { playerId: cur.id, delta: points },
           currentRound: newRound,
-          statusMessage: `🟦 ${cur.name} forme ${
-            points === 1 ? "un carré" : `${points} carrés`
-          } ! +${points} point${points > 1 ? "s" : ""} (Carré ${newRound}/${state.totalRounds})`,
+          currentPlayerIndex: winnerId ? state.currentPlayerIndex : nextIndex,
+          turnTimeLeft: winnerId ? state.turnTimeLeft : TURN_SECONDS,
+          statusMessage: winnerId
+            ? endReason === "rounds"
+              ? `Match terminé après ${state.totalRounds} carrés ! 🏆`
+              : "Plus aucun carré possible ! Fin du match."
+            : `Carré ${newRound}/${state.totalRounds} — à ${nextPlayer.name} ! ⏱️`,
         });
-
         setTimeout(() => {
-          const s = get();
-          if (s.phase !== "playing") return;
-          if (s.currentRound >= s.totalRounds) {
-            const winnerId = computeWinner(s.players);
-            set({
-              phase: "gameover",
-              winnerId,
-              endReason: "rounds",
-              resolving: false,
-              lastSquareCells: null,
-              statusMessage: `Match terminé après ${s.totalRounds} carrés ! 🏆`,
-            });
-            return;
-          }
-          // Stalemate: no player can form a square anymore
-          if (!canAnyPlayerFormSquare(s.grid, s.players)) {
-            const winnerId = computeWinner(s.players);
-            set({
-              phase: "gameover",
-              winnerId,
-              endReason: "stalemate",
-              resolving: false,
-              lastSquareCells: null,
-              statusMessage: "Plus aucun carré possible ! Fin du match.",
-            });
-            return;
-          }
-          const nextIndex = (s.currentPlayerIndex + 1) % s.players.length;
-          const next = s.players[nextIndex];
-          set({
-            resolving: false,
-            lastSquareCells: null,
-            currentPlayerIndex: nextIndex,
-            turnTimeLeft: TURN_SECONDS,
-            statusMessage: `Carré ${s.currentRound}/${s.totalRounds} — à ${next.name} ! ⏱️`,
-          });
-        }, 1700);
+          if (get().lastSquareCells === lastSquareCells) set({ lastSquareCells: null });
+        }, 650);
         return;
       }
 
@@ -394,6 +375,8 @@ export const useGameStore = create<GameState>((set, get) => {
         grid,
         currentPlayerIndex: nextIndex,
         turnTimeLeft: TURN_SECONDS,
+        lastSquareCells: null,
+        lastSquareerId: null,
         statusMessage: `À ${next.name} de jouer. ⏱️`,
       });
     },

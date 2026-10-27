@@ -140,7 +140,7 @@ export function HomeScreen() {
           <div>
             <p className="font-display text-base font-semibold">Bombardement</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Dès 3 points, garde la boule jusqu’à l’un de tes tours pour détruire les 3 pions du premier carré adverse presque formé. Une fois par partie.
+              Dès 3 points, glisse la boule sur la grille pour détruire les 3 pions d’un carré adverse presque formé. Une fois par partie.
             </p>
           </div>
         </div>

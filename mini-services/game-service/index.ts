@@ -7,7 +7,6 @@ import { isValidPlayerName } from '../../src/lib/player-name'
 const ROWS = 10
 const COLS = 10
 const TURN_SECONDS = 10
-const RESOLVE_MS = 1700 // match the local game's square celebration
 const BOARD_FULL_RESOLVE_MS = 1200
 const BENCHOU_PIN = process.env.BENCHOU_PIN || '331991' // Secret PIN (override via env in production)
 const TICK_MS = 500 // 500ms = good balance between smoothness and memory
@@ -1236,10 +1235,24 @@ io.on('connection', (socket) => {
       s.lastSquareerId = cur.id
       s.squareEventId = Date.now()
       s.formedSquares.push(...squares.map((cells) => ({ cells, playerId: cur.id })))
-      s.resolving = true
+      s.resolving = false
       s.lastDelta = { playerId: cur.id, delta: points }
       s.currentRound += points
-      s.statusMessage = `🟦 ${cur.name} forme ${points === 1 ? "un carré" : `${points} carrés`} ! +${points} point${points > 1 ? "s" : ""} (Carré ${s.currentRound}/${s.totalRounds})`
+      if (s.currentRound >= s.totalRounds) {
+        s.phase = 'gameover'
+        s.winnerId = computeWinner(s.players)
+        s.statusMessage = `Match terminé après ${s.totalRounds} carrés ! 🏆`
+      } else if (!canAnyPlayerFormSquare(s.grid, s.players)) {
+        s.phase = 'gameover'
+        s.winnerId = computeWinner(s.players)
+        s.statusMessage = 'Plus aucun carré possible sur la grille ! Fin du match. 🏆'
+      } else {
+        const nextIndex = nextPlayerIndex(room)
+        const next = s.players[nextIndex]
+        s.currentPlayerIndex = nextIndex
+        s.turnTimeLeft = TURN_SECONDS
+        s.statusMessage = `Carré ${s.currentRound}/${s.totalRounds} — à ${next?.name ?? '?'} ! ⏱️`
+      }
       console.log(`[room ${room.roomCode}] ${points} SQUARE(S) by ${cur.name} at (${row},${col}) — carré ${s.currentRound}/${s.totalRounds}`)
       broadcastState(room); broadcastAdminRoomList()
       // Cosmetic event broadcast to every socket in the room (including the
@@ -1251,40 +1264,11 @@ io.on('connection', (socket) => {
         cells: s.lastSquareCells.map((cell) => ({ ...cell })),
       })
 
-      setTimeout(() => {
-        const r2 = findRoom(binding.roomCode)
-        if (!r2) return
-        const st = r2.state
-        if (st.phase !== 'playing') return
-        st.resolving = false
-        st.lastSquareCells = null
-        if (st.currentRound >= st.totalRounds) {
-          const winnerId = computeWinner(st.players)
-          st.phase = 'gameover'
-          st.winnerId = winnerId
-          st.statusMessage = `Match terminé après ${st.totalRounds} carrés ! 🏆`
-          console.log(`[room ${r2.roomCode}] GAME OVER (rounds reached) winner=${winnerId}`)
-          broadcastState(r2)
-          return
-        }
-        if (!canAnyPlayerFormSquare(st.grid, st.players)) {
-          const winnerId = computeWinner(st.players)
-          st.phase = 'gameover'
-          st.winnerId = winnerId
-          st.statusMessage = 'Plus aucun carré possible sur la grille ! Fin du match. 🏆'
-          console.log(`[room ${r2.roomCode}] GAME OVER (no more squares possible) winner=${winnerId}`)
-          broadcastState(r2)
-          return
-        }
-        const nextIndex = nextPlayerIndex(r2)
-        const next = st.players[nextIndex]
-        st.currentPlayerIndex = nextIndex
-        st.turnTimeLeft = TURN_SECONDS
-        st.statusMessage = `Carré ${st.currentRound}/${st.totalRounds} — à ${next?.name ?? '?'} ! ⏱️`
-        broadcastState(r2)
-      }, RESOLVE_MS)
       return
     }
+
+    s.lastSquareCells = null
+    s.lastSquareerId = null
 
     // No square: check board full OR no more squares possible
     if (isBoardFull(s.grid) || !canAnyPlayerFormSquare(s.grid, s.players)) {

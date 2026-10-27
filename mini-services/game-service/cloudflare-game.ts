@@ -9,7 +9,6 @@ let APP_URL = 'https://trouvix-grille.vercel.app'
 const ROWS = 10
 const COLS = 10
 const TURN_SECONDS = 10
-const RESOLVE_MS = 1700 // match the local game's square celebration
 const BOARD_FULL_RESOLVE_MS = 1200
 // How long an empty room (nobody connected) is kept alive before it self-destructs.
 // An empty room stays reachable with its code for this long so the host and the
@@ -1348,13 +1347,24 @@ io.on('connection', (socket) => {
       s.lastSquareerId = cur.id
       s.squareEventId = Date.now()
       s.formedSquares.push(...squares.map((cells) => ({ cells, playerId: cur.id })))
-      s.resolving = true
-      s.turnDeadlineAt = null
-      room.resolveAt = Date.now() + RESOLVE_MS
-      room.resolveKind = 'square'
+      s.resolving = false
       s.lastDelta = { playerId: cur.id, delta: points }
       s.currentRound += points
-      s.statusMessage = `🟦 ${cur.name} forme ${points === 1 ? 'un carré' : `${points} carrés`} ! +${points} point${points > 1 ? 's' : ''} (Carré ${s.currentRound}/${s.totalRounds})`
+      if (s.currentRound >= s.totalRounds) {
+        s.phase = 'gameover'
+        s.turnDeadlineAt = null
+        s.winnerId = computeWinner(s.players)
+        s.statusMessage = `Match terminé après ${s.totalRounds} carrés ! 🏆`
+      } else if (!canAnyPlayerFormSquare(s.grid, s.players)) {
+        s.phase = 'gameover'
+        s.turnDeadlineAt = null
+        s.winnerId = computeWinner(s.players)
+        s.statusMessage = 'Plus aucun carré possible sur la grille ! Fin du match. 🏆'
+      } else {
+        s.currentPlayerIndex = nextPlayerIndex(room)
+        startTurnTimer(s)
+        s.statusMessage = `Carré ${s.currentRound}/${s.totalRounds} — à ${s.players[s.currentPlayerIndex]?.name ?? '?'} ! ⏱️`
+      }
       console.log(`[room ${room.roomCode}] ${points} SQUARE(S) by ${cur.name} at (${row},${col}) — carré ${s.currentRound}/${s.totalRounds}`)
       broadcastState(room); broadcastAdminRoomList()
       // Cosmetic event broadcast to every socket in the room (including the
@@ -1368,6 +1378,9 @@ io.on('connection', (socket) => {
 
       return
     }
+
+    s.lastSquareCells = null
+    s.lastSquareerId = null
 
     // No square: check board full OR no more squares possible
     if (isBoardFull(s.grid) || !canAnyPlayerFormSquare(s.grid, s.players)) {

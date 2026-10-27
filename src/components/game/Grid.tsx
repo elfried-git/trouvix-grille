@@ -4,6 +4,8 @@ import { useGameStore, GAME_CONSTANTS } from "@/store/game-store";
 import type { Player } from "@/lib/types";
 import { vividColor } from "@/lib/color";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { BombardmentDropZone } from "./BombardmentDnd";
 
 const { ROWS, COLS } = GAME_CONSTANTS;
 
@@ -11,13 +13,13 @@ interface GridProps {
   players: Player[];
   currentPlayerId: string | null;
   isPaused: boolean;
-  isBombardmentDragging: boolean;
 }
 
-export function Grid({ players, currentPlayerId, isPaused, isBombardmentDragging }: GridProps) {
+export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
   const grid = useGameStore((s) => s.grid);
   const resolving = useGameStore((s) => s.resolving);
   const lastSquareCells = useGameStore((s) => s.lastSquareCells);
+  const lastSquareerId = useGameStore((s) => s.lastSquareerId);
   const formedSquares = useGameStore((s) => s.formedSquares);
   const placePawn = useGameStore((s) => s.placePawn);
   const bombardmentEventId = useGameStore((s) => s.bombardmentEventId);
@@ -47,14 +49,17 @@ export function Grid({ players, currentPlayerId, isPaused, isBombardmentDragging
   // Cells of the just-formed square (extra pulse animation)
   const inLastSquare = (r: number, c: number) =>
     !!lastSquareCells?.some((cell) => cell.row === r && cell.col === c);
+  const squareCenter = lastSquareCells?.length
+    ? {
+        x: ((lastSquareCells.reduce((sum, cell) => sum + cell.col, 0) / lastSquareCells.length + 0.5) / COLS) * 100,
+        y: ((lastSquareCells.reduce((sum, cell) => sum + cell.row, 0) / lastSquareCells.length + 0.5) / ROWS) * 100,
+      }
+    : null;
 
   return (
     <div className="mx-auto w-full max-w-[min(640px,calc(100vw-1rem))]">
       {/* Board */}
-      <div
-        data-bombardment-board
-        className={`relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""} ${isBombardmentDragging ? "ring-4 ring-orange-400/70" : ""}`}
-      >
+      <BombardmentDropZone className={`relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}>
         <div
           aria-label="Grille de jeu, 10 lignes et 10 colonnes"
           className="relative z-10 grid gap-px rounded-xl bg-[oklch(0.23_0.02_22)] p-px sm:gap-1 sm:p-1"
@@ -81,7 +86,7 @@ export function Grid({ players, currentPlayerId, isPaused, isBombardmentDragging
                     <div
                       className={`absolute inset-[1px] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] ${
                         isFresh
-                          ? "z-20 ring-4 ring-white ring-offset-2 ring-offset-[#17100f] shadow-[0_0_14px_rgba(34,211,238,1)]"
+                          ? "square-cell-pop z-20 ring-4 ring-white ring-offset-2 ring-offset-[#17100f] shadow-[0_0_14px_rgba(34,211,238,1)]"
                           : isSquareCell
                             ? "z-10 ring-[3px] ring-cyan-100 ring-offset-2 ring-offset-[#17100f] shadow-[0_0_10px_rgba(34,211,238,0.95)]"
                             : "ring-2 ring-white/50"
@@ -106,8 +111,28 @@ export function Grid({ players, currentPlayerId, isPaused, isBombardmentDragging
             })
           )}
         </div>
-
-      </div>
+        {squareCenter && lastSquareCells && (
+          <motion.svg
+            key={`${lastSquareerId}-${lastSquareCells.map(({ row, col }) => `${row}:${col}`).join(",")}`}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-30 h-full w-full"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <motion.circle
+              cx={squareCenter.x}
+              cy={squareCenter.y}
+              initial={{ r: 0, opacity: 0.85 }}
+              animate={{ r: 150, opacity: 0 }}
+              transition={{ duration: 0.48, ease: "easeOut" }}
+              fill="none"
+              stroke={vividColor(players.find((player) => player.id === lastSquareerId)?.color ?? "#f59e0b")}
+              strokeWidth="0.55"
+              vectorEffect="non-scaling-stroke"
+            />
+          </motion.svg>
+        )}
+      </BombardmentDropZone>
     </div>
   );
 }

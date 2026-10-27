@@ -315,6 +315,19 @@
   0%, 100% { opacity: 0.12; }
   50% { opacity: 0.72; }
 }
+.square-cell-pop {
+  animation: square-cell-pop 0.36s ease-out both;
+}
+@keyframes square-cell-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .square-cell-pop {
+    animation: none;
+  }
+}
 .bombardment-flash {
   isolation: isolate;
 }

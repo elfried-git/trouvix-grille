@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Grid } from "./Grid";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Home, Timer, ScrollText, Pause } from "lucide-react";
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
 import { BombardmentToken } from "./BombardmentToken";
+import { BombardmentDndProvider } from "./BombardmentDnd";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 
 export function GameScreen() {
-  const [bombardmentDragging, setBombardmentDragging] = useState(false);
   const players = useGameStore((s) => s.players);
   const grid = useGameStore((s) => s.grid);
   const bombardmentEventId = useGameStore((s) => s.bombardmentEventId);
@@ -104,8 +104,8 @@ export function GameScreen() {
       players.filter((player) => player.id !== current.id).map((player) => player.id),
     )
     : [];
-
   return (
+    <BombardmentDndProvider onBombard={bombard}>
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:py-6">
       {/* Top bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -204,8 +204,7 @@ export function GameScreen() {
                           <BombardmentToken
                             enabled={isActive && !resolving && !isPaused && phase === "playing"}
                             hasTargets={isActive && bombTargets.length > 0}
-                            onBombard={bombard}
-                            onDraggingChange={setBombardmentDragging}
+                            playerId={p.id}
                           />
                         ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
                           <span
@@ -278,12 +277,7 @@ export function GameScreen() {
         )}
 
         {/* The board */}
-        <Grid
-          players={players}
-          currentPlayerId={current?.id ?? null}
-          isPaused={isPaused}
-          isBombardmentDragging={bombardmentDragging}
-        />
+        <Grid players={players} currentPlayerId={current?.id ?? null} isPaused={isPaused} />
 
         {/* Quit button */}
         <div className="flex justify-center pt-2">
@@ -298,6 +292,7 @@ export function GameScreen() {
         </div>
       </div>
     </div>
+    </BombardmentDndProvider>
   );
 }
 
@@ -335,7 +330,7 @@ function RulesContent({ totalRounds }: { totalRounds: number }) {
           <li>
             Appuie sur le profil du joueur actif pour mettre la partie en pause ou la reprendre.
           </li>
-          <li>À partir de 3 points, garde une fois par partie la boule de feu jusqu’à l’un de tes tours. Glisse-la sur la grille pour détruire les 3 pions du premier carré adverse presque formé ; le bombardement termine ton tour.</li>
+          <li>À partir de 3 points, glisse la boule de feu sur la grille pour détruire les 3 pions du premier carré adverse presque formé. Utilisable une fois ; le bombardement termine ton tour.</li>
         </ul>
       </section>
       <section>

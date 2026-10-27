@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,7 @@ import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX 
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
 import { BombardmentToken } from "./BombardmentToken";
+import { BombardmentDndProvider, BombardmentDropZone } from "./BombardmentDnd";
 
 // ===== Reaction emojis =====
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
@@ -23,7 +24,6 @@ const ROWS = 10;
 const COLS = 10;
 
 export function OnlineGameScreen() {
-  const [bombardmentDragging, setBombardmentDragging] = useState(false);
   const state = useOnlineStore((s) => s.state);
   const optimisticPawn = useOnlineStore((s) => s.optimisticPawn);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -104,7 +104,6 @@ export function OnlineGameScreen() {
   }, [state?.currentPlayerIndex, state?.resolving, state?.isPaused, state?.phase, myId]);
 
   // === Ripple shockwave when a square is formed ===
-  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; color: string }>>([]);
   const boardRef = useRef<HTMLDivElement>(null);
   const [reactionBoardRect, setReactionBoardRect] = useState<DOMRect | null>(null);
   const [activeSquareEvent, setActiveSquareEvent] = useState<{ eventId: number; playerId: string; color: string; cells: { row: number; col: number }[] } | null>(null);
@@ -141,10 +140,6 @@ export function OnlineGameScreen() {
     };
   }, [state?.phase]);
 
-  const removeRipple = useCallback((id: number) => {
-    setRipples((prev) => prev.filter((r) => r.id !== id));
-  }, []);
-
   useEffect(() => {
     const event = squareEvent ?? stateSquareEvent;
     if (!event || event.eventId === handledSquareEventRef.current) return;
@@ -154,20 +149,6 @@ export function OnlineGameScreen() {
       setTimeout(() => {
         setActiveSquareEvent((active) => active?.eventId === event.eventId ? null : active);
       }, 700);
-      // Compute center of the square in percentage of the grid
-      const avgRow = cells.reduce((s, c) => s + c.row, 0) / cells.length;
-      const avgCol = cells.reduce((s, c) => s + c.col, 0) / cells.length;
-      const centerX = ((avgCol + 0.5) / COLS) * 100;
-      const centerY = ((avgRow + 0.5) / ROWS) * 100;
-      const color = vividColor(event.color);
-      const now = Date.now();
-      // Spawn 3 concentric ripple rings with staggered timing
-      setRipples((prev) => [
-        ...prev,
-        { id: now, x: centerX, y: centerY, color },
-        { id: now + 1, x: centerX, y: centerY, color },
-        { id: now + 2, x: centerX, y: centerY, color },
-      ]);
       handledSquareEventRef.current = event.eventId;
     }
   }, [squareEvent, stateSquareEvent]);
@@ -215,7 +196,6 @@ export function OnlineGameScreen() {
       sq.cells.some((cell) => cell.row === r && cell.col === c)
     );
   const inLastSquare = (r: number, c: number) =>
-    !!state.lastSquareCells?.some((cell) => cell.row === r && cell.col === c) ||
     !!activeSquareEvent?.cells.some((cell) => cell.row === r && cell.col === c);
 
   const timePct = Math.max(0, Math.min(100, (turnTimeLeft / 10) * 100));
@@ -225,6 +205,12 @@ export function OnlineGameScreen() {
   const squareHighlightColor = vividColor(
     activeSquareEvent?.color ?? state.players.find((player) => player.id === state.lastSquareerId)?.color ?? "#f59e0b"
   );
+  const squareCenter = activeSquareEvent
+    ? {
+        x: ((activeSquareEvent.cells.reduce((sum, cell) => sum + cell.col, 0) / activeSquareEvent.cells.length + 0.5) / COLS) * 100,
+        y: ((activeSquareEvent.cells.reduce((sum, cell) => sum + cell.row, 0) / activeSquareEvent.cells.length + 0.5) / ROWS) * 100,
+      }
+    : null;
 
   const handleQuit = () => {
     leaveRoomAction();
@@ -431,6 +417,7 @@ export function OnlineGameScreen() {
 
   // === PLAYING ===
   return (
+    <BombardmentDndProvider onBombard={bombardAction}>
     <>
     <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-1 flex-col overflow-x-clip px-2 pb-1.5 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-6">
       {/* Top bar */}
@@ -512,8 +499,7 @@ export function OnlineGameScreen() {
                         <BombardmentToken
                           enabled={isMe && isMyTurn && !state.resolving && !state.isPaused && state.phase === "playing"}
                           hasTargets={isMe && isMyTurn && bombTargets.length > 0}
-                          onBombard={bombardAction}
-                          onDraggingChange={setBombardmentDragging}
+                          playerId={p.id}
                         />
                       ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
                         <span
@@ -590,8 +576,10 @@ export function OnlineGameScreen() {
           )}
 
           {/* Board */}
-          <div className="mx-auto w-full min-w-0 max-w-[min(640px,calc(100vw-1rem))] shrink-0">
-            <div ref={boardRef} data-bombardment-board className={`relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""} ${bombardmentDragging ? "ring-4 ring-orange-400/70" : ""}`}>
+          <div ref={boardRef} className="mx-auto w-full min-w-0 max-w-[min(640px,calc(100vw-1rem))] shrink-0">
+            <BombardmentDropZone
+              className={`relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}
+            >
               <div className="relative z-20 grid gap-[2px] rounded-xl bg-[oklch(0.18_0.02_22)] p-px sm:gap-1.5 sm:p-1" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {
@@ -621,31 +609,20 @@ export function OnlineGameScreen() {
                         aria-label={`Placer un pion ligne ${row + 1} colonne ${col + 1}`}
                       >
                         {filled ? (
-                          <motion.div
-                            initial={false}
-                            animate={isFresh
-                              ? { scale: [1, 1.2, 1], opacity: 1, filter: ["brightness(1)", "brightness(1.7)", "brightness(1)"] }
-                              : { scale: 1, opacity: 1 }}
-                            transition={isFresh
-                              ? { duration: 0.32, repeat: 1, ease: "easeInOut" }
-                              : { duration: 0 }}
+                          <div
                             className={`absolute inset-[1px] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] sm:text-xl ${
                               isFresh
-                                ? "z-20 scale-105 ring-4 ring-white ring-offset-2 ring-offset-[#17100f]"
+                                ? "square-cell-pop z-20 ring-4 ring-white ring-offset-2 ring-offset-[#17100f]"
                                 : isSquareCell
                                   ? "z-10 ring-[3px] ring-cyan-100 ring-offset-2 ring-offset-[#17100f] shadow-[0_0_10px_rgba(34,211,238,0.95)]"
                                   : "ring-2 ring-white/50"
                             }`}
                             style={{
                               background: `radial-gradient(circle at 32% 24%, rgba(255,255,255,.65), transparent 23%), linear-gradient(145deg, ${cellColor}, color-mix(in srgb, ${cellColor} 94%, black))`,
-                              boxShadow: isFresh
-                                ? "0 0 0 2px #fff, 0 0 7px 3px rgba(34,211,238,0.95), 0 0 18px 7px rgba(34,211,238,0.75), 0 0 34px 12px rgba(34,211,238,0.5)"
-                                : undefined,
-                              filter: isFresh ? `drop-shadow(0 0 8px ${squareHighlightColor})` : undefined,
                             }}
                           >
                             <span aria-hidden="true" className="pointer-events-none absolute left-[18%] top-[12%] h-[22%] w-[38%] -rotate-45 rounded-full bg-white/50 blur-[1px]" />
-                          </motion.div>
+                          </div>
                         ) : (
                           canPlay && (
                             <div
@@ -677,39 +654,32 @@ export function OnlineGameScreen() {
                 )}
               </AnimatePresence>
 
-              {/* Ripple shockwave overlay */}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-40">
-                <AnimatePresence>
-                  {ripples.map((ripple, i) => {
-                    // Stagger: ring index is ripple.id % 3 gives 0, 1, 2
-                    const ringIndex = ripple.id % 3;
-                    return (
-                      <motion.div
-                        key={ripple.id}
-                        className="absolute rounded-full"
-                        style={{
-                          left: `${ripple.x}%`,
-                          top: `${ripple.y}%`,
-                          width: 30,
-                          height: 30,
-                          marginLeft: -15,
-                          marginTop: -15,
-                          border: `${3 - ringIndex * 0.5}px solid ${ripple.color}`,
-                          boxShadow: `0 0 ${20 - ringIndex * 4}px ${ripple.color}aa, 0 0 ${50 - ringIndex * 10}px ${ripple.color}44`,
-                        }}
-                        initial={{ scale: 0.3, opacity: 1 }}
-                        animate={{ scale: 15, opacity: 0 }}
-                        transition={{
-                          duration: 0.5 + ringIndex * 0.06,
-                          delay: ringIndex * 0.06,
-                          ease: "easeOut",
-                        }}
-                        onAnimationComplete={() => removeRipple(ripple.id)}
-                      />
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
+              <AnimatePresence>
+                {activeSquareEvent && squareCenter && (
+                  <motion.svg
+                    key={`square-ripple-${activeSquareEvent.eventId}`}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 z-40 h-full w-full"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <motion.circle
+                      cx={squareCenter.x}
+                      cy={squareCenter.y}
+                      initial={{ r: 0, opacity: 0.85 }}
+                      animate={{ r: 150, opacity: 0 }}
+                      transition={{ duration: 0.48, ease: "easeOut" }}
+                      fill="none"
+                      stroke={squareHighlightColor}
+                      strokeWidth="0.55"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </motion.svg>
+                )}
+              </AnimatePresence>
 
               {/* Not-your-turn overlay */}
               {!isMyTurn && state.phase === "playing" && !state.resolving && !state.isPaused && (
@@ -719,7 +689,7 @@ export function OnlineGameScreen() {
                   </p>
                 </div>
               )}
-            </div>
+            </BombardmentDropZone>
           </div>
 
           {/* Reaction bar */}
@@ -796,5 +766,6 @@ export function OnlineGameScreen() {
       document.body
     )}
     </>
+    </BombardmentDndProvider>
   );
 }
