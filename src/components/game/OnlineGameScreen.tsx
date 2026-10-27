@@ -173,14 +173,11 @@ export function OnlineGameScreen() {
   const turnTimeLeft = state.turnDeadlineAt != null && state.phase === "playing" && !state.isPaused
     ? Math.max(0, (state.turnDeadlineAt - clockNow) / 1000)
     : state.turnTimeLeft;
-  const currentBoardRect = boardRef.current?.getBoundingClientRect();
   const reactionBounds = typeof window === "undefined"
     ? null
-    : currentBoardRect && currentBoardRect.width > 0 && currentBoardRect.height > 0
-      ? currentBoardRect
-      : reactionBoardRect && reactionBoardRect.width > 0 && reactionBoardRect.height > 0
-        ? reactionBoardRect
-        : { left: 0, top: window.innerHeight * 0.1, width: window.innerWidth, height: window.innerHeight * 0.65 };
+    : reactionBoardRect && reactionBoardRect.width > 0 && reactionBoardRect.height > 0
+      ? reactionBoardRect
+      : { left: 0, top: window.innerHeight * 0.1, width: window.innerWidth, height: window.innerHeight * 0.65 };
   const current = players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myId;
   const amHost = state.hostId === myId;
@@ -747,7 +744,7 @@ export function OnlineGameScreen() {
             return (
               <motion.div
                 key={reaction.id}
-                initial={{ opacity: 0, top: startTop, left: centerLeft, y: 0, scale: 0.5 }}
+                initial={{ opacity: 0, y: 0, scale: 0.5 }}
                 animate={{
                   opacity: [0, 1, 1, 0],
                   y: [0, -travel * 0.42, -travel, -travel],
@@ -755,6 +752,7 @@ export function OnlineGameScreen() {
                 }}
                 exit={{ opacity: 0, scale: 0.5 }}
                 transition={{ duration: 3, ease: "easeOut" }}
+                style={{ top: startTop, left: centerLeft }}
                 className="absolute -ml-6 -mt-6 text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
               >
                 {reaction.emoji}
