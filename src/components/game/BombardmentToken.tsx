@@ -34,43 +34,6 @@ export function BombardmentToken({
   const pointerIdRef = useRef<number | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!dragging) return;
-
-    const finishDrag = (event: PointerEvent, shouldDrop: boolean) => {
-      if (event.pointerId !== pointerIdRef.current) return;
-      const droppedOnBoard = shouldDrop &&
-        isPointOnBoard(event.clientX, event.clientY) &&
-        enabled &&
-        hasTargets;
-      pointerIdRef.current = null;
-      setDragging(false);
-      setOverBoard(false);
-      onDraggingChange(false);
-      if (droppedOnBoard) onBombard();
-    };
-
-    const handleMove = (event: PointerEvent) => {
-      if (event.pointerId !== pointerIdRef.current) return;
-      if (previewRef.current) {
-        previewRef.current.style.transform = `translate3d(${event.clientX - 24}px, ${event.clientY - 24}px, 0)`;
-      }
-      const overBoard = isPointOnBoard(event.clientX, event.clientY);
-      setOverBoard((previous) => previous === overBoard ? previous : overBoard);
-    };
-    const handleUp = (event: PointerEvent) => finishDrag(event, true);
-    const handleCancel = (event: PointerEvent) => finishDrag(event, false);
-
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-    window.addEventListener("pointercancel", handleCancel);
-    return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-      window.removeEventListener("pointercancel", handleCancel);
-    };
-  }, [dragging, enabled, hasTargets, onBombard, onDraggingChange]);
-
   useEffect(() => () => {
     if (pointerIdRef.current !== null) {
       pointerIdRef.current = null;
@@ -83,9 +46,34 @@ export function BombardmentToken({
     event.stopPropagation();
     if (!enabled || !hasTargets) return;
     pointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
     setPosition({ x: event.clientX, y: event.clientY });
     setDragging(true);
     onDraggingChange(true);
+  };
+
+  const moveDrag = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (event.pointerId !== pointerIdRef.current) return;
+    if (previewRef.current) {
+      previewRef.current.style.transform = `translate3d(${event.clientX - 24}px, ${event.clientY - 24}px, 0)`;
+    }
+    const overBoard = isPointOnBoard(event.clientX, event.clientY);
+    setOverBoard((previous) => previous === overBoard ? previous : overBoard);
+  };
+
+  const finishDrag = (event: ReactPointerEvent<HTMLSpanElement>, shouldDrop: boolean) => {
+    if (event.pointerId !== pointerIdRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const droppedOnBoard = shouldDrop &&
+      isPointOnBoard(event.clientX, event.clientY) &&
+      enabled &&
+      hasTargets;
+    pointerIdRef.current = null;
+    setDragging(false);
+    setOverBoard(false);
+    onDraggingChange(false);
+    if (droppedOnBoard) onBombard();
   };
 
   return (
@@ -102,6 +90,10 @@ export function BombardmentToken({
         className={`inline-flex h-7 w-7 shrink-0 touch-none select-none ${
           enabled && hasTargets ? "cursor-grab active:cursor-grabbing" : "cursor-default opacity-60"
         }`}
+        onPointerMove={moveDrag}
+        onPointerUp={(event) => finishDrag(event, true)}
+        onPointerCancel={(event) => finishDrag(event, false)}
+        onLostPointerCapture={(event) => finishDrag(event, false)}
       >
         <Image
           src="/images/boule-de-feu.png"
