@@ -211,6 +211,32 @@
 .trouvix-wordmark-gold {
   background-image: linear-gradient(180deg, #fff8a8 0%, #ffd733 24%, #ff9f00 48%, #ffe65a 60%, #d97900 78%, #fff08a 100%);
 }
+
+/* PRO & CLEAN RED & YELLOW STYLE (TROUVIX) */
+.trouvix-pro-title {
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.trouvix-pro-red {
+  background: linear-gradient(180deg, #ff4d6d 0%, #e6194b 45%, #b3002d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(230, 25, 75, 0.35));
+}
+
+.trouvix-pro-yellow {
+  background: linear-gradient(180deg, #fff385 0%, #ffc820 48%, #e08b00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(255, 200, 32, 0.40));
+}
 @keyframes trouvix-sparkle {
   0%, 100% { opacity: 0.55; transform: scale(0.78) rotate(-12deg); }
   50% { opacity: 1; transform: scale(1.14) rotate(12deg); }

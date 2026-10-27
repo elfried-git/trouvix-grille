@@ -98,10 +98,6 @@ export function TutorialVideoScreen() {
               })
             )}
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground sm:text-xs">
-            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#9f1239" }} /> <span className="hidden xs:inline">Joueur</span> Joueur R = Toi</span>
-            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3" style={{ backgroundColor: "#b8860b" }} /> <span className="hidden xs:inline">Joueur</span> Joueur J = Adversaire</span>
-          </div>
         </div>
 
         {/* Colonne explication (droite) */}
