@@ -313,7 +313,7 @@ export function SetupScreen() {
                 </div>
               </div>
               {/* AI toggle + Avatar picker */}
-              <div className="mt-3 flex flex-wrap items-center gap-2 pl-1 sm:gap-1.5">
+              <div className="mt-3 flex flex-wrap items-center gap-2 pl-[66px] sm:gap-1.5">
                 {/* AI toggle */}
                 <button
                   onClick={() => toggleAI(i)}

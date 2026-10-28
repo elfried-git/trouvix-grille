@@ -763,8 +763,8 @@ export function OnlineSetupScreen() {
                   />
                 </div>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <p className="mt-1 pl-[66px] text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 pl-[66px]">
                 <label
                   className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-sm font-semibold text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95 sm:text-base"
                   title="Téléverser une photo (optionnel)"
