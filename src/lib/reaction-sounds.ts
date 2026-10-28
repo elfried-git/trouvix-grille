@@ -50,27 +50,6 @@ const REACTION_TONES: Record<string, Tone[]> = {
     { frequency: 115, endFrequency: 82, wave: "sawtooth", duration: 0.24, delay: 0, gain: 0.12 },
     { frequency: 98, endFrequency: 75, wave: "sawtooth", duration: 0.2, delay: 0.25, gain: 0.11 },
   ],
-  "military": [
-    { frequency: 440, endFrequency: 554, wave: "square", duration: 0.15, delay: 0, gain: 0.08 },
-    { frequency: 554, endFrequency: 659, wave: "square", duration: 0.2, delay: 0.12, gain: 0.09 },
-  ],
-  "smile": [
-    { frequency: 570, endFrequency: 760, wave: "triangle", duration: 0.12, delay: 0, gain: 0.13 },
-    { frequency: 620, endFrequency: 850, wave: "triangle", duration: 0.17, delay: 0.14, gain: 0.13 },
-  ],
-  "chill": [
-    { frequency: 440, wave: "sine", duration: 0.3, delay: 0, gain: 0.12 },
-    { frequency: 330, wave: "sine", duration: 0.4, delay: 0.2, gain: 0.12 },
-  ],
-  "angry": [
-    { frequency: 115, endFrequency: 82, wave: "sawtooth", duration: 0.24, delay: 0, gain: 0.12 },
-    { frequency: 98, endFrequency: 75, wave: "sawtooth", duration: 0.2, delay: 0.25, gain: 0.11 },
-  ],
-  "crying": [
-    { frequency: 740, wave: "sine", duration: 0.13, delay: 0, gain: 0.12 },
-    { frequency: 520, wave: "sine", duration: 0.13, delay: 0.14, gain: 0.12 },
-    { frequency: 390, wave: "sine", duration: 0.2, delay: 0.28, gain: 0.12 },
-  ],
 };
 
 export function areReactionSoundsEnabled() {

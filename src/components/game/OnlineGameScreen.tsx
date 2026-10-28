@@ -18,13 +18,7 @@ import { BombardmentToken } from "./BombardmentToken";
 import { BombardmentDndProvider, BombardmentDropZone } from "./BombardmentDnd";
 
 // ===== Reaction emojis =====
-const REACTION_EMOJIS = [
-  { id: "military", src: "/images/emojis/emoji-military.jpg", label: "Militaire" },
-  { id: "smile", src: "/images/emojis/emoji-smile-cap.jpg", label: "Cool Smile" },
-  { id: "chill", src: "/images/emojis/emoji-cigar-energy.jpg", label: "Détente" },
-  { id: "angry", src: "/images/emojis/emoji-angry.jpg", label: "En colère" },
-  { id: "crying", src: "/images/emojis/emoji-crying.jpg", label: "En pleurs" },
-];
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥", "👏", "💪", "💔", "😭", "😡"];
 
 const ROWS = 10;
 const COLS = 10;
@@ -716,7 +710,6 @@ export function OnlineGameScreen() {
                   const startTop = reactionBounds.top + reactionBounds.height * 0.88;
                   const middleTop = reactionBounds.top + reactionBounds.height * 0.45;
                   const centerLeft = reactionBounds.left + reactionBounds.width / 2 + ((reaction.timestamp % 9) - 4) * 24;
-                  const customItem = REACTION_EMOJIS.find((item) => item.id === reaction.emoji);
                   return (
                     <motion.div
                       key={reaction.id}
@@ -728,20 +721,9 @@ export function OnlineGameScreen() {
                       }}
                       exit={{ opacity: 0, scale: 0.5 }}
                       transition={{ duration: 3, ease: "easeOut" }}
-                      className="absolute -ml-7 -mt-7 select-none text-5xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)]"
+                      className="absolute -ml-6 -mt-6 select-none text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
                     >
-                      {customItem ? (
-                        <div className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-amber-300 shadow-xl bg-black">
-                          <Image
-                            src={customItem.src}
-                            alt={customItem.label}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        reaction.emoji
-                      )}
+                      {reaction.emoji}
                     </motion.div>
                   );
                 })}
@@ -768,23 +750,16 @@ export function OnlineGameScreen() {
                 Son {reactionSoundsOn ? "activé" : "coupé"}
               </button>
             </div>
-            <div className="grid w-full min-w-0 grid-cols-5 items-center gap-1.5 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:gap-2.5 sm:p-2">
-              {REACTION_EMOJIS.map((item) => (
+            <div className="grid w-full min-w-0 grid-cols-5 items-center gap-1 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:gap-2 sm:p-2">
+              {REACTION_EMOJIS.map((emoji) => (
                 <button
                   type="button"
-                  key={item.id}
-                  onClick={() => sendReactionAction(item.id)}
-                  className="group relative flex aspect-square w-full min-w-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.15] bg-black/40 p-1 shadow-inner shadow-black/30 transition-all hover:scale-105 hover:border-amber-300/60 hover:bg-white/[0.12] active:scale-95 sm:rounded-2xl"
-                  title={`Réagir avec ${item.label}`}
+                  key={emoji}
+                  onClick={() => sendReactionAction(emoji)}
+                  className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-105 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-2xl"
+                  title={`Réagir avec ${emoji}`}
                 >
-                  <div className="relative h-full w-full overflow-hidden rounded-full">
-                    <Image
-                      src={item.src}
-                      alt={item.label}
-                      fill
-                      className="object-cover transition-transform duration-200 group-hover:scale-110"
-                    />
-                  </div>
+                  {emoji}
                 </button>
               ))}
             </div>
