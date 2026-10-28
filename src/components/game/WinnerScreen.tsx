@@ -24,7 +24,7 @@ export function WinnerScreen() {
   // === TIE SCREEN ===
   if (isTie) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-4">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-start px-4 pt-3 pb-4 sm:justify-center sm:py-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
