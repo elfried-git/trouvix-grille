@@ -78,9 +78,9 @@ export function HomeScreen() {
                 goToOnlineSetup();
               }}
               size="lg"
-              className="h-14 w-full min-w-0 gap-3 rounded-full border-0 bg-gradient-to-r from-[#ff1a4b] via-[#ff9500] to-[#ff1a4b] px-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_8px_30px_-6px_rgba(255,60,80,0.6)] transition hover:brightness-110 hover:shadow-[0_8px_36px_-4px_rgba(255,60,80,0.8)] sm:w-auto sm:px-8 sm:text-base"
+              className="h-14 w-full min-w-0 gap-3 rounded-full border-0 bg-gradient-to-r from-[#5b21b6] via-[#a855f7] to-[#5b21b6] px-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_8px_30px_-6px_rgba(168,85,247,0.6)] transition hover:brightness-110 hover:shadow-[0_8px_36px_-4px_rgba(168,85,247,0.8)] sm:w-auto sm:px-8 sm:text-base"
             >
-              <Play className="h-5 w-5 fill-white" />
+              <Globe2 className="h-5 w-5" />
               Jouer en ligne
             </Button>
           </div>
