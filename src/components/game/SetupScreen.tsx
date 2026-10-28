@@ -366,16 +366,21 @@ export function SetupScreen() {
                         type="button"
                         onClick={() => chooseAiProfile(option.id)}
                         aria-pressed={aiProfiles[1] === option.id}
-                        className={`relative isolate flex min-h-[4.8rem] items-center justify-center overflow-hidden rounded-2xl border bg-gradient-to-br px-2 py-3 text-center text-white shadow-[inset_0_2px_3px_rgba(255,255,255,0.28),inset_0_-8px_12px_rgba(0,0,0,0.35),0_6px_12px_rgba(0,0,0,0.3)] before:pointer-events-none before:absolute before:inset-x-[5%] before:top-[5%] before:h-[42%] before:rounded-[50%] before:bg-gradient-to-b before:from-white/25 before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${option.color} ${option.border} ${aiProfiles[1] === option.id ? "border-amber-100 ring-2 ring-amber-100/90 shadow-[0_0_0_3px_rgba(255,198,76,0.3),0_0_24px_rgba(255,198,76,0.4),inset_0_2px_3px_rgba(255,255,255,0.35),inset_0_-8px_12px_rgba(0,0,0,0.35)]" : ""}`}
+                        className={`relative isolate flex min-h-[6rem] items-center justify-center overflow-hidden rounded-2xl border bg-gradient-to-br px-2 py-3 text-center text-white shadow-[inset_0_2px_3px_rgba(255,255,255,0.28),inset_0_-8px_12px_rgba(0,0,0,0.35),0_6px_12px_rgba(0,0,0,0.3)] before:pointer-events-none before:absolute before:inset-x-[5%] before:top-[5%] before:h-[42%] before:rounded-[50%] before:bg-gradient-to-b before:from-white/25 before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${option.color} ${option.border} ${aiProfiles[1] === option.id ? "border-amber-100 ring-2 ring-amber-100/90 shadow-[0_0_0_3px_rgba(255,198,76,0.3),0_0_24px_rgba(255,198,76,0.4),inset_0_2px_3px_rgba(255,255,255,0.35),inset_0_-8px_12px_rgba(0,0,0,0.35)]" : ""}`}
                       >
-                        <span className="relative z-10 flex w-full flex-col items-center justify-center gap-1.5 py-1">
-                          <span className="font-sans text-sm font-semibold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] sm:text-base">
+                        <span className="relative z-10 flex w-full flex-col items-center justify-center gap-1 py-1">
+                          <img
+                            src={AI_PROFILE_AVATARS[option.id]}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-9 w-9 rounded-full border border-white/40 bg-white/90 object-cover shadow-[0_2px_6px_rgba(0,0,0,0.4)] sm:h-10 sm:w-10"
+                          />
+                          <span className="font-sans text-sm font-bold tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] sm:text-base">
                             {option.name}
                           </span>
-                          <span
-                            aria-hidden="true"
-                            className={`h-0.5 rounded-full bg-white/65 ${aiProfiles[1] === option.id ? "w-10" : "w-6"}`}
-                          />
+                          <span className="text-[0.7rem] font-medium uppercase tracking-wider text-white/75">
+                            {option.style}
+                          </span>
                         </span>
                       </button>
                     ))}
