@@ -425,154 +425,147 @@ export function OnlineGameScreen() {
         </div>
       </div>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-2 sm:gap-4">
-          {/* Professional score counter & players list — above the grid */}
-          <div className="glass-card shrink-0 rounded-2xl p-2 sm:space-y-3 sm:p-4">
-            {/* Players list with live scores and active turn highlight */}
-            <div className={`grid ${players.length <= 2 ? "grid-cols-2" : "grid-cols-4"} gap-1 sm:gap-2`}>
-              {players.map((p) => {
-                const isActive = p.id === current?.id;
-                const isMe = p.id === myId;
-                const isDisconnected = p.connected === false;
-                const canClick = !((state.resolving && isMe) || !myId);
-                return (
-                  <div
-                    role="button"
-                    tabIndex={canClick ? 0 : -1}
-                    aria-disabled={!canClick}
-                    onClick={(e) => {
-                      if (!canClick) return;
-                      if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
-                      if (isMe) togglePauseAction();
-                      else endGameAction();
-                    }}
-                    onKeyDown={(e) => {
-                      if (!canClick) return;
-                      if (e.key === "Enter" || e.key === " ") {
-                        if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
-                        e.preventDefault();
-                        if (isMe) togglePauseAction();
-                        else endGameAction();
+      <div className="mx-auto flex min-h-0 w-full max-w-[700px] flex-1 flex-col gap-2 sm:gap-3">
+        {/* Players list with live scores and active turn highlight */}
+        <div className={`grid ${players.length <= 2 ? "grid-cols-2" : "grid-cols-4"} gap-1.5 sm:gap-2.5 w-full shrink-0`}>
+          {players.map((p) => {
+            const isActive = p.id === current?.id;
+            const isMe = p.id === myId;
+            const isDisconnected = p.connected === false;
+            const canClick = !((state.resolving && isMe) || !myId);
+            return (
+              <div
+                role="button"
+                tabIndex={canClick ? 0 : -1}
+                aria-disabled={!canClick}
+                onClick={(e) => {
+                  if (!canClick) return;
+                  if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
+                  if (isMe) togglePauseAction();
+                  else endGameAction();
+                }}
+                onKeyDown={(e) => {
+                  if (!canClick) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
+                    e.preventDefault();
+                    if (isMe) togglePauseAction();
+                    else endGameAction();
+                  }
+                }}
+                aria-label={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
+                title={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
+                key={p.id}
+                style={
+                  isActive
+                    ? {
+                        borderColor: turnColor,
+                        backgroundColor: `${turnColor}22`,
+                        boxShadow: `0 0 20px -2px ${turnColor}, 0 0 36px ${turnColor}60, inset 0 0 12px ${turnColor}25`,
                       }
-                    }}
-                    aria-label={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
-                    title={isMe ? `${state.isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
-                    key={p.id}
+                    : undefined
+                }
+                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-1 rounded-xl border p-1.5 sm:p-2 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                  canClick ? "" : "cursor-wait opacity-80 "
+                }${
+                  isActive
+                    ? "border-2 ring-2 ring-white/50 scale-[1.02] shadow-xl"
+                    : "bg-card/40 border-border/40 opacity-75 backdrop-blur-md"
+                } ${isDisconnected ? "opacity-40 line-through" : ""}`}
+              >
+                <span className="relative z-20 inline-flex">
+                  <Avatar
+                    avatar={p.emoji}
+                    color={p.color}
+                    size={42}
+                    emojiSize="text-xl sm:text-2xl"
+                    ring={false}
+                    className={isActive ? "ring-2" : "ring-2 ring-white/20"}
                     style={
                       isActive
-                        ? {
-                            borderColor: p.color,
-                            backgroundColor: `${p.color}28`,
-                            boxShadow: `0 0 18px -2px ${p.color}80`,
-                          }
+                        ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 14px 2px ${p.color}cc` }
                         : undefined
                     }
-                    className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-0.5 rounded-lg border px-1 py-1 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-2 ${
-                      canClick ? "" : "cursor-wait opacity-80 "
-                    }${
-                      isActive
-                        ? "border-2 ring-1 ring-white/30 scale-[1.02]"
-                        : "bg-card/40 border-border/40 opacity-75"
-                    } ${isDisconnected ? "opacity-40 line-through" : ""}`}
-                  >
-              <span className="relative z-20 inline-flex">
-                <Avatar
-                  avatar={p.emoji}
-                      color={p.color}
-                        size={36}
-                      emojiSize="text-lg"
-                      ring={false}
-                      className={isActive ? "ring-2" : "ring-2 ring-white/20"}
-                      style={
-                        isActive
-                          ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 12px 2px ${p.color}cc` }
-                          : undefined
-                      }
-                />
-              </span>
-                    <div className="flex min-w-0 w-full flex-wrap items-center justify-center gap-x-1">
-                      <span className={`whitespace-normal break-words text-center text-xs font-bold leading-tight sm:text-base ${isActive ? "text-white" : "text-foreground"}`}>
-                        {p.name}
-                      </span>
-                      {p.bombardmentUsed ? (
-                        <motion.span
-                          key={`${p.id}-${state.bombardmentEventId}`}
-                          initial={state.bombardmentPlayerId === p.id ? { opacity: 0, scale: 0.3 } : false}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.35, ease: "easeOut" }}
-                          className="pointer-events-none h-6 w-6 shrink-0 sm:h-7 sm:w-7"
-                          aria-hidden="true"
-                        >
-                          <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
-                        </motion.span>
-                      ) : p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.isAI ? (
-                        <BombardmentToken
-                          enabled={isMe && isMyTurn && !state.resolving && !state.isPaused && state.phase === "playing"}
-                          hasTargets={isMe && isMyTurn && bombTargets.length > 0}
-                          playerId={p.id}
-                        />
-                      ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
-                        <span
-                          title="Boule de feu disponible pour cette IA"
-                          aria-label="Boule de feu disponible pour cette IA"
-                          className="inline-flex h-6 w-6 shrink-0 sm:h-7 sm:w-7"
-                        >
-                          <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
-                        </span>
-                      ) : null}
-                      {isMe && (
-                        <span className="rounded bg-amber-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-amber-200 sm:px-1.5 sm:text-xs">
-                          Toi
-                        </span>
-                      )}
-                      {p.isAI && (
-                        <span className="rounded bg-violet-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-violet-200 sm:px-1.5 sm:text-xs">
-                          IA
-                        </span>
-                      )}
-                    </div>
-                    <span className={`font-display text-sm font-black leading-none sm:text-lg ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
-                      {p.score} <span className="text-[10px] font-normal text-muted-foreground sm:text-xs">pts</span>
+                  />
+                </span>
+                <div className="flex min-w-0 w-full flex-wrap items-center justify-center gap-x-1">
+                  <span className={`whitespace-normal break-words text-center text-xs sm:text-sm font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
+                    {p.name}
+                  </span>
+                  {p.bombardmentUsed ? (
+                    <motion.span
+                      key={`${p.id}-${state.bombardmentEventId}`}
+                      initial={state.bombardmentPlayerId === p.id ? { opacity: 0, scale: 0.3 } : false}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
+                      className="pointer-events-none h-5 w-5 shrink-0 sm:h-6 sm:w-6"
+                      aria-hidden="true"
+                    >
+                      <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
+                    </motion.span>
+                  ) : p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.isAI ? (
+                    <BombardmentToken
+                      enabled={isMe && isMyTurn && !state.resolving && !state.isPaused && state.phase === "playing"}
+                      hasTargets={isMe && isMyTurn && bombTargets.length > 0}
+                      playerId={p.id}
+                    />
+                  ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
+                    <span
+                      title="Boule de feu disponible pour cette IA"
+                      aria-label="Boule de feu disponible pour cette IA"
+                      className="inline-flex h-5 w-5 shrink-0 sm:h-6 sm:w-6"
+                    >
+                      <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
                     </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Seconds countdown & progress bar */}
-            <div className="mt-1 space-y-1 border-t border-border/30 pt-1 sm:mt-0 sm:space-y-1.5 sm:pt-1">
-              <div className="flex items-center justify-end">
-                <div
-                  className="flex items-center gap-1 font-display text-sm font-black tabular-nums sm:text-lg"
-                  style={{ color: state.isPaused ? "#34d399" : turnColor }}
-                >
-                  {state.isPaused ? (
-                    <>
-                      <Pause className="h-4 w-4" /> Pause
-                    </>
-                  ) : (
-                    <>
-                      <Timer className="h-4 w-4" />
-                      {turnTimeLeft.toFixed(1)}s
-                    </>
+                  ) : null}
+                  {isMe && (
+                    <span className="rounded bg-amber-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-amber-200 sm:px-1.5 sm:text-[10px]">
+                      Toi
+                    </span>
+                  )}
+                  {p.isAI && (
+                    <span className="rounded bg-violet-400/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-violet-200 sm:px-1.5 sm:text-[10px]">
+                      IA
+                    </span>
                   )}
                 </div>
+                <span className={`font-display text-sm sm:text-base font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                  {p.score} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">pts</span>
+                </span>
+                {isActive && (
+                  <div className="mt-0.5 w-full space-y-1">
+                    <div
+                      className="flex items-center justify-center gap-1 font-display text-[10px] sm:text-xs font-black tabular-nums"
+                      style={{ color: state.isPaused ? "#34d399" : turnColor }}
+                    >
+                      {state.isPaused ? (
+                        <>
+                          <Pause className="h-3 w-3" /> Pause
+                        </>
+                      ) : (
+                        <>
+                          <Timer className="h-3 w-3" />
+                          {turnTimeLeft.toFixed(1)}s
+                        </>
+                      )}
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
+                      <motion.div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          backgroundColor: turnColor,
+                          boxShadow: `0 0 10px ${turnColor}`,
+                        }}
+                        animate={{ width: `${timePct}%` }}
+                        transition={{ duration: 0.1, ease: "linear" }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Countdown progress bar — solid, vivid player color (no gradient) */}
-              <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10 sm:h-4">
-                <motion.div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    backgroundColor: turnColor,
-                    boxShadow: `0 0 14px ${turnColor}`,
-                  }}
-                  animate={{ width: `${timePct}%` }}
-                  transition={{ duration: 0.25, ease: "linear" }}
-                />
-              </div>
-            </div>
-          </div>
+            );
+          })}
+        </div>
 
           {isMyTurn && !current?.isAI && current && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (
             <button
@@ -586,7 +579,7 @@ export function OnlineGameScreen() {
           )}
 
           {/* Board */}
-          <div ref={boardRef} className="mx-auto w-full min-w-0 max-w-[min(640px,calc(100vw-1rem))] shrink-0">
+          <div ref={boardRef} className="mx-auto w-full min-w-0 max-w-[min(680px,calc(100vw-1rem))] shrink-0">
             <BombardmentDropZone
               className={`relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}
             >
@@ -721,7 +714,7 @@ export function OnlineGameScreen() {
                       }}
                       exit={{ opacity: 0, scale: 0.5 }}
                       transition={{ duration: 3, ease: "easeOut" }}
-                      className="absolute -ml-6 -mt-6 select-none text-5xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+                      className="absolute -ml-7 -mt-7 select-none text-6xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)] sm:text-7xl"
                     >
                       {reaction.emoji}
                     </motion.div>
@@ -733,7 +726,7 @@ export function OnlineGameScreen() {
           )}
 
           {/* Reaction bar */}
-          <div className="mx-auto w-full max-w-[340px] shrink-0 sm:max-w-[390px]">
+          <div className="mx-auto w-full max-w-[360px] shrink-0 sm:max-w-[420px]">
             <div className="mb-1 flex justify-end">
               <button
                 type="button"
@@ -750,13 +743,13 @@ export function OnlineGameScreen() {
                 Son {reactionSoundsOn ? "activé" : "coupé"}
               </button>
             </div>
-            <div className="grid w-full min-w-0 grid-cols-5 items-center gap-1 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:gap-2 sm:p-2">
+            <div className="grid w-full min-w-0 grid-cols-5 items-center gap-1.5 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-2 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:gap-2.5 sm:p-2.5">
               {REACTION_EMOJIS.map((emoji) => (
                 <button
                   type="button"
                   key={emoji}
                   onClick={() => sendReactionAction(emoji)}
-                  className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-105 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-2xl"
+                  className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-2xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-110 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-3xl"
                   title={`Réagir avec ${emoji}`}
                 >
                   {emoji}

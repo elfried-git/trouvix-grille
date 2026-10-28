@@ -136,148 +136,141 @@ export function GameScreen() {
       </div>
 
       {/* Main layout */}
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4">
-        {/* Professional score counter & players list — above the grid */}
-        <div className="glass-card rounded-2xl p-3 sm:p-4 space-y-3">
-          {/* Players list with live scores and active turn highlight */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {players.map((p) => {
-              const isActive = p.id === current?.id;
-              const canClick = !(resolving && p.id === current?.id);
-              return (
-                <div
-                  role="button"
-                  tabIndex={canClick ? 0 : -1}
-                  aria-disabled={!canClick}
-                  onClick={(e) => {
-                    if (!canClick) return;
+      <div className="mx-auto flex w-full max-w-[700px] flex-1 flex-col gap-3 sm:gap-4">
+        {/* Players list with live scores and active turn highlight */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 w-full">
+          {players.map((p) => {
+            const isActive = p.id === current?.id;
+            const canClick = !(resolving && p.id === current?.id);
+            return (
+              <div
+                role="button"
+                tabIndex={canClick ? 0 : -1}
+                aria-disabled={!canClick}
+                onClick={(e) => {
+                  if (!canClick) return;
+                  if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
+                  if (p.id === current?.id) togglePause();
+                  else endGameNow();
+                }}
+                onKeyDown={(e) => {
+                  if (!canClick) return;
+                  if (e.key === "Enter" || e.key === " ") {
                     if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
+                    e.preventDefault();
                     if (p.id === current?.id) togglePause();
                     else endGameNow();
-                  }}
-                  onKeyDown={(e) => {
-                    if (!canClick) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      if ((e.target as HTMLElement).closest("[data-bombardment-token]")) return;
-                      e.preventDefault();
-                      if (p.id === current?.id) togglePause();
-                      else endGameNow();
-                    }
-                  }}
-                  aria-label={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
-                  title={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
-                  key={p.id}
-                  style={
-                    isActive
-                      ? {
-                          borderColor: p.color,
-                          backgroundColor: `${p.color}28`,
-                          boxShadow: `0 0 18px -2px ${p.color}80`,
-                        }
-                      : undefined
                   }
-                  className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-2 rounded-xl border px-3 py-3 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
-                    canClick ? "" : "cursor-wait opacity-80 "
-                  }${
-                    isActive
-                      ? "border-2 ring-1 ring-white/30 scale-[1.02]"
-                      : "bg-card/40 border-border/40 opacity-75"
-                  }`}
-                >
-                  <span className="relative z-20 inline-flex">
-                    <Avatar
-                      avatar={p.emoji}
-                      color={p.color}
-                      size={48}
-                      emojiSize="text-xl"
-                      ring={false}
-                      className={isActive ? "ring-2" : "ring-2 ring-white/20"}
-                      style={
-                        isActive
-                          ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 12px 2px ${p.color}cc` }
-                          : undefined
+                }}
+                aria-label={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : `Terminer la partie depuis le profil de ${p.name}`}
+                title={p.id === current?.id ? `${isPaused ? "Reprendre" : "Mettre en pause"} la partie` : "Terminer la partie"}
+                key={p.id}
+                style={
+                  isActive
+                    ? {
+                        borderColor: turnColor,
+                        backgroundColor: `${turnColor}22`,
+                        boxShadow: `0 0 20px -2px ${turnColor}, 0 0 36px ${turnColor}60, inset 0 0 12px ${turnColor}25`,
                       }
-                    />
-                  </span>
-                    <div className="flex min-w-0 w-full flex-col items-center">
-                      <div className="flex max-w-full items-center justify-center gap-1">
-                      <span className={`whitespace-normal break-words text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
-                        {p.name}
+                    : undefined
+                }
+                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-1.5 rounded-xl border p-2 sm:p-2.5 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                  canClick ? "" : "cursor-wait opacity-80 "
+                }${
+                  isActive
+                    ? "border-2 ring-2 ring-white/50 scale-[1.02] shadow-xl"
+                    : "bg-card/40 border-border/40 opacity-75 backdrop-blur-md"
+                }`}
+              >
+                <span className="relative z-20 inline-flex">
+                  <Avatar
+                    avatar={p.emoji}
+                    color={p.color}
+                    size={44}
+                    emojiSize="text-xl sm:text-2xl"
+                    ring={false}
+                    className={isActive ? "ring-2" : "ring-2 ring-white/20"}
+                    style={
+                      isActive
+                        ? { boxShadow: `0 0 0 2px ${p.color}, 0 0 14px 2px ${p.color}cc` }
+                        : undefined
+                    }
+                  />
+                </span>
+                <div className="flex min-w-0 w-full flex-col items-center">
+                  <div className="flex max-w-full items-center justify-center gap-1">
+                    <span className={`whitespace-normal break-words text-sm sm:text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
+                      {p.name}
+                    </span>
+                    {p.bombardmentUsed ? (
+                      <motion.span
+                        key={`${p.id}-${bombardmentEventId}`}
+                        initial={bombardmentPlayerId === p.id ? { opacity: 0, scale: 0.3 } : false}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                        className="pointer-events-none h-6 w-6 shrink-0 sm:h-7 sm:w-7"
+                        aria-hidden="true"
+                      >
+                        <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
+                      </motion.span>
+                    ) : p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.isAI ? (
+                      <BombardmentToken
+                        enabled={isActive && !resolving && !isPaused && phase === "playing"}
+                        hasTargets={isActive && bombTargets.length > 0}
+                        playerId={p.id}
+                      />
+                    ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
+                      <span
+                        title="Boule de feu disponible pour cette IA"
+                        aria-label="Boule de feu disponible pour cette IA"
+                        className="inline-flex h-6 w-6 shrink-0 sm:h-7 sm:w-7"
+                      >
+                        <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
                       </span>
-                        {p.bombardmentUsed ? (
-                          <motion.span
-                            key={`${p.id}-${bombardmentEventId}`}
-                            initial={bombardmentPlayerId === p.id ? { opacity: 0, scale: 0.3 } : false}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.35, ease: "easeOut" }}
-                            className="pointer-events-none h-7 w-7 shrink-0"
-                            aria-hidden="true"
-                          >
-                            <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
-                          </motion.span>
-                        ) : p.score >= BOMBARDMENT_UNLOCK_SCORE && !p.isAI ? (
-                          <BombardmentToken
-                            enabled={isActive && !resolving && !isPaused && phase === "playing"}
-                            hasTargets={isActive && bombTargets.length > 0}
-                            playerId={p.id}
-                          />
-                        ) : p.score >= BOMBARDMENT_UNLOCK_SCORE ? (
-                          <span
-                            title="Boule de feu disponible pour cette IA"
-                            aria-label="Boule de feu disponible pour cette IA"
-                            className="inline-flex h-7 w-7 shrink-0"
-                          >
-                            <Image src="/images/boule-de-feu.png" alt="" width={224} height={230} className="h-full w-full object-contain" />
-                          </span>
-                        ) : null}
-                      </div>
-                      {p.isAI && (
-                        <span className="mt-0.5 rounded bg-violet-400/20 px-1.5 py-0.5 text-xs font-semibold text-violet-200">
-                          IA
-                        </span>
+                    ) : null}
+                  </div>
+                  {p.isAI && (
+                    <span className="mt-0.5 rounded bg-violet-400/20 px-1.5 py-0.5 text-xs font-semibold text-violet-200">
+                      IA
+                    </span>
+                  )}
+                </div>
+                <span className={`font-display text-base sm:text-lg font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
+                  {p.score} <span className="text-xs font-normal text-muted-foreground">pts</span>
+                </span>
+                {isActive && (
+                  <div className="mt-0.5 w-full space-y-1">
+                    <div
+                      className="flex items-center justify-center gap-1 font-display text-xs font-black tabular-nums"
+                      style={{ color: isPaused ? "#34d399" : turnColor }}
+                    >
+                      {isPaused ? (
+                        <>
+                          <Pause className="h-3 w-3" /> Pause
+                        </>
+                      ) : (
+                        <>
+                          <Timer className="h-3 w-3" />
+                          {turnTimeLeft.toFixed(1)}s
+                        </>
                       )}
                     </div>
-                  <span className={`font-display text-xl font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
-                    {p.score} <span className="text-sm font-normal text-muted-foreground">pts</span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Seconds countdown & progress bar */}
-          <div className="space-y-1.5 pt-1 border-t border-border/30">
-            <div className="flex items-center justify-end">
-              <div
-                className="flex items-center gap-1 font-display text-lg font-black tabular-nums"
-                style={{ color: isPaused ? "#34d399" : turnColor }}
-              >
-                {isPaused ? (
-                  <>
-                    <Pause className="h-4 w-4" /> Pause
-                  </>
-                ) : (
-                  <>
-                    <Timer className="h-4 w-4" />
-                    {turnTimeLeft.toFixed(1)}s
-                  </>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
+                      <motion.div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          backgroundColor: turnColor,
+                          boxShadow: `0 0 10px ${turnColor}`,
+                        }}
+                        animate={{ width: `${timePct}%` }}
+                        transition={{ duration: 0.1, ease: "linear" }}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-
-            {/* Countdown progress bar — solid, vivid player color (no gradient) */}
-            <div className="h-4 w-full overflow-hidden rounded-full bg-black/40 ring-1 ring-white/10">
-              <motion.div
-                className="h-full rounded-full transition-all"
-                style={{
-                  backgroundColor: turnColor,
-                  boxShadow: `0 0 14px ${turnColor}`,
-                }}
-                animate={{ width: `${timePct}%` }}
-                transition={{ duration: 0.1, ease: "linear" }}
-              />
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         {current && !current.isAI && current.score >= BOMBARDMENT_UNLOCK_SCORE && !current.bombardmentUsed && (

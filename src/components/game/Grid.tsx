@@ -57,12 +57,12 @@ export function Grid({ players, currentPlayerId, isPaused }: GridProps) {
     : null;
 
   return (
-    <div className="mx-auto w-full max-w-[min(640px,calc(100vw-1rem))]">
+    <div className="mx-auto w-full max-w-[min(680px,calc(100vw-1rem))]">
       {/* Board */}
       <BombardmentDropZone className={`relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}>
         <div
           aria-label="Grille de jeu, 10 lignes et 10 colonnes"
-          className="relative z-10 grid gap-px rounded-xl bg-[oklch(0.23_0.02_22)] p-px sm:gap-1 sm:p-1"
+          className="relative z-10 grid gap-px rounded-xl bg-[oklch(0.23_0.02_22)] p-px sm:gap-1.5 sm:p-1.5"
           style={{
             gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
           }}

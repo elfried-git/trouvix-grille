@@ -4,13 +4,17 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 /**
- * 19 background images cycling 1 per day based on date:
+ * 22 background images cycling 1 per day based on date:
  * - 5 initial user images (bricks, door, globe, dice, barcelona)
  * - 5 added user images (eiffel, liberty, plane, skyline, star)
  * - 4 latest added user images (headphones, eyes, mosque, boat)
  * - 5 premium chic images (lion, cybercity, dragon, samurai, phoenix)
+ * - 3 football-themed images (football arena, world cup trophy, fire flower)
  */
 const IMAGES = [
+  "/images/backgrounds/bg-fire-flower.jpg",
+  "/images/backgrounds/bg-worldcup.jpg",
+  "/images/backgrounds/bg-football-arena.jpg",
   "/images/backgrounds/bg-lion.jpg",
   "/images/backgrounds/bg-galaxy_phoenix.jpg",
   "/images/backgrounds/bg-cybercity.jpg",
