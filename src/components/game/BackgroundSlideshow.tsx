@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 /**
- * 22 background images cycling 1 per day based on date:
+ * 22 background images, one random pick per day (stable within the day):
  * - 5 initial user images (bricks, door, globe, dice, barcelona)
  * - 5 added user images (eiffel, liberty, plane, skyline, star)
  * - 4 latest added user images (headphones, eyes, mosque, boat)
@@ -42,13 +42,24 @@ const RESOLVED_IMAGES = IMAGES.map((src) =>
 );
 
 /**
- * Calculates current image index based on days elapsed since epoch.
- * Changes automatically every 24 hours at midnight.
+ * Pseudo-random pick for a given day: same image all day for everyone,
+ * a different one on other days (a repeat on consecutive days is possible).
+ */
+function pickImageForDay(dayNumber: number): number {
+  let x = Math.imul(dayNumber ^ 0x9e3779b9, 0x85ebca6b);
+  x ^= x >>> 13;
+  x = Math.imul(x, 0xc2b2ae35);
+  x ^= x >>> 16;
+  return (x >>> 0) % RESOLVED_IMAGES.length;
+}
+
+/**
+ * Index of the image to show now. Changes automatically at midnight.
  */
 function getDailyImageIndex(): number {
   const msPerDay = 1000 * 60 * 60 * 24;
   const dayNumber = Math.floor(Date.now() / msPerDay);
-  return Math.abs(dayNumber) % RESOLVED_IMAGES.length;
+  return pickImageForDay(dayNumber);
 }
 
 export function BackgroundSlideshow() {
