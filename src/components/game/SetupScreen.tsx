@@ -276,86 +276,85 @@ export function SetupScreen() {
                     : "border-amber-200/15 bg-gradient-to-br from-amber-300/[0.06] via-card/60 to-transparent"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="relative shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.18)]">
+              <div className="flex items-start gap-2.5">
+                <div className="relative mt-5 shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.18)]">
                   <Avatar
                     avatar={emojis[i]}
                     color={colors[i]}
-                    size={50}
-                    emojiSize="text-2xl"
+                    size={44}
+                    emojiSize="text-xl"
                     ring={false}
                   />
                 </div>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <Label htmlFor={`name-${i}`} className="flex items-center gap-1 text-base text-muted-foreground">
                     Joueur {i + 1}
                     <span className="text-rose-400" title="Obligatoire">*</span>
                   </Label>
-                  <Input
-                    id={`name-${i}`}
-                    value={names[i]}
-                    onChange={(e) => updateName(i, e.target.value)}
-                    placeholder="Pseudo"
-                    disabled={isAI[i]}
-                    className={`mt-1 h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
-                      isAI[i]
-                        ? "cursor-not-allowed opacity-60"
-                        : nameMissing
-                          ? "border-rose-400/60 focus-visible:border-rose-400"
-                          : "border-border/60"
-                    }`}
-                  />
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <Input
+                      id={`name-${i}`}
+                      value={names[i]}
+                      onChange={(e) => updateName(i, e.target.value)}
+                      placeholder="Pseudo"
+                      disabled={isAI[i]}
+                      className={`h-12 min-w-[6.5rem] flex-1 rounded-xl bg-black/25 px-3 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
+                        isAI[i]
+                          ? "cursor-not-allowed opacity-60"
+                          : nameMissing
+                            ? "border-rose-400/60 focus-visible:border-rose-400"
+                            : "border-border/60"
+                      }`}
+                    />
+                    {/* AI toggle */}
+                    <button
+                      onClick={() => toggleAI(i)}
+                      disabled={isAI[i]}
+                      className={`flex h-12 shrink-0 items-center rounded-full border px-2.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
+                        isAI[i]
+                          ? "border-violet-400/60 bg-violet-500/20 text-violet-200 cursor-not-allowed"
+                          : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                      }`}
+                      title={
+                        isAI[i]
+                          ? "IA verrouillée : aucune intervention possible"
+                          : "Activer l'IA (joue automatiquement)"
+                      }
+                    >
+                      {isAI[i] ? "IA active" : "IA"}
+                    </button>
+                    {/* Photo upload (hidden for AI players) — photo is optional */}
+                    {!isAI[i] && (
+                      <label
+                        className="flex h-12 shrink-0 cursor-pointer items-center rounded-full border border-amber-400/40 bg-amber-500/10 px-2.5 text-xs font-medium sm:px-3 sm:text-sm text-amber-200 transition hover:bg-amber-500/20"
+                        title="Téléverser une photo (optionnel)"
+                      >
+                        {isPhoto ? "Photo ✓" : "Photo"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => uploadPhoto(i, e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                    )}
+                    {/* Clear photo (only if a photo is set and not AI) */}
+                    {!isAI[i] && isPhoto && (
+                      <button
+                        onClick={() => clearPhoto(i)}
+                        className="flex h-12 shrink-0 items-center rounded-full border border-rose-400/40 bg-rose-500/10 px-3 text-rose-200 transition hover:bg-rose-500/20"
+                        title="Retirer la photo"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                   {!isAI[i] && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       2 à 5 caractères · emojis acceptés
                     </p>
                   )}
                 </div>
-              </div>
-              {/* AI toggle + Avatar picker */}
-              <div className="mt-3 flex flex-wrap items-center gap-2 pl-[66px] sm:gap-1.5">
-                {/* AI toggle */}
-                <button
-                  onClick={() => toggleAI(i)}
-                  disabled={isAI[i]}
-                  className={`flex h-12 items-center gap-2 rounded-full border px-4 text-base font-medium transition ${
-                    isAI[i]
-                      ? "border-violet-400/60 bg-violet-500/20 text-violet-200 cursor-not-allowed"
-                      : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted/60"
-                  }`}
-                  title={
-                    isAI[i]
-                      ? "IA verrouillée : aucune intervention possible"
-                      : "Activer l'IA (joue automatiquement)"
-                  }
-                >
-                  {isAI[i] ? "IA active" : "IA"}
-                </button>
-                {/* Upload photo button (hidden for AI players) — photo is optional */}
-                {!isAI[i] && (
-                  <label
-                    className="flex h-12 cursor-pointer items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 text-base font-medium text-amber-200 transition hover:bg-amber-500/20"
-                    title="Téléverser une photo (optionnel)"
-                  >
-                    {isPhoto ? "Photo ✓" : "Photo"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => uploadPhoto(i, e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                )}
-                {/* Clear photo (only if a photo is set and not AI) */}
-                {!isAI[i] && isPhoto && (
-                  <button
-                    onClick={() => clearPhoto(i)}
-                    className="flex h-12 items-center gap-2 rounded-full border border-rose-400/40 bg-rose-500/10 px-4 text-base font-medium text-rose-200 transition hover:bg-rose-500/20"
-                    title="Retirer la photo"
-                  >
-                  <X className="h-5 w-5" />
-                  </button>
-                )}
               </div>
               {count === 2 && i === 1 && isAI[i] && (
                 <div className="mt-4 rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-400/[0.1] to-fuchsia-500/[0.04] p-3 shadow-inner shadow-black/20">
