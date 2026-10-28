@@ -295,7 +295,7 @@ export function SetupScreen() {
                     id={`name-${i}`}
                     value={names[i]}
                     onChange={(e) => updateName(i, e.target.value)}
-                    placeholder="Saisis ton nom"
+                    placeholder="Pseudo"
                     disabled={isAI[i]}
                     className={`mt-1 h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
                       isAI[i]

@@ -138,7 +138,7 @@ export function GameScreen() {
       {/* Main layout */}
       <div className="mx-auto flex w-full max-w-[700px] flex-1 flex-col gap-3 sm:gap-4">
         {/* Players list with live scores and active turn highlight */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 w-full">
+        <div className={`grid ${players.length <= 2 ? "grid-cols-2 max-w-md mx-auto" : players.length === 3 ? "grid-cols-3 max-w-xl mx-auto" : "grid-cols-2 sm:grid-cols-4"} gap-2 sm:gap-3 w-full`}>
           {players.map((p) => {
             const isActive = p.id === current?.id;
             const canClick = !(resolving && p.id === current?.id);

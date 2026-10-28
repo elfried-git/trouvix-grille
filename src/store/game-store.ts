@@ -517,7 +517,7 @@ export const useGameStore = create<GameState>((set, get) => {
       // Keep only players sharing the max score
       const tied = state.players.filter((p) => p.score === maxScore);
       if (tied.length <= 1) return; // no tie → nothing to do
-      // Reset tied players' scores, drop the others, start a new game
+      // Reset tied players' scores, drop the others, start a new game with identical conditions
       const newPlayers: Player[] = tied.map((p) => ({
         ...p,
         score: 0,
@@ -526,6 +526,7 @@ export const useGameStore = create<GameState>((set, get) => {
       }));
       set({
         players: newPlayers,
+        initialPlayers: JSON.parse(JSON.stringify(newPlayers)),
         currentPlayerIndex: 0,
         phase: "playing",
         grid: emptyGrid(),

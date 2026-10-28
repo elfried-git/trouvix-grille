@@ -342,34 +342,36 @@ export function OnlineSetupScreen() {
               <Label className="relative flex items-center gap-1 text-sm font-semibold text-amber-100/90 sm:text-base">
                 Ton profil <span className="text-rose-400">*</span>
               </Label>
-              <div className="relative mt-2 flex items-center gap-3">
-                <div className="shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.2)]">
-                  <Avatar avatar={emoji} color={color} size={54} emojiSize="text-2xl" ring={false} />
+              <div className="relative mt-2">
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.2)]">
+                    <Avatar avatar={emoji} color={color} size={54} emojiSize="text-2xl" ring={false} />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      ref={nameInputRef}
+                      value={name}
+                      onChange={(e) => setName(limitPlayerName(e.target.value))}
+                      placeholder="Pseudo"
+                      className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
+                        !profileValid ? "border-rose-400/60" : "border-border/60"
+                      }`}
+                    />
+                  </div>
+                  <label
+                    className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-base font-medium text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95"
+                    title="Téléverser une photo (optionnel)"
+                  >
+                    Photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => uploadPhoto(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
                 </div>
-                <div className="flex-1">
-                  <Input
-                    ref={nameInputRef}
-                    value={name}
-                    onChange={(e) => setName(limitPlayerName(e.target.value))}
-                    placeholder="Saisis ton prénom"
-                    className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
-                      !profileValid ? "border-rose-400/60" : "border-border/60"
-                    }`}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
-                </div>
-                <label
-                  className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-base font-medium text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95"
-                  title="Téléverser une photo (optionnel)"
-                >
-                  Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => uploadPhoto(e.target.files?.[0] ?? null)}
-                  />
-                </label>
+                <p className="mt-1.5 pl-[66px] text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
               </div>
               {/* Compact color picker */}
               <div className="relative mt-4 grid w-full grid-cols-6 items-center justify-items-center gap-y-2 rounded-xl border border-white/[0.06] bg-black/15 px-2 py-2.5">
@@ -387,51 +389,50 @@ export function OnlineSetupScreen() {
                   );
                 })}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
             </div>
 
             {/* Action cards */}
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
               {/* Join by code — the JOIN card */}
               <button
                 onClick={() => setTab("join")}
-                className="relative isolate min-h-36 overflow-hidden rounded-2xl border border-emerald-300/35 bg-gradient-to-br from-emerald-400/[0.15] via-[#11231e]/85 to-slate-950 p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_14px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:min-h-40 sm:p-6"
+                className="relative isolate overflow-hidden rounded-2xl border border-emerald-300/35 bg-gradient-to-br from-emerald-400/[0.15] via-[#11231e]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-emerald-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:p-4"
               >
-                <p className="relative z-10 font-display text-lg font-bold text-foreground sm:text-xl">Rejoindre un salon</p>
-                <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">Entre le code pour retrouver tes amis.</p>
+                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">Rejoindre un salon</p>
+                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">Entre le code pour retrouver tes amis.</p>
               </button>
               <button
                 onClick={() => setTab("create")}
-                className="relative isolate min-h-36 overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-amber-400/[0.16] via-[#2a1d12]/85 to-slate-950 p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_14px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:min-h-40 sm:p-6"
+                className="relative isolate overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-amber-400/[0.16] via-[#2a1d12]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-amber-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:p-4"
               >
-                <p className="relative z-10 font-display text-xl font-bold text-foreground">
+                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">
                   Créer un salon
                 </p>
-                <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">
                   Lance ta partie et invite tes amis.
                 </p>
               </button>
               <button
                 onClick={() => setTab("benchou")}
-                className="relative isolate min-h-36 overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_14px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:min-h-40 sm:p-6"
+                className="relative isolate overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-violet-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:col-span-2 sm:p-4"
               >
-                <div className="relative z-10 mb-3 flex items-center gap-3">
+                <div className="relative z-10 flex flex-col items-center justify-center text-center">
                   <img
                     src={onlineBenchouAvatar}
                     alt="Benchou Ferrari"
-                    width={48}
-                    height={48}
+                    width={44}
+                    height={44}
                     loading="eager"
                     fetchPriority="high"
-                    className="h-12 w-12 rounded-full object-cover ring-2 ring-violet-400/40"
+                    className="mb-1.5 h-11 w-11 rounded-full object-cover ring-2 ring-violet-400/50 shadow-md"
                   />
+                  <p className="font-display text-base font-bold text-foreground sm:text-lg">
+                    Jouer contre Benchou
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                    Défie Benchou en duel privé.
+                  </p>
                 </div>
-                <p className="relative z-10 font-display text-xl font-bold text-foreground">
-                  Jouer contre Benchou
-                </p>
-                <p className="relative z-10 mt-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Défie Benchou en duel privé.
-                </p>
               </button>
             </div>
 
@@ -755,7 +756,7 @@ export function OnlineSetupScreen() {
                   <Input
                     value={name}
                     onChange={(e) => setName(limitPlayerName(e.target.value))}
-                    placeholder="Saisis ton nom"
+                    placeholder="Pseudo"
                     className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
                       !profileValid ? "border-rose-400/60" : "border-border/60"
                     }`}

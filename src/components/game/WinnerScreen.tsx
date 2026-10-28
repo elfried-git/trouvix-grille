@@ -57,14 +57,15 @@ export function WinnerScreen() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <Button onClick={rematchTied} size="lg" className="h-12 px-5 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
-              <Swords className="mr-2 h-5 w-5" /> Départager
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              onClick={rematchTied}
+              size="lg"
+              className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-[0_8px_24px_rgba(139,92,246,0.5)] transition hover:scale-105 hover:from-violet-500 hover:to-fuchsia-400 active:scale-95"
+            >
+              <Swords className="mr-2 h-6 w-6" /> Départager
             </Button>
-            <Button onClick={restart} size="lg" className="h-12 px-5 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400">
-              <RotateCcw className="mr-2 h-5 w-5" /> Rejouer
-            </Button>
-            <Button onClick={backHome} size="lg" variant="outline" className="h-12 px-5 text-base">
+            <Button onClick={backHome} size="lg" variant="outline" className="h-14 px-6 text-base">
               <Home className="mr-2 h-5 w-5" /> Accueil
             </Button>
           </div>

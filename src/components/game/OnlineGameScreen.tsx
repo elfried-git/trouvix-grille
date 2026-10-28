@@ -288,60 +288,33 @@ export function OnlineGameScreen() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {amHost ? (
-                <>
-                  <Button
-                    onClick={rematchTiedAction}
-                    size="lg"
-                    disabled={!hasEnoughTiedToRematch}
-                    className="h-12 px-5 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Swords className="mr-2 h-5 w-5" />
-                    Départager
-                  </Button>
-                  <Button
-                    onClick={restartAction}
-                    size="lg"
-                    disabled={!hasEnoughPlayersToRestart}
-                    className="h-12 px-5 text-base bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <RotateCcw className="mr-2 h-5 w-5" />
-                    Rejouer
-                  </Button>
-                  <Button
-                    onClick={handleNewGame}
-                    size="lg"
-                    variant="outline"
-                    className="h-12 px-5 text-base"
-                  >
-                    <Plus className="mr-2 h-5 w-5" />
-                    Nouveau salon
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    onClick={handleNewGame}
-                    size="lg"
-                    className="h-12 px-5 text-base bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400 shadow-md"
-                  >
-                    <Plus className="mr-2 h-5 w-5" />
-                    Nouveau salon
-                  </Button>
-                </>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              {(amHost || connectedTiedPlayers.some((p) => p.id === myId)) && (
+                <Button
+                  onClick={rematchTiedAction}
+                  size="lg"
+                  disabled={!hasEnoughTiedToRematch}
+                  className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-[0_8px_24px_rgba(139,92,246,0.5)] transition hover:scale-105 hover:from-violet-500 hover:to-fuchsia-400 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Swords className="mr-2 h-6 w-6" />
+                  Départager
+                </Button>
               )}
-              <Button onClick={handleQuit} size="lg" variant="outline" className="h-12 px-5 text-base">
+              <Button
+                onClick={handleNewGame}
+                size="lg"
+                variant="outline"
+                className="h-14 px-6 text-base"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Nouveau salon
+              </Button>
+              <Button onClick={handleQuit} size="lg" variant="outline" className="h-14 px-6 text-base">
                 <Home className="mr-2 h-5 w-5" /> Accueil
               </Button>
-              {amHost && !hasEnoughPlayersToRestart && (
+              {!hasEnoughTiedToRematch && (
                 <p className="w-full text-center text-xs text-rose-300/90 mt-1 font-medium">
-                  Aucun autre joueur connecté.
-                </p>
-              )}
-              {!amHost && (
-                <p className="w-full text-center text-xs text-violet-200/80 mt-1">
-                  En attente de l&apos;hôte pour le départage.
+                  Les autres joueurs à égalité ne sont plus connectés.
                 </p>
               )}
             </div>
@@ -427,7 +400,7 @@ export function OnlineGameScreen() {
 
       <div className="mx-auto flex min-h-0 w-full max-w-[700px] flex-1 flex-col gap-2 sm:gap-3">
         {/* Players list with live scores and active turn highlight */}
-        <div className={`grid ${players.length <= 2 ? "grid-cols-2" : "grid-cols-4"} gap-1.5 sm:gap-2.5 w-full shrink-0`}>
+        <div className={`grid ${players.length <= 2 ? "grid-cols-2 max-w-md mx-auto" : players.length === 3 ? "grid-cols-3 max-w-xl mx-auto" : "grid-cols-2 sm:grid-cols-4"} gap-1.5 sm:gap-2.5 w-full shrink-0`}>
           {players.map((p) => {
             const isActive = p.id === current?.id;
             const isMe = p.id === myId;

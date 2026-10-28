@@ -1413,7 +1413,7 @@ io.on('connection', (socket) => {
     broadcastState(room); broadcastAdminRoomList()
   })
 
-  // ---- rematch-tied (host only) ----
+  // ---- rematch-tied (host or tied players) ----
   // Restarts the game with ONLY the tied players (those sharing the max score).
   // Eliminated players are dropped. Repeat until a single winner emerges.
   socket.on('rematch-tied', () => {
@@ -1421,10 +1421,6 @@ io.on('connection', (socket) => {
     if (!binding) return
     const room = findRoom(binding.roomCode)
     if (!room) return
-    if (room.hostId !== binding.playerId) {
-      socket.emit('error', { message: "Seul l'hôte peut lancer le challenge décisif" })
-      return
-    }
     const s = room.state
     if (s.phase !== 'gameover') {
       socket.emit('error', { message: "La partie n'est pas terminée" })
@@ -1438,10 +1434,21 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Les autres joueurs à égalité ont quitté le salon.' })
       return
     }
-    // Keep only tied players, reset their scores, start a new game
+    const isAllowed = room.hostId === binding.playerId || connectedTied.some((p) => p.id === binding.playerId)
+    if (!isAllowed) {
+      socket.emit('error', { message: "Seuls les joueurs à égalité ou l'hôte peuvent lancer le départage" })
+      return
+    }
+    // If current host is eliminated, reassign host role to the first kept tied player
+    if (!connectedTied.some((p) => p.id === room.hostId)) {
+      room.hostId = connectedTied[0].id
+    }
+    // Keep only tied players, reset their scores, start a new game under identical conditions
     const keptTied = tied.map((p) => ({ ...p, score: 0, alignments: 0, bombardmentUsed: false }))
     room.state.phase = 'playing'
     room.state.players = keptTied
+    room.state.initialPlayers = JSON.parse(JSON.stringify(keptTied))
+    room.state.totalRounds = room.totalRounds
     room.state.currentPlayerIndex = 0
     room.state.grid = emptyGrid()
     room.state.turnTimeLeft = TURN_SECONDS
