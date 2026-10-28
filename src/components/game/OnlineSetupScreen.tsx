@@ -748,44 +748,44 @@ export function OnlineSetupScreen() {
               <Label className="relative flex items-center gap-1 text-sm font-semibold text-amber-100/90 sm:text-base">
                 Ton profil <span className="text-rose-400">*</span>
               </Label>
-              <div className="relative mt-2 flex items-center gap-3">
-                <div className="shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.2)]">
-                  <Avatar avatar={emoji} color={color} size={50} emojiSize="text-2xl" ring={false} />
-                </div>
-                <div className="flex-1">
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(limitPlayerName(e.target.value))}
-                    placeholder="Pseudo"
-                    className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
-                      !profileValid ? "border-rose-400/60" : "border-border/60"
-                    }`}
-                  />
-                </div>
-              </div>
-              <p className="mt-1 pl-[66px] text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 pl-[66px]">
-                <label
-                  className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-sm font-semibold text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95 sm:text-base"
-                  title="Téléverser une photo (optionnel)"
-                >
-                  {isPhotoAvatar(emoji) ? "Photo ✓" : "Photo"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => uploadPhoto(e.target.files?.[0] ?? null)}
-                  />
-                </label>
-                {isPhotoAvatar(emoji) && (
-                  <button
-                    onClick={() => setEmoji("")}
-                    className="flex h-12 items-center gap-2 rounded-full border border-rose-400/40 bg-rose-500/10 px-4 text-base font-medium text-rose-200 transition hover:bg-rose-500/20"
-                    title="Retirer la photo"
+              <div className="relative mt-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.2)]">
+                    <Avatar avatar={emoji} color={color} size={50} emojiSize="text-2xl" ring={false} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(limitPlayerName(e.target.value))}
+                      placeholder="Pseudo"
+                      className={`h-14 min-w-[6.5rem] rounded-xl bg-black/25 px-3 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
+                        !profileValid ? "border-rose-400/60" : "border-border/60"
+                      }`}
+                    />
+                  </div>
+                  <label
+                    className="flex h-14 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-3 text-sm font-semibold text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95 sm:px-4 sm:text-base"
+                    title="Téléverser une photo (optionnel)"
                   >
-                    <X className="h-5 w-5" />
-                  </button>
-                )}
+                    {isPhotoAvatar(emoji) ? "Photo ✓" : "Photo"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => uploadPhoto(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                  {isPhotoAvatar(emoji) && (
+                    <button
+                      onClick={() => setEmoji("")}
+                      className="flex h-14 shrink-0 items-center rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 text-rose-200 transition hover:bg-rose-500/20"
+                      title="Retirer la photo"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1.5 pl-[66px] text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
               </div>
               {/* Color picker */}
               <div className="relative mt-4 grid w-full grid-cols-6 items-center justify-items-center gap-y-2 rounded-xl border border-white/[0.06] bg-black/15 px-2 py-2.5">
