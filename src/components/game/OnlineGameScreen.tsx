@@ -438,11 +438,11 @@ export function OnlineGameScreen() {
                       }
                     : undefined
                 }
-                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-1 rounded-xl border p-1.5 sm:p-2 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-1 rounded-xl border-2 p-1.5 sm:p-2 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
                   canClick ? "" : "cursor-wait opacity-80 "
                 }${
                   isActive
-                    ? "border-2 ring-2 ring-white/50 scale-[1.02] shadow-xl"
+                    ? "ring-2 ring-white/50 shadow-xl"
                     : "bg-card/40 border-border/40 opacity-75 backdrop-blur-md"
                 } ${isDisconnected ? "opacity-40 line-through" : ""}`}
               >
@@ -461,7 +461,7 @@ export function OnlineGameScreen() {
                     }
                   />
                 </span>
-                <div className="flex min-w-0 w-full flex-wrap items-center justify-center gap-x-1">
+                <div className="flex min-w-0 w-full min-h-[1.25rem] flex-wrap items-center justify-center gap-x-1">
                   <span className={`whitespace-normal break-words text-center text-xs sm:text-sm font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                     {p.name}
                   </span>
@@ -505,8 +505,9 @@ export function OnlineGameScreen() {
                 <span className={`font-display text-sm sm:text-base font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                   {p.score} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">pts</span>
                 </span>
+                <div className="mt-0.5 h-7 w-full" aria-hidden={!isActive}>
                 {isActive && (
-                  <div className="mt-0.5 w-full space-y-1">
+                  <div className="w-full space-y-1">
                     <div
                       className="flex items-center justify-center gap-1 font-display text-[10px] sm:text-xs font-black tabular-nums"
                       style={{ color: state.isPaused ? "#34d399" : turnColor }}
@@ -535,6 +536,7 @@ export function OnlineGameScreen() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             );
           })}

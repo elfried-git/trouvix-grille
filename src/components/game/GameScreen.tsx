@@ -174,11 +174,11 @@ export function GameScreen() {
                       }
                     : undefined
                 }
-                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-1.5 rounded-xl border p-2 sm:p-2.5 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-1.5 rounded-xl border-2 p-2 sm:p-2.5 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
                   canClick ? "" : "cursor-wait opacity-80 "
                 }${
                   isActive
-                    ? "border-2 ring-2 ring-white/50 scale-[1.02] shadow-xl"
+                    ? "ring-2 ring-white/50 shadow-xl"
                     : "bg-card/40 border-border/40 opacity-75 backdrop-blur-md"
                 }`}
               >
@@ -198,7 +198,7 @@ export function GameScreen() {
                   />
                 </span>
                 <div className="flex min-w-0 w-full flex-col items-center">
-                  <div className="flex max-w-full items-center justify-center gap-1">
+                  <div className="flex max-w-full min-h-[1.75rem] items-center justify-center gap-1">
                     <span className={`whitespace-normal break-words text-sm sm:text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                       {p.name}
                     </span>
@@ -238,8 +238,9 @@ export function GameScreen() {
                 <span className={`font-display text-base sm:text-lg font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                   {p.score} <span className="text-xs font-normal text-muted-foreground">pts</span>
                 </span>
+                <div className="mt-0.5 h-7 w-full" aria-hidden={!isActive}>
                 {isActive && (
-                  <div className="mt-0.5 w-full space-y-1">
+                  <div className="w-full space-y-1">
                     <div
                       className="flex items-center justify-center gap-1 font-display text-xs font-black tabular-nums"
                       style={{ color: isPaused ? "#34d399" : turnColor }}
@@ -268,6 +269,7 @@ export function GameScreen() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             );
           })}
