@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Play } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
@@ -67,8 +67,9 @@ export function HomeScreen() {
             <Button
               onClick={goToSetup}
               size="lg"
-              className="h-14 w-full min-w-0 rounded-full bg-gradient-to-r from-rose-600 to-rose-500 px-3 text-sm font-semibold text-white shadow-[0_8px_30px_-6px_oklch(0.60_0.215_25/0.6)] transition hover:from-rose-500 hover:to-rose-400 hover:shadow-[0_8px_36px_-4px_oklch(0.60_0.215_25/0.8)] sm:w-auto sm:px-8 sm:text-base"
+              className="h-14 w-full min-w-0 gap-3 rounded-full border-0 bg-gradient-to-r from-[#ff1a4b] via-[#ff9500] to-[#ff1a4b] px-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_8px_30px_-6px_rgba(255,60,80,0.6)] transition hover:brightness-110 hover:shadow-[0_8px_36px_-4px_rgba(255,60,80,0.8)] sm:w-auto sm:px-8 sm:text-base"
             >
+              <Play className="h-5 w-5 fill-white" />
               Jouer en local
             </Button>
             <Button
@@ -77,9 +78,9 @@ export function HomeScreen() {
                 goToOnlineSetup();
               }}
               size="lg"
-              variant="outline"
-              className="h-14 w-full min-w-0 rounded-full border-amber-400/50 bg-amber-500/10 px-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 sm:w-auto sm:px-8 sm:text-base"
+              className="h-14 w-full min-w-0 gap-3 rounded-full border-0 bg-gradient-to-r from-[#ff1a4b] via-[#ff9500] to-[#ff1a4b] px-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_8px_30px_-6px_rgba(255,60,80,0.6)] transition hover:brightness-110 hover:shadow-[0_8px_36px_-4px_rgba(255,60,80,0.8)] sm:w-auto sm:px-8 sm:text-base"
             >
+              <Play className="h-5 w-5 fill-white" />
               Jouer en ligne
             </Button>
           </div>
