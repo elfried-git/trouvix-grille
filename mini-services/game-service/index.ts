@@ -2,6 +2,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from '../../src/lib/bombardment'
 import { isValidPlayerName } from '../../src/lib/player-name'
+import { registerGiftHandlers } from './gift-rooms'
 
 // ====== Game constants (must match the client store exactly) ======
 const ROWS = 10
@@ -541,6 +542,7 @@ function broadcastPublicRoomList(): void {
 // ====== Connection handling ======
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`)
+  registerGiftHandlers(io as any, socket as any)
   socket.emit('benchou-avatar-update', { avatar: benchouAvatar })
 
   // ---- create-room ----
