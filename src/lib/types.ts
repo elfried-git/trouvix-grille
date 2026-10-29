@@ -1,4 +1,4 @@
-export type Phase = "home" | "setup" | "playing" | "gameover" | "online-setup" | "online-playing" | "reviews";
+export type Phase = "home" | "setup" | "playing" | "gameover" | "online-setup" | "online-playing" | "reviews" | "gift";
 
 export type AIProfile = "gpt" | "gemini" | "claude" | "grok" | "copilot" | "kimi" | "siri";
 export const AI_PROFILE_AVATARS: Record<AIProfile, string> = {

@@ -8,12 +8,14 @@ import { GameScreen } from "@/components/game/GameScreen";
 import { WinnerScreen } from "@/components/game/WinnerScreen";
 import { OnlineRouter } from "@/components/game/OnlineRouter";
 import { ReviewsScreen } from "@/components/game/ReviewsScreen";
+import { GiftScreen } from "@/components/game/GiftScreen";
 import { GameServiceWarmer } from "@/components/game/GameServiceWarmer";
 import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 
 export default function Home() {
   const phase = useGameStore((s) => s.phase);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
+  const goToGift = useGameStore((s) => s.goToGift);
 
   // A shared ?salon=CODE URL opens the online lobby flow directly.
   useEffect(() => {
@@ -27,6 +29,11 @@ export default function Home() {
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     goToOnlineSetup();
   }, [goToOnlineSetup]);
+
+  // Un lien ?cadeau=CODE ouvre directement l'espace Cadeau Noël.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("cadeau")) goToGift();
+  }, [goToGift]);
 
   // In-game (composition + grid), both offline and online: block page refresh
   // so a stray F5 / pull-to-refresh can't wipe the match or eject a player.
@@ -58,6 +65,7 @@ export default function Home() {
         {phase === "gameover" && <WinnerScreen />}
         {(phase === "online-setup" || phase === "online-playing") && <OnlineRouter />}
         {phase === "reviews" && <ReviewsScreen />}
+        {phase === "gift" && <GiftScreen />}
       </main>
     </div>
   );

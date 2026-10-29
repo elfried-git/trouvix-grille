@@ -54,6 +54,7 @@ interface GameState {
   goToSetup: () => void;
   goToOnlineSetup: () => void;
   goToReviews: () => void;
+  goToGift: () => void;
   startGame: (players: SetupPlayer[], rounds: number) => void;
   backHome: () => void;
   placePawn: (row: number, col: number) => void; // free placement
@@ -174,6 +175,7 @@ export const useGameStore = create<GameState>((set, get) => {
     goToSetup: () => set({ phase: "setup" }),
     goToOnlineSetup: () => set({ phase: "online-setup" }),
     goToReviews: () => set({ phase: "reviews" }),
+    goToGift: () => set({ phase: "gift" }),
 
     backHome: () =>
       set({
