@@ -5,13 +5,14 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Play } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Play, Gift } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
 import { enableNotifications, prepareNotificationAudio } from "@/lib/admin-notifications";
 import { toast } from "sonner";
 import { BackgroundSlideshow } from "./BackgroundSlideshow";
+import { useGiftEnabled } from "./useGiftEnabled";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
@@ -27,6 +28,9 @@ export function HomeScreen() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
+  const goToGift = useGameStore((s) => s.goToGift);
+  // Le bouton n'apparaît que si l'admin a activé la fonctionnalité (masqué tant que le serveur n'a pas répondu).
+  const giftEnabled = useGiftEnabled();
 
   useEffect(() => {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
@@ -84,6 +88,16 @@ export function HomeScreen() {
               Jouer en ligne
             </Button>
           </div>
+          {giftEnabled && (
+          <Button
+            onClick={goToGift}
+            size="lg"
+            className="h-12 w-full gap-3 rounded-full border border-yellow-300/50 bg-gradient-to-r from-[#15803d] via-[#dc2626] to-[#15803d] px-6 text-sm font-extrabold uppercase tracking-wide text-white shadow-[0_8px_30px_-6px_rgba(220,38,38,0.5)] transition hover:brightness-110 sm:w-auto"
+          >
+            <Gift className="h-5 w-5" />
+            Cadeau Noël
+          </Button>
+          )}
           <div className="col-span-2 grid w-full grid-cols-2 gap-3 sm:hidden">
             <span className="col-span-2 flex justify-center">
             <Button

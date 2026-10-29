@@ -11,6 +11,7 @@ import { useGameStore } from "@/store/game-store";
 import { Avatar } from "./Avatar";
 import { ColorSwatch } from "./ColorSwatch";
 import { AdminRoomsBoard } from "./AdminRoomsBoard";
+import { AdminGiftBoard } from "./AdminGiftBoard";
 import { ReviewsBoard } from "./ReviewsBoard";
 import { isPhotoAvatar } from "@/lib/types";
 import { isValidPlayerName, limitPlayerName } from "@/lib/player-name";
@@ -291,13 +292,12 @@ export function OnlineSetupScreen() {
             {activeTab === "lobby" ? "Quitter le salon" : activeTab === "menu" ? "Retour" : "Menu"}
           </Button>
           <span
-            className={`flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-base font-medium ${
-              onlineConnected
+            className={`flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-base font-medium ${onlineConnected
                 ? "bg-emerald-500/10 text-emerald-300"
                 : onlineConnecting
                   ? "bg-amber-500/10 text-amber-300"
                   : "bg-rose-500/10 text-rose-300"
-            }`}
+              }`}
           >
             {onlineConnected ? (
               <Wifi className="h-4 w-4" />
@@ -353,9 +353,8 @@ export function OnlineSetupScreen() {
                       value={name}
                       onChange={(e) => setName(limitPlayerName(e.target.value))}
                       placeholder="Pseudo"
-                      className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
-                        !profileValid ? "border-rose-400/60" : "border-border/60"
-                      }`}
+                      className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${!profileValid ? "border-rose-400/60" : "border-border/60"
+                        }`}
                     />
                   </div>
                   <label
@@ -563,6 +562,7 @@ export function OnlineSetupScreen() {
             {onlineIsBenchou && (
               <div className="mt-6 space-y-6">
                 <AdminRoomsBoard />
+                <AdminGiftBoard />
                 <ReviewsBoard />
               </div>
             )}
@@ -581,11 +581,10 @@ export function OnlineSetupScreen() {
                   {openRooms.map((room) => (
                     <div
                       key={room.roomCode}
-                      className={`flex items-center gap-3 rounded-xl border p-3 transition ${
-                        room.isFull
+                      className={`flex items-center gap-3 rounded-xl border p-3 transition ${room.isFull
                           ? "border-muted-foreground/20 bg-muted/5 opacity-70"
                           : "border-border/40 bg-card/40 hover:border-amber-400/40 hover:bg-amber-500/5"
-                      }`}
+                        }`}
                     >
                       {/* Host avatar — shows the host's photo/color so players recognize them */}
                       <Avatar
@@ -632,13 +631,12 @@ export function OnlineSetupScreen() {
                             {Array.from({ length: room.maxPlayers }).map((_, i) => (
                               <span
                                 key={i}
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  i < room.playerCount
+                                className={`h-1.5 w-1.5 rounded-full ${i < room.playerCount
                                     ? room.isFull
                                       ? "bg-rose-400"
                                       : "bg-emerald-400"
                                     : "bg-muted-foreground/25"
-                                }`}
+                                  }`}
                               />
                             ))}
                           </div>
@@ -648,11 +646,10 @@ export function OnlineSetupScreen() {
                         size="sm"
                         disabled={room.isFull || onlinePending}
                         onClick={() => handleJoinPublic(room)}
-                        className={`h-11 shrink-0 gap-1 whitespace-nowrap px-4 text-sm ${
-                          room.isFull
+                        className={`h-11 shrink-0 gap-1 whitespace-nowrap px-4 text-sm ${room.isFull
                             ? "cursor-not-allowed opacity-50"
                             : "bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
-                        }`}
+                          }`}
                       >
                         {room.isFull ? (
                           <span className="text-sm">Complet</span>
@@ -758,9 +755,8 @@ export function OnlineSetupScreen() {
                       value={name}
                       onChange={(e) => setName(limitPlayerName(e.target.value))}
                       placeholder="Pseudo"
-                      className={`h-14 min-w-[6.5rem] rounded-xl bg-black/25 px-3 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${
-                        !profileValid ? "border-rose-400/60" : "border-border/60"
-                      }`}
+                      className={`h-14 min-w-[6.5rem] rounded-xl bg-black/25 px-3 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${!profileValid ? "border-rose-400/60" : "border-border/60"
+                        }`}
                     />
                   </div>
                   <label
@@ -822,11 +818,10 @@ export function OnlineSetupScreen() {
                       variant={rounds === r ? "default" : "outline"}
                       size="sm"
                       onClick={() => setRounds(r)}
-                      className={`h-12 px-4 text-base ${
-                        rounds === r
+                      className={`h-12 px-4 text-base ${rounds === r
                           ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white"
                           : ""
-                      }`}
+                        }`}
                     >
                       {r} rounds
                     </Button>
@@ -844,11 +839,10 @@ export function OnlineSetupScreen() {
                     type="button"
                     aria-pressed={roomVisibility === "public"}
                     onClick={() => setRoomVisibility("public")}
-                    className={`relative isolate flex min-h-24 items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_5px_12px_rgba(0,0,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${
-                      roomVisibility === "public"
+                    className={`relative isolate flex min-h-24 items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_5px_12px_rgba(0,0,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${roomVisibility === "public"
                         ? "border-emerald-300/80 bg-gradient-to-br from-emerald-400/[0.2] via-emerald-950/80 to-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_20px_rgba(16,185,129,0.12)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-['']"
                         : "border-white/10 bg-gradient-to-br from-white/[0.035] via-black/20 to-black/40 hover:border-emerald-300/35"
-                    }`}
+                      }`}
                   >
                     <Globe2 className={`relative z-10 mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "public" ? "text-emerald-300" : "text-muted-foreground"}`} />
                     <span className="relative z-10">
@@ -862,11 +856,10 @@ export function OnlineSetupScreen() {
                     type="button"
                     aria-pressed={roomVisibility === "private"}
                     onClick={() => setRoomVisibility("private")}
-                    className={`relative isolate flex min-h-24 items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_5px_12px_rgba(0,0,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 ${
-                      roomVisibility === "private"
+                    className={`relative isolate flex min-h-24 items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_5px_12px_rgba(0,0,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 ${roomVisibility === "private"
                         ? "border-violet-300/80 bg-gradient-to-br from-violet-400/[0.2] via-violet-950/80 to-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_20px_rgba(139,92,246,0.14)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-['']"
                         : "border-white/10 bg-gradient-to-br from-white/[0.035] via-black/20 to-black/40 hover:border-violet-300/35"
-                    }`}
+                      }`}
                   >
                     <LockKeyhole className={`relative z-10 mt-0.5 h-5 w-5 shrink-0 ${roomVisibility === "private" ? "text-violet-300" : "text-muted-foreground"}`} />
                     <span className="relative z-10">
@@ -895,11 +888,10 @@ export function OnlineSetupScreen() {
                       size="sm"
                       onClick={() => setMaxPlayers(mp)}
                       aria-pressed={maxPlayers === mp}
-                      className={`h-12 px-4 text-base ${
-                        maxPlayers === mp
+                      className={`h-12 px-4 text-base ${maxPlayers === mp
                           ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white"
                           : ""
-                      }`}
+                        }`}
                     >
                       {mp}
                     </Button>
@@ -931,13 +923,12 @@ export function OnlineSetupScreen() {
               onClick={activeTab === "benchou" ? handleBenchou : activeTab === "create" ? handleCreate : handleJoin}
               disabled={!profileValid || onlinePending || (activeTab === "join" && joinCode.trim().length < 4)}
               size="lg"
-              className={`group relative mt-4 h-14 w-full overflow-hidden rounded-2xl text-base font-bold text-white shadow-[0_10px_28px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${
-                activeTab === "benchou"
+              className={`group relative mt-4 h-14 w-full overflow-hidden rounded-2xl text-base font-bold text-white shadow-[0_10px_28px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${activeTab === "benchou"
                   ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-500 shadow-[0_10px_28px_rgba(168,85,247,0.2)] hover:brightness-110"
                   : activeTab === "join"
                     ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 shadow-[0_10px_28px_rgba(16,185,129,0.18)] hover:brightness-110"
                     : "bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 shadow-[0_10px_28px_rgba(244,63,94,0.2)] hover:brightness-110"
-              }`}
+                }`}
             >
               {activeTab === "benchou" ? (
                 "Lancer le défi"
@@ -977,23 +968,23 @@ export function OnlineSetupScreen() {
                   : "Envoie ce code à tes amis ou partage le lien d’invitation."}
               </p>
               <div className="mt-3 flex min-w-0 flex-wrap gap-2">
-                  <Button
-                    onClick={shareRoomInvite}
-                    className="h-auto min-h-12 min-w-0 flex-1 gap-2 whitespace-normal bg-gradient-to-r from-emerald-700 to-emerald-600 px-3 py-2 text-sm text-white hover:from-emerald-600 hover:to-emerald-500 sm:text-base"
-                  >
-                    <span>Partager l’invitation</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={copyRoomInvite}
-                    variant="outline"
-                    size="icon"
-                    title="Copier le lien d’invitation"
-                    aria-label="Copier le lien d’invitation"
-                    className="h-12 w-12 shrink-0 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10"
-                  >
-                    {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                <Button
+                  onClick={shareRoomInvite}
+                  className="h-auto min-h-12 min-w-0 flex-1 gap-2 whitespace-normal bg-gradient-to-r from-emerald-700 to-emerald-600 px-3 py-2 text-sm text-white hover:from-emerald-600 hover:to-emerald-500 sm:text-base"
+                >
+                  <span>Partager l’invitation</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={copyRoomInvite}
+                  variant="outline"
+                  size="icon"
+                  title="Copier le lien d’invitation"
+                  aria-label="Copier le lien d’invitation"
+                  className="h-12 w-12 shrink-0 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10"
+                >
+                  {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
               </div>
             </div>
 
@@ -1007,11 +998,10 @@ export function OnlineSetupScreen() {
                 {players.map((p) => (
                   <div
                     key={p.id}
-                    className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${
-                      p.id === serverState.hostId
+                    className={`flex items-center gap-3 rounded-xl border p-4 sm:p-3 ${p.id === serverState.hostId
                         ? "border-amber-400/40 bg-amber-500/5"
                         : "border-border/60 bg-card/40"
-                    }`}
+                      }`}
                   >
                     <Avatar avatar={p.emoji} color={p.color} size={52} emojiSize="text-2xl" />
                     <div className="flex flex-1 flex-col gap-0.5">
@@ -1074,8 +1064,8 @@ export function OnlineSetupScreen() {
             {/* Host / Guest Actions */}
             {amHost ? (
               <div className="space-y-3 pt-2">
-              <Button
-                onClick={onlineStartGame}
+                <Button
+                  onClick={onlineStartGame}
                   disabled={!roomFull}
                   size="lg"
                   className="w-full bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400 disabled:opacity-40"

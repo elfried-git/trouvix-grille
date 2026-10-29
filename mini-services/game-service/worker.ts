@@ -11,6 +11,13 @@ import {
   runScheduledMaintenance,
   serializeGameState,
 } from './cloudflare-game'
+import {
+  getPendingDeletedGiftHistoryIds,
+  getPendingGiftHistory,
+  markGiftHistoryDeleted,
+  markGiftHistoryPersisted,
+} from './gift-rooms'
+import type { GiftHistoryEntry } from '../../src/lib/gift-draw'
 
 interface Env {
   GAME: DurableObjectNamespace
@@ -89,7 +96,8 @@ export class GameCoordinatorV2 {
       this.state.storage.get<string>('benchou-avatar'),
     ])
     const history = await this.state.storage.list<AdminRoomInfo>({ prefix: 'room-history:' })
-    restoreGameState(snapshot, avatar, [...history.values()])
+    const giftHistory = await this.state.storage.list<GiftHistoryEntry>({ prefix: 'gift-history:' })
+    restoreGameState(snapshot, avatar, [...history.values()], [...giftHistory.values()])
     if (avatar === undefined) {
       await this.state.storage.put('benchou-avatar', getBenchouAvatar())
     }
@@ -113,6 +121,16 @@ export class GameCoordinatorV2 {
         await this.state.storage.delete(deletedRoomCodes.map((roomCode) => `room-history:${roomCode}`))
         markArchivedRoomsDeleted(deletedRoomCodes)
       }
+      const deletedGiftIds = getPendingDeletedGiftHistoryIds()
+      if (deletedGiftIds.length > 0) {
+        await this.state.storage.delete(deletedGiftIds.map((id) => `gift-history:${id}`))
+        markGiftHistoryDeleted(deletedGiftIds)
+      }
+      const giftEntries = getPendingGiftHistory()
+      for (const entry of giftEntries) {
+        await this.state.storage.put(`gift-history:${entry.id}`, entry)
+      }
+      markGiftHistoryPersisted(giftEntries.map((entry) => entry.id))
       const history = getPendingArchivedRooms()
       for (const room of history) {
         await this.state.storage.put(`room-history:${room.roomCode}`, room)

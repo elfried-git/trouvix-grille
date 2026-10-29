@@ -1,6 +1,7 @@
 import { SocketIOServerCompat } from './cloudflare-io'
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from '../../src/lib/bombardment'
 import { isValidPlayerName } from '../../src/lib/player-name'
+import { registerGiftHandlers, restoreGiftSpaces, serializeGiftSpaces } from './gift-rooms'
 
 let BENCHOU_PIN = '331991'
 let APP_URL = 'https://trouvix-grille.vercel.app'
@@ -147,7 +148,7 @@ export function serializeGameState(): string {
       initialPlayers: room.state.initialPlayers.map((player) => player.name === 'Benchou Ferrari' ? { ...player, emoji: DEFAULT_BENCHOU_AVATAR } : player),
     },
   }))
-  return JSON.stringify({ rooms: savedRooms, challenges: [...challenges.values()] })
+  return JSON.stringify({ rooms: savedRooms, challenges: [...challenges.values()], gifts: serializeGiftSpaces() })
 }
 
 export function getPendingArchivedRooms(): AdminRoomInfo[] {
@@ -188,13 +189,15 @@ export function restoreGameState(snapshot?: string, storedAvatar?: string, saved
   pendingDeletedArchivedRoomCodes.clear()
   socketBindings.clear()
   challenges.clear()
+  restoreGiftSpaces(undefined)
   benchouSocketId = null
   benchouAvatar = DEFAULT_BENCHOU_AVATAR
   for (const room of savedHistory) archivedRooms.set(room.roomCode, room)
   if (!snapshot) return
 
   try {
-    const saved = JSON.parse(snapshot) as { rooms?: Room[]; challenges?: Challenge[]; archivedRooms?: AdminRoomInfo[]; benchouAvatar?: string }
+    const saved = JSON.parse(snapshot) as { rooms?: Room[]; challenges?: Challenge[]; archivedRooms?: AdminRoomInfo[]; benchouAvatar?: string; gifts?: unknown }
+    restoreGiftSpaces(saved.gifts)
     for (const room of saved.archivedRooms ?? []) archivedRooms.set(room.roomCode, room)
     if (isValidBenchouAvatar(storedAvatar)) benchouAvatar = storedAvatar
     else if (isValidBenchouAvatar(saved.benchouAvatar)) benchouAvatar = saved.benchouAvatar
@@ -629,6 +632,7 @@ function broadcastPublicRoomList(): void {
 // ====== Connection handling ======
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`)
+  registerGiftHandlers(io, socket as any)
   const savedAttachment = socket.getAttachment?.()
   if (savedAttachment?.binding) {
     const room = findRoom(savedAttachment.binding.roomCode)
