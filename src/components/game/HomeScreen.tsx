@@ -88,6 +88,7 @@ export function HomeScreen() {
               Jouer en ligne
             </Button>
           </div>
+          {/* CADEAU_NOEL_DEBUT : bouton masqué. Pour le réafficher, supprimer la ligne CADEAU_NOEL_DEBUT et la ligne CADEAU_NOEL_FIN ci-dessous.
           {giftEnabled && (
           <Button
             onClick={goToGift}
@@ -98,6 +99,7 @@ export function HomeScreen() {
             Cadeau Noël
           </Button>
           )}
+          CADEAU_NOEL_FIN */}
           <div className="col-span-2 grid w-full grid-cols-2 gap-3 sm:hidden">
             <span className="col-span-2 flex justify-center">
             <Button
