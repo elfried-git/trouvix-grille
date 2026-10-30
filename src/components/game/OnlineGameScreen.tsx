@@ -438,7 +438,7 @@ export function OnlineGameScreen() {
                       }
                     : undefined
                 }
-                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-1 rounded-xl border-2 p-1.5 sm:p-2 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-0.5 rounded-xl border-2 p-1 sm:p-1.5 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
                   canClick ? "" : "cursor-wait opacity-80 "
                 }${
                   isActive
@@ -450,7 +450,7 @@ export function OnlineGameScreen() {
                   <Avatar
                     avatar={p.emoji}
                     color={p.color}
-                    size={42}
+                    size={32}
                     emojiSize="text-xl sm:text-2xl"
                     ring={false}
                     className={isActive ? "ring-2" : "ring-2 ring-white/20"}
