@@ -342,9 +342,6 @@ export function OnlineSetupScreen() {
                 <p className="mb-3 flex items-center gap-1.5 text-sm uppercase tracking-widest text-amber-200/70">
                   <Gamepad2 className="h-3.5 w-3.5" />
                   Salons ouverts ({openRooms.length})
-                  <span className="ml-1 font-normal normal-case tracking-normal text-rose-200/90">
-                    · rejoins vite, ça se remplit ! 🔥
-                  </span>
                 </p>
                 <div className="flex max-h-[360px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
                   {openRooms.map((room) => (
