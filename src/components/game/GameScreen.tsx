@@ -138,7 +138,7 @@ export function GameScreen() {
       {/* Main layout */}
       <div className="mx-auto flex w-full max-w-[700px] flex-1 flex-col gap-3 sm:gap-4">
         {/* Players list with live scores and active turn highlight */}
-        <div className={`grid ${players.length <= 2 ? "grid-cols-2 max-w-md mx-auto" : players.length === 3 ? "grid-cols-3 max-w-xl mx-auto" : "grid-cols-2 sm:grid-cols-4"} gap-2 sm:gap-3 w-full`}>
+        <div className={`grid ${players.length <= 2 ? "grid-cols-2 max-w-md mx-auto justify-items-center" : players.length === 3 ? "grid-cols-3 max-w-xl mx-auto justify-items-center" : "grid-cols-2 sm:grid-cols-4"} gap-2 sm:gap-3 w-full`}>
           {players.map((p) => {
             const isActive = p.id === current?.id;
             const canClick = !(resolving && p.id === current?.id);
@@ -174,7 +174,7 @@ export function GameScreen() {
                       }
                     : undefined
                 }
-                className={`w-full cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-0.5 rounded-xl border-2 p-1 sm:p-1.5 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                className={`w-full max-w-[150px] sm:max-w-[170px] mx-auto cursor-pointer text-inherit flex min-w-0 flex-col items-center gap-0.5 rounded-xl border-2 p-1 sm:p-1.5 text-center transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
                   canClick ? "" : "cursor-wait opacity-80 "
                 }${
                   isActive
