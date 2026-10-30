@@ -122,6 +122,18 @@ export function HomeScreen() {
           </Button>
         </div>
 
+        {/* Démo — remontée juste sous les boutons d'action */}
+        <div className="mt-8 w-full">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+            <h2 className="font-display text-2xl font-black tracking-wide">
+              <span className="text-red-gradient">Démo</span>
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+          </div>
+          <TutorialVideoScreen />
+        </div>
+
         <div
           className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6"
         >
@@ -180,17 +192,6 @@ export function HomeScreen() {
           </div>
         </div>
 
-              {/* Démo — hors du conteneur centré, sinon poussée hors écran et coupée */}
-              <div className="mt-16 w-full">
-                <div className="mb-6 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-                  <h2 className="font-display text-2xl font-black tracking-wide">
-                    <span className="text-red-gradient">Démo</span>
-                  </h2>
-                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-                </div>
-                <TutorialVideoScreen />
-              </div>
             <ReviewForm open={reviewOpen} onOpenChange={setReviewOpen} />
           </div>
         </div>

@@ -10,7 +10,7 @@ import { Avatar } from "./Avatar";
 import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
-import { vividColor } from "@/lib/color";
+import { vividColor, pawnColor } from "@/lib/color";
 import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
@@ -556,9 +556,9 @@ export function OnlineGameScreen() {
           {/* Board */}
           <div ref={boardRef} className="mx-auto w-full min-w-0 max-w-[min(680px,calc(100vw-1rem))] shrink-0">
             <BombardmentDropZone
-              className={`relative rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[oklch(0.22_0.025_24)] to-[oklch(0.15_0.018_22)] p-1 shadow-2xl sm:rounded-3xl sm:p-2 ${bombardmentFlash ? "bombardment-flash" : ""}`}
+              className={`relative rounded-2xl border-2 border-amber-400/35 bg-gradient-to-br from-[#22131f] to-[#140b15] p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.7),inset_0_2px_4px_rgba(255,255,255,0.1)] sm:rounded-3xl ${bombardmentFlash ? "bombardment-flash" : ""}`}
             >
-              <div className="relative z-20 grid gap-[2px] rounded-xl bg-[oklch(0.18_0.02_22)] p-px sm:gap-1.5 sm:p-1" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
+              <div className="relative z-20 grid gap-1.5 rounded-xl bg-black/40 p-1 sm:gap-2 bg-[radial-gradient(circle,rgba(251,191,36,0.12)_1.5px,transparent_2px)] bg-[length:14px_14px]" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {
                     const cellVal = state.grid[row][col] ?? (
@@ -570,7 +570,7 @@ export function OnlineGameScreen() {
                     const isSquareCell = inAnySquare(row, col);
                     const isFresh = inLastSquare(row, col);
                     const rawCellColor = players.find((p) => p.id === cellVal)?.color ?? "#52525b";
-                    const cellColor = vividColor(rawCellColor);
+                    const cellColor = pawnColor(rawCellColor);
                     const canPlay = isMyTurn && !filled && !state.resolving && !state.isPaused && state.phase === "playing";
                     return (
                       <button
@@ -581,19 +581,19 @@ export function OnlineGameScreen() {
                           if (!canPlay) return;
                           placePawnAction(row, col);
                         }}
-                        className={`group relative aspect-square touch-manipulation rounded-full bg-[oklch(0.14_0.015_22)] ring-1 ring-white/10 outline-none transition focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                        className={`group relative aspect-square touch-manipulation rounded-full bg-[#180f1a] ring-1 ring-amber-300/15 shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)] outline-none transition focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-amber-300 ${
                           canPlay ? "cursor-pointer" : "cursor-default"
                         }`}
                         aria-label={`Placer un pion ligne ${row + 1} colonne ${col + 1}`}
                       >
                         {filled ? (
                           <div
-                            className={`absolute inset-[1px] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] sm:text-xl ${
+                            className={`absolute inset-[5%] flex items-center justify-center overflow-hidden rounded-full text-base leading-none shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)] sm:text-xl ${
                               isFresh
                                 ? "square-cell-pop z-20 ring-4 ring-white ring-offset-2 ring-offset-[#17100f]"
                                 : isSquareCell
                                   ? "z-10 ring-[3px] ring-cyan-100 ring-offset-2 ring-offset-[#17100f] shadow-[0_0_10px_rgba(34,211,238,0.95)]"
-                                  : "ring-2 ring-white/50"
+                                  : ""
                             }`}
                             style={{
                               background: `radial-gradient(circle at 32% 24%, rgba(255,255,255,.65), transparent 23%), linear-gradient(145deg, ${cellColor}, color-mix(in srgb, ${cellColor} 94%, black))`,

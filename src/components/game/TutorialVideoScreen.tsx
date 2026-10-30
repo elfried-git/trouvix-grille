@@ -368,7 +368,7 @@ export function TutorialVideoScreen() {
 
               {/* Grid 5x5 */}
               <div
-                className="relative grid h-full w-full gap-1.5 rounded-xl bg-black/40 p-1 sm:gap-2"
+                className="relative grid h-full w-full gap-1.5 rounded-xl bg-black/40 p-1 sm:gap-2 bg-[radial-gradient(circle,rgba(251,191,36,0.12)_1.5px,transparent_2px)] bg-[length:14px_14px]"
                 style={{
                   gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
                   gridTemplateRows: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
@@ -389,7 +389,7 @@ export function TutorialVideoScreen() {
                             ? "ring-2 ring-cyan-300 ring-offset-2 ring-offset-black shadow-[0_0_14px_rgba(34,211,238,0.9)] z-20"
                             : isBlocked
                             ? "ring-2 ring-sky-400 ring-offset-1 ring-offset-black z-20 shadow-[0_0_12px_rgba(56,189,248,0.8)]"
-                            : "bg-[#180f1a] ring-1 ring-white/10"
+                            : "bg-[#180f1a] ring-1 ring-amber-300/15 shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)]"
                         }`}
                       >
                         {pawn ? (
@@ -397,14 +397,13 @@ export function TutorialVideoScreen() {
                             initial={isTarget ? { scale: 0, rotate: -20 } : false}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                            className={`relative h-[90%] w-[90%] rounded-full shadow-[inset_0_2px_4px_rgba(255,255,255,0.6),0_3px_8px_rgba(0,0,0,0.8)] ${
-                              pawn[2] === "A"
-                                ? "bg-gradient-to-br from-rose-500 via-rose-600 to-rose-900"
-                                : "bg-gradient-to-br from-amber-300 via-amber-500 to-yellow-800"
-                            }`}
+                            className="relative h-[90%] w-[90%] overflow-hidden rounded-full shadow-[inset_0_2px_5px_rgba(255,255,255,0.5),inset_0_-5px_8px_rgba(0,0,0,0.35),0_3px_8px_rgba(0,0,0,0.65)]"
+                            style={{
+                              background: `radial-gradient(circle at 32% 24%, rgba(255,255,255,.65), transparent 23%), linear-gradient(145deg, ${pawn[2] === "A" ? "#ff1744" : "#ffab00"}, color-mix(in srgb, ${pawn[2] === "A" ? "#ff1744" : "#ffab00"} 94%, black))`,
+                            }}
                           >
                             {/* Gloss reflection 3D */}
-                            <span className="pointer-events-none absolute left-[20%] top-[14%] h-[26%] w-[42%] -rotate-45 rounded-full bg-white/60 blur-[0.6px]" />
+                            <span className="pointer-events-none absolute left-[18%] top-[12%] h-[22%] w-[38%] -rotate-45 rounded-full bg-white/50 blur-[1px]" />
                             {isSquare && (
                               <motion.span
                                 animate={{ scale: [1, 1.25, 1] }}

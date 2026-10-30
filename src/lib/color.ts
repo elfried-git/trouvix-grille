@@ -117,3 +117,39 @@ export function vividColor(hex: string): string {
 
   return toHex([(rp + m) * 255, (gp + m) * 255, (bp + m) * 255]);
 }
+
+/**
+ * Couleur des pions sur la grille : même teinte que le joueur, saturation et
+ * luminosité au maximum pour un rendu franc et très vif. Les couleurs quasi
+ * grises (saturation faible) restent telles quelles pour ne pas être faussées.
+ */
+export function pawnColor(hex: string): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return FALLBACK;
+  const [r0, g0, b0] = rgb;
+  const max = Math.max(r0, g0, b0);
+  const min = Math.min(r0, g0, b0);
+  if (max === 0 || (max - min) / max < 0.25) return hex;
+
+  const hh = (() => {
+    if (max === min) return 0;
+    if (max === r0) return ((g0 - b0) / (max - min)) % 6;
+    if (max === g0) return (b0 - r0) / (max - min) + 2;
+    return (r0 - g0) / (max - min) + 4;
+  })();
+  const h6 = ((hh % 6) + 6) % 6;
+  // Saturation = 1, valeur = 1 : pleine couleur, sans voile gris.
+  const c = 1;
+  const x = c * (1 - Math.abs((h6 % 2) - 1));
+  const seg = Math.floor(h6);
+  let rp = 0;
+  let gp = 0;
+  let bp = 0;
+  if (seg === 0) [rp, gp, bp] = [c, x, 0];
+  else if (seg === 1) [rp, gp, bp] = [x, c, 0];
+  else if (seg === 2) [rp, gp, bp] = [0, c, x];
+  else if (seg === 3) [rp, gp, bp] = [0, x, c];
+  else if (seg === 4) [rp, gp, bp] = [x, 0, c];
+  else [rp, gp, bp] = [c, 0, x];
+  return toHex([rp * 255, gp * 255, bp * 255]);
+}
