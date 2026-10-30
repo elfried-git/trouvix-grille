@@ -659,14 +659,6 @@ export function OnlineGameScreen() {
                 )}
               </AnimatePresence>
 
-              {/* Not-your-turn overlay */}
-              {!isMyTurn && state.phase === "playing" && !state.resolving && !state.isPaused && (
-                <div className="pointer-events-none absolute inset-0 z-30 flex items-end justify-center rounded-3xl bg-black/30 p-4">
-                  <p className="rounded-full bg-black/60 px-4 py-2 text-base text-amber-100">
-                    En attente du tour de {current?.name}...
-                  </p>
-                </div>
-              )}
             </BombardmentDropZone>
           </div>
 
