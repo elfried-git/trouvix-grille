@@ -336,6 +336,140 @@ export function OnlineSetupScreen() {
               </h2>
             </div>
 
+            {/* Public rooms list — pinned at the top of the menu so everyone sees it */}
+            {openRooms.length > 0 && (
+              <div className="mt-6">
+                <p className="mb-3 flex items-center gap-1.5 text-sm uppercase tracking-widest text-amber-200/70">
+                  <Gamepad2 className="h-3.5 w-3.5" />
+                  Salons ouverts ({openRooms.length})
+                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/70">
+                    · mis à jour en direct
+                  </span>
+                </p>
+                <div className="flex max-h-[360px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
+                  {openRooms.map((room) => (
+                    <div
+                      key={room.roomCode}
+                      className={`flex items-center gap-3 rounded-xl border p-3 transition ${room.isFull
+                          ? "border-muted-foreground/20 bg-muted/5 opacity-70"
+                          : "border-border/40 bg-card/40 hover:border-amber-400/40 hover:bg-amber-500/5"
+                        }`}
+                    >
+                      {/* Host avatar — shows the host's photo/color so players recognize them */}
+                      <Avatar
+                        avatar={room.hostEmoji}
+                        color={room.hostColor || COLOR_PALETTE[0]}
+                        size={40}
+                        emojiSize="text-lg"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {/* Room code — the join key, shown prominently and copyable */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard?.writeText(room.roomCode);
+                              toast.success("Code copié !");
+                            }}
+                            className="group flex min-h-11 items-center gap-2 rounded-md bg-background/60 px-3 py-2 font-mono text-base font-bold tracking-wider text-amber-200 transition hover:bg-amber-500/20"
+                            title="Copier le code"
+                          >
+                            {room.roomCode}
+                            <Copy className="h-2.5 w-2.5 opacity-0 transition group-hover:opacity-60" />
+                          </button>
+                          {room.isFull && (
+                            <span className="rounded-full bg-muted/20 px-2 py-1 text-xs font-bold uppercase text-muted-foreground">
+                              Complet
+                            </span>
+                          )}
+                          {onlineIsBenchou && room.phase && room.phase !== "lobby" && (
+                            <span className="rounded-full border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-xs font-bold uppercase text-emerald-200">
+                              {room.phase === "playing" ? "En jeu" : "Terminé"}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 truncate text-base text-muted-foreground">
+                          Hôte : <span className="font-medium text-foreground/80">{room.hostName}</span> · {room.totalRounds} rounds
+                        </p>
+                        {/* Waiting-players gauge */}
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="flex items-center gap-1 text-sm font-medium text-amber-200/80">
+                            <Users className="h-3 w-3" />
+                            {room.playerCount}/{room.maxPlayers} en attente
+                          </div>
+                          <div className="flex gap-0.5">
+                            {Array.from({ length: room.maxPlayers }).map((_, i) => (
+                              <span
+                                key={i}
+                                className={`h-1.5 w-1.5 rounded-full ${i < room.playerCount
+                                    ? room.isFull
+                                      ? "bg-rose-400"
+                                      : "bg-emerald-400"
+                                    : "bg-muted-foreground/25"
+                                  }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={room.isFull || onlinePending}
+                        onClick={() => handleJoinPublic(room)}
+                        className={`h-11 shrink-0 gap-1 whitespace-nowrap px-4 text-sm ${room.isFull
+                            ? "cursor-not-allowed opacity-50"
+                            : "bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
+                          }`}
+                      >
+                        {room.isFull ? (
+                          <span className="text-sm">Complet</span>
+                        ) : (
+                          <>
+                            Rejoindre
+                          </>
+                        )}
+                      </Button>
+                      {/* Super-admin only: delete the room (everyone is ejected) */}
+                      {onlineIsBenchou && (
+                        confirmRoomDelete === room.roomCode ? (
+                          <div className="flex shrink-0 items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-11 px-3 text-sm text-muted-foreground hover:text-foreground"
+                              onClick={() => setConfirmRoomDelete(null)}
+                              disabled={onlinePending}
+                            >
+                              Non
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-11 gap-1 whitespace-nowrap bg-rose-600 px-3 text-sm text-white hover:bg-rose-500"
+                              onClick={() => handleAdminDeleteRoom(room.roomCode)}
+                              disabled={onlinePending}
+                              title={`Supprimer le salon ${room.roomCode}`}
+                            >
+                              Suppr.
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-11 shrink-0 gap-1 whitespace-nowrap border-rose-400/50 bg-rose-500/10 px-3 text-sm font-semibold text-rose-200 hover:bg-rose-500/20"
+                            onClick={() => setConfirmRoomDelete(room.roomCode)}
+                            disabled={onlinePending}
+                            title={`Supprimer le salon ${room.roomCode}`}
+                          >
+                            Supprimer
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Compact profile — name + color, shared with create/benchou */}
             <div className="relative mt-6 overflow-hidden rounded-2xl border border-amber-200/15 bg-gradient-to-br from-rose-400/[0.08] via-card/70 to-amber-300/[0.07] p-4 shadow-[0_12px_36px_rgba(0,0,0,0.2)] sm:p-5">
               <div className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-amber-300/[0.08] blur-3xl" />
@@ -567,139 +701,6 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Public rooms list — visible to everyone on the menu */}
-            {openRooms.length > 0 && (
-              <div className="mt-6">
-                <p className="mb-3 flex items-center gap-1.5 text-sm uppercase tracking-widest text-amber-200/70">
-                  <Gamepad2 className="h-3.5 w-3.5" />
-                  Salons ouverts ({openRooms.length})
-                  <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/70">
-                    · mis à jour en direct
-                  </span>
-                </p>
-                <div className="flex max-h-[360px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
-                  {openRooms.map((room) => (
-                    <div
-                      key={room.roomCode}
-                      className={`flex items-center gap-3 rounded-xl border p-3 transition ${room.isFull
-                          ? "border-muted-foreground/20 bg-muted/5 opacity-70"
-                          : "border-border/40 bg-card/40 hover:border-amber-400/40 hover:bg-amber-500/5"
-                        }`}
-                    >
-                      {/* Host avatar — shows the host's photo/color so players recognize them */}
-                      <Avatar
-                        avatar={room.hostEmoji}
-                        color={room.hostColor || COLOR_PALETTE[0]}
-                        size={40}
-                        emojiSize="text-lg"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {/* Room code — the join key, shown prominently and copyable */}
-                          <button
-                            onClick={() => {
-                              navigator.clipboard?.writeText(room.roomCode);
-                              toast.success("Code copié !");
-                            }}
-                            className="group flex min-h-11 items-center gap-2 rounded-md bg-background/60 px-3 py-2 font-mono text-base font-bold tracking-wider text-amber-200 transition hover:bg-amber-500/20"
-                            title="Copier le code"
-                          >
-                            {room.roomCode}
-                            <Copy className="h-2.5 w-2.5 opacity-0 transition group-hover:opacity-60" />
-                          </button>
-                          {room.isFull && (
-                            <span className="rounded-full bg-muted/20 px-2 py-1 text-xs font-bold uppercase text-muted-foreground">
-                              Complet
-                            </span>
-                          )}
-                          {onlineIsBenchou && room.phase && room.phase !== "lobby" && (
-                            <span className="rounded-full border-emerald-400/40 bg-emerald-500/10 px-2 py-1 text-xs font-bold uppercase text-emerald-200">
-                              {room.phase === "playing" ? "En jeu" : "Terminé"}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 truncate text-base text-muted-foreground">
-                          Hôte : <span className="font-medium text-foreground/80">{room.hostName}</span> · {room.totalRounds} rounds
-                        </p>
-                        {/* Waiting-players gauge */}
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="flex items-center gap-1 text-sm font-medium text-amber-200/80">
-                            <Users className="h-3 w-3" />
-                            {room.playerCount}/{room.maxPlayers} en attente
-                          </div>
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: room.maxPlayers }).map((_, i) => (
-                              <span
-                                key={i}
-                                className={`h-1.5 w-1.5 rounded-full ${i < room.playerCount
-                                    ? room.isFull
-                                      ? "bg-rose-400"
-                                      : "bg-emerald-400"
-                                    : "bg-muted-foreground/25"
-                                  }`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        disabled={room.isFull || onlinePending}
-                        onClick={() => handleJoinPublic(room)}
-                        className={`h-11 shrink-0 gap-1 whitespace-nowrap px-4 text-sm ${room.isFull
-                            ? "cursor-not-allowed opacity-50"
-                            : "bg-gradient-to-r from-rose-600 to-rose-500 text-white hover:from-rose-500 hover:to-rose-400"
-                          }`}
-                      >
-                        {room.isFull ? (
-                          <span className="text-sm">Complet</span>
-                        ) : (
-                          <>
-                            Rejoindre
-                          </>
-                        )}
-                      </Button>
-                      {/* Super-admin only: delete the room (everyone is ejected) */}
-                      {onlineIsBenchou && (
-                        confirmRoomDelete === room.roomCode ? (
-                          <div className="flex shrink-0 items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-11 px-3 text-sm text-muted-foreground hover:text-foreground"
-                              onClick={() => setConfirmRoomDelete(null)}
-                              disabled={onlinePending}
-                            >
-                              Non
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-11 gap-1 whitespace-nowrap bg-rose-600 px-3 text-sm text-white hover:bg-rose-500"
-                              onClick={() => handleAdminDeleteRoom(room.roomCode)}
-                              disabled={onlinePending}
-                              title={`Supprimer le salon ${room.roomCode}`}
-                            >
-                              Suppr.
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-11 shrink-0 gap-1 whitespace-nowrap border-rose-400/50 bg-rose-500/10 px-3 text-sm font-semibold text-rose-200 hover:bg-rose-500/20"
-                            onClick={() => setConfirmRoomDelete(room.roomCode)}
-                            disabled={onlinePending}
-                            title={`Supprimer le salon ${room.roomCode}`}
-                          >
-                            Supprimer
-                          </Button>
-                        )
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
