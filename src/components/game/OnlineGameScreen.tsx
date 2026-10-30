@@ -450,7 +450,7 @@ export function OnlineGameScreen() {
                   <Avatar
                     avatar={p.emoji}
                     color={p.color}
-                    size={24}
+                    size={18}
                     emojiSize="text-xl sm:text-2xl"
                     ring={false}
                     className={isActive ? "ring-2" : "ring-2 ring-white/20"}
