@@ -339,25 +339,13 @@ export function OnlineSetupScreen() {
             {/* Public rooms list — pinned at the top of the menu so everyone sees it */}
             {openRooms.length > 0 && (
               <div className="mt-6">
-                <div className="relative mb-3 overflow-hidden rounded-2xl border border-amber-300/40 bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-fuchsia-500/15 p-3 shadow-[0_0_24px_-6px_rgba(251,191,36,0.35)]">
-                  <div className="flex items-center gap-3">
-                    <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-rose-500 text-xl shadow-lg">
-                      🎮
-                      <span className="absolute -right-1 -top-1 flex h-3 w-3">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
-                      </span>
-                    </span>
-                    <div className="min-w-0">
-                      <p className="font-display text-lg font-black leading-tight text-amber-100 sm:text-xl">
-                        {openRooms.length > 1 ? `${openRooms.length} parties t'attendent !` : "Une partie t'attend !"}
-                      </p>
-                      <p className="text-sm font-semibold text-rose-200/90">
-                        Rejoins vite, ça se remplit en direct 🔥
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <p className="mb-3 flex items-center gap-1.5 text-sm uppercase tracking-widest text-amber-200/70">
+                  <Gamepad2 className="h-3.5 w-3.5" />
+                  Salons ouverts ({openRooms.length})
+                  <span className="ml-1 font-normal normal-case tracking-normal text-rose-200/90">
+                    · rejoins vite, ça se remplit ! 🔥
+                  </span>
+                </p>
                 <div className="flex max-h-[360px] flex-col gap-2 overflow-y-auto scroll-romantic pr-1">
                   {openRooms.map((room) => (
                     <div
