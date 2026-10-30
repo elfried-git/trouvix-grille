@@ -277,7 +277,7 @@ export function SetupScreen() {
               }`}
             >
               <div className="flex items-start gap-2.5">
-                <div className="relative mt-5 shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.18)]">
+                <div className="arena-pawn relative mt-5 shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.18)]">
                   <Avatar
                     avatar={emojis[i]}
                     color={colors[i]}

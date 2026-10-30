@@ -923,7 +923,7 @@ export function OnlineSetupScreen() {
               onClick={activeTab === "benchou" ? handleBenchou : activeTab === "create" ? handleCreate : handleJoin}
               disabled={!profileValid || onlinePending || (activeTab === "join" && joinCode.trim().length < 4)}
               size="lg"
-              className={`group relative mt-4 h-14 w-full overflow-hidden rounded-2xl text-base font-bold text-white shadow-[0_10px_28px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${activeTab === "benchou"
+              className={`arena-cta group relative mt-4 h-14 w-full overflow-hidden rounded-2xl text-base font-bold text-white shadow-[0_10px_28px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${activeTab === "benchou"
                   ? "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-500 shadow-[0_10px_28px_rgba(168,85,247,0.2)] hover:brightness-110"
                   : activeTab === "join"
                     ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 shadow-[0_10px_28px_rgba(16,185,129,0.18)] hover:brightness-110"
