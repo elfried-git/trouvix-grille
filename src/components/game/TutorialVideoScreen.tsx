@@ -42,12 +42,14 @@ interface DemoStep {
   banner?: { text: string; icon: string; color: string };
   // Emoji reaction popup
   reaction?: { emoji: string; text: string };
+  // Cells destroyed by a fireball (bombardment) this step
+  bombedCells?: [number, number][];
 }
 
 const DEMO_STEPS: DemoStep[] = [
   {
     id: 1,
-    badge: "Étape 1/6 • Le coup d'envoi",
+    badge: "Étape 1/7 • Le coup d'envoi",
     badgeColor: "from-rose-500 to-amber-500",
     title: "Placement libre sur la grille",
     description: "Chaque joueur pose 1 pion par tour sur n'importe quelle case libre. Pas de gravité : le pion reste exactement là où tu le places !",
@@ -61,7 +63,7 @@ const DEMO_STEPS: DemoStep[] = [
   },
   {
     id: 2,
-    badge: "Étape 2/6 • La réplique",
+    badge: "Étape 2/7 • La réplique",
     badgeColor: "from-amber-500 to-yellow-500",
     title: "L'adversaire prend position",
     description: "Léa réplique immédiatement en occupant une case voisine. Les deux joueurs cherchent à contrôler l'espace.",
@@ -77,7 +79,7 @@ const DEMO_STEPS: DemoStep[] = [
   },
   {
     id: 3,
-    badge: "Étape 3/6 • La tactique en L",
+    badge: "Étape 3/7 • La tactique en L",
     badgeColor: "from-violet-500 to-fuchsia-500",
     title: "Préparer un carré de 4 pions",
     description: "Le but est d'assembler un carré de 2×2 (4 pions). En formant un angle en « L » avec 3 pions, Alex prépare son attaque !",
@@ -96,7 +98,7 @@ const DEMO_STEPS: DemoStep[] = [
   },
   {
     id: 4,
-    badge: "Étape 4/6 • CARRÉ VALIDÉ !",
+    badge: "Étape 4/7 • CARRÉ VALIDÉ !",
     badgeColor: "from-emerald-400 to-cyan-500",
     title: "Fermeture du carré = +1 Point !",
     description: "Alex pose son 4e pion en bas à droite : le carré 2×2 est complet ! Il s'illumine instantanément et rapporte 1 point !",
@@ -123,7 +125,7 @@ const DEMO_STEPS: DemoStep[] = [
   },
   {
     id: 5,
-    badge: "Étape 5/6 • Menace adverse",
+    badge: "Étape 5/7 • Menace adverse",
     badgeColor: "from-yellow-400 to-amber-600",
     title: "Léa prépare son contre",
     description: "Léa aligne à son tour 3 pions jaunes en haut. La case centrale devient critique : si Léa la joue, elle marque aussi !",
@@ -151,7 +153,7 @@ const DEMO_STEPS: DemoStep[] = [
   },
   {
     id: 6,
-    badge: "Étape 6/6 • LE BLOCAGE HÉROÏQUE !",
+    badge: "Étape 6/7 • LE BLOCAGE HÉROÏQUE !",
     badgeColor: "from-sky-400 to-indigo-600",
     title: "Bloquer le carré de l'adversaire",
     description: "Alex repère la menace et pose son pion rouge en (1, 1) juste sous le nez de Léa. Le carré adverse est définitivement cassé !",
@@ -179,6 +181,32 @@ const DEMO_STEPS: DemoStep[] = [
     blockedCell: [1, 1],
     banner: { text: "BLOCAGE RÉUSSI ! MENACE ANNULÉE", icon: "🛡️", color: "from-sky-400 to-blue-600" },
     reaction: { emoji: "😎", text: "Joli réflexe !" },
+  },
+  {
+    id: 7,
+    badge: "Étape 7/7 • LA BOULE DE FEU !",
+    badgeColor: "from-orange-500 to-red-600",
+    title: "Bombarder les pions adverses",
+    description: "Alex a atteint 3 points : sa boule de feu se débloque. Léa a 3 pions en carré, prêt à marquer. Alex la lance et détruit les 3 pions d'un coup !",
+    tip: "Une boule de feu par partie, à utiliser à n'importe quel tour dès 3 points. Elle vise d'abord les carrés menaçants.",
+    activePlayer: "A",
+    p1Score: 3,
+    p2Score: 0,
+    pawns: [
+      [0, 0, "B"],
+      [0, 1, "B"],
+      [1, 0, "B"],
+      [3, 2, "A"],
+      [4, 3, "A"],
+    ],
+    targetCell: [0, 0, "B"],
+    bombedCells: [
+      [0, 0],
+      [0, 1],
+      [1, 0],
+    ],
+    banner: { text: "BOULE DE FEU ! 3 PIONS DÉTRUITS", icon: "💣", color: "from-orange-500 to-red-600" },
+    reaction: { emoji: "💥", text: "Carré menaçant annulé !" },
   },
 ];
 
@@ -380,12 +408,15 @@ export function TutorialVideoScreen() {
                     const isTarget = step.targetCell[0] === r && step.targetCell[1] === c;
                     const isSquare = step.squareCells?.some(([sr, sc]) => sr === r && sc === c);
                     const isBlocked = step.blockedCell?.[0] === r && step.blockedCell?.[1] === c;
+                    const isBombed = step.bombedCells?.some(([br, bc]) => br === r && bc === c);
 
                     return (
                       <div
                         key={`${r}-${c}`}
                         className={`relative flex aspect-square items-center justify-center rounded-full transition-all duration-300 ${
-                          isSquare
+                          isBombed
+                            ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-black z-20 shadow-[0_0_14px_rgba(249,115,22,0.9)]"
+                            : isSquare
                             ? "ring-2 ring-cyan-300 ring-offset-2 ring-offset-black shadow-[0_0_14px_rgba(34,211,238,0.9)] z-20"
                             : isBlocked
                             ? "ring-2 ring-sky-400 ring-offset-1 ring-offset-black z-20 shadow-[0_0_12px_rgba(56,189,248,0.8)]"
@@ -417,6 +448,15 @@ export function TutorialVideoScreen() {
                               <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs">
                                 🛡️
                               </span>
+                            )}
+                            {isBombed && (
+                              <motion.span
+                                animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
+                                transition={{ repeat: Infinity, duration: 0.8 }}
+                                className="absolute inset-0 flex items-center justify-center text-[11px] sm:text-sm"
+                              >
+                                💥
+                              </motion.span>
                             )}
                           </motion.div>
                         ) : isTarget ? (
