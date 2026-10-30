@@ -400,7 +400,7 @@ export function OnlineGameScreen() {
 
       <div className="mx-auto flex min-h-0 w-full max-w-[700px] flex-1 flex-col gap-2 sm:gap-3">
         {/* Players list with live scores and active turn highlight */}
-        <div className={`grid ${players.length <= 2 ? "grid-cols-2 max-w-md mx-auto" : players.length === 3 ? "grid-cols-3 max-w-xl mx-auto" : "grid-cols-2 sm:grid-cols-4"} gap-1.5 sm:gap-2.5 w-full shrink-0`}>
+        <div className={`grid ${players.length <= 2 ? "grid-cols-2 max-w-[min(680px,calc(100vw-1rem))] mx-auto" : players.length === 3 ? "grid-cols-3 max-w-[min(680px,calc(100vw-1rem))] mx-auto" : "grid-cols-2 sm:grid-cols-4"} gap-1.5 sm:gap-2.5 w-full shrink-0`}>
           {players.map((p) => {
             const isActive = p.id === current?.id;
             const isMe = p.id === myId;
@@ -693,7 +693,7 @@ export function OnlineGameScreen() {
           )}
 
           {/* Reaction bar */}
-          <div className="mx-auto w-full max-w-[360px] shrink-0 sm:max-w-[420px]">
+          <div className="mx-auto w-full max-w-[min(680px,calc(100vw-1rem))] shrink-0">
             <div className="mb-1 flex justify-end">
               <button
                 type="button"
