@@ -450,7 +450,7 @@ export function OnlineGameScreen() {
                   <Avatar
                     avatar={p.emoji}
                     color={p.color}
-                    size={12}
+                    size={26}
                     emojiSize="text-xl sm:text-2xl"
                     ring={false}
                     className={isActive ? "ring-2" : "ring-2 ring-white/20"}
@@ -461,7 +461,7 @@ export function OnlineGameScreen() {
                     }
                   />
                 </span>
-                <div className="flex min-w-0 w-full min-h-[1.25rem] flex-wrap items-center justify-center gap-x-1">
+                <div className="flex min-w-0 w-full min-h-[1rem] flex-wrap items-center justify-center gap-x-1">
                   <span className={`whitespace-normal break-words text-center text-xs sm:text-sm font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                     {p.name}
                   </span>
@@ -505,7 +505,7 @@ export function OnlineGameScreen() {
                 <span className={`font-display text-sm sm:text-base font-black leading-none ${isActive ? "text-amber-300" : "text-amber-200/80"}`}>
                   {p.score} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">pts</span>
                 </span>
-                <div className="mt-0.5 h-7 w-full" aria-hidden={!isActive}>
+                <div className="mt-0 h-5 w-full" aria-hidden={!isActive}>
                 {isActive && (
                   <div className="w-full space-y-1">
                     <div

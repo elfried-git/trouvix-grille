@@ -186,7 +186,7 @@ export function GameScreen() {
                   <Avatar
                     avatar={p.emoji}
                     color={p.color}
-                    size={12}
+                    size={26}
                     emojiSize="text-xl sm:text-2xl"
                     ring={false}
                     className={isActive ? "ring-2" : "ring-2 ring-white/20"}
@@ -198,7 +198,7 @@ export function GameScreen() {
                   />
                 </span>
                 <div className="flex min-w-0 w-full flex-col items-center">
-                  <div className="flex max-w-full min-h-[1.75rem] items-center justify-center gap-1">
+                  <div className="flex max-w-full min-h-[1.25rem] items-center justify-center gap-1">
                     <span className={`whitespace-normal break-words text-sm sm:text-base font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                       {p.name}
                     </span>
