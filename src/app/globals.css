@@ -380,12 +380,10 @@
   0%, 100% {
     transform: scale(1);
     box-shadow: 0 5px 14px rgb(251 146 60 / 35%), 0 0 0 0 rgb(252 211 77 / 0%);
-    filter: brightness(1) saturate(1);
   }
   50% {
     transform: scale(1.06);
     box-shadow: 0 0 34px 6px rgb(251 191 36 / 85%), 0 0 0 8px rgb(252 211 77 / 30%);
-    filter: brightness(1.25) saturate(1.3);
   }
 }
 

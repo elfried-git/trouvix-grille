@@ -56,7 +56,7 @@ export default function Home() {
           // can't spill over into a browser-level pull-to-refresh.
           lockedInGame
             ? "min-h-0 overflow-y-auto scroll-romantic overscroll-none"
-            : "min-h-0 overflow-y-auto scroll-romantic"
+            : "min-h-0 overflow-y-auto scroll-romantic overscroll-contain"
         }`}
       >
         {phase === "home" && <HomeScreen />}
