@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { MotionConfig } from "framer-motion";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { NoZoom } from "@/components/game/NoZoom";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -80,6 +83,7 @@ export default function RootLayout({
         <MotionConfig reducedMotion="user">
           {children}
           <Toaster />
+          <NoZoom />
         </MotionConfig>
       </body>
     </html>

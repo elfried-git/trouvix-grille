@@ -96,6 +96,11 @@
   --sidebar-ring: oklch(0.60 0.215 25);
 }
 
+html,
+body {
+  touch-action: pan-x pan-y;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
