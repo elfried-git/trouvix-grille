@@ -360,7 +360,7 @@ export function ReviewsScreen() {
 
       {/* Footer */}
       <div className="mt-10 flex justify-center">
-        <Button variant="ghost" size="sm" onClick={backHome}>
+        <Button variant="outline" size="sm" onClick={backHome} className="h-11 rounded-full border-amber-400/40 bg-amber-500/5 px-5 text-base text-amber-200 hover:bg-amber-500/15">
           <Home className="mr-1.5 h-4 w-4" /> Retour à l&apos;accueil
         </Button>
       </div>

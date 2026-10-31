@@ -185,10 +185,10 @@ export function SetupScreen() {
       >
         <div className="mb-6 flex items-center justify-between">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={backHome}
-            className="h-12 px-4 text-base text-muted-foreground hover:text-foreground"
+            className="h-11 rounded-full border-amber-400/40 bg-amber-500/5 px-5 text-base text-amber-200 hover:bg-amber-500/15"
           >
             Retour
           </Button>

@@ -287,7 +287,7 @@ export function OnlineSetupScreen() {
                 setTab("menu");
               }
             }}
-            className="h-11 px-3 text-base text-muted-foreground hover:text-foreground"
+            className="h-11 rounded-full border-amber-400/40 bg-amber-500/5 px-5 text-base text-amber-200 hover:bg-amber-500/15"
           >
             {activeTab === "lobby" ? "Quitter le salon" : activeTab === "menu" ? "Retour" : "Menu"}
           </Button>
