@@ -291,8 +291,9 @@ export function GiftScreen() {
                 setHostLeft(false);
                 backHome();
               }}
+              variant="outline"
               size="lg"
-              className="h-12 w-full rounded-full border-0 bg-gradient-to-r from-[#15803d] via-[#dc2626] to-[#15803d] font-extrabold uppercase tracking-wide text-white"
+              className="h-11 rounded-full border-amber-400/40 bg-amber-500/5 px-5 text-base text-amber-200 hover:bg-amber-500/15 w-full"
             >
               Retour à l&apos;accueil
             </Button>
@@ -540,7 +541,7 @@ export function GiftScreen() {
         <button
           type="button"
           onClick={leave}
-          className="mx-auto flex h-11 w-full max-w-xs items-center justify-center rounded-full border border-white/25 bg-white/10 px-6 text-sm font-bold uppercase tracking-wide text-white backdrop-blur-sm transition hover:bg-white/20"
+          className="mx-auto flex h-11 rounded-full border-amber-400/40 bg-amber-500/5 px-5 text-base text-amber-200 hover:bg-amber-500/15 w-full max-w-xs items-center justify-center"
         >
           Retour à l&apos;accueil
         </button>

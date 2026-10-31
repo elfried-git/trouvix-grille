@@ -164,7 +164,7 @@ export function OnlineGameScreen() {
           <p className="text-sm text-muted-foreground">
             Connexion au salon perdue.
           </p>
-          <Button onClick={backHome} className="mt-4">
+          <Button variant="outline" onClick={backHome} className="mt-4 h-11 rounded-full border-amber-400/40 bg-amber-500/5 px-5 text-base text-amber-200 hover:bg-amber-500/15">
             Retour à l'accueil
           </Button>
         </div>
