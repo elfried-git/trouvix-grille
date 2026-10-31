@@ -106,7 +106,7 @@ export function HomeScreen() {
               onClick={() => setReviewOpen(true)}
               variant="outline"
               size="sm"
-              className="review-button-blink group h-11 w-full gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-3 font-bold text-[#27120b] shadow-lg transition-[filter] hover:brightness-110"
+              className="group h-11 w-full gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-3 font-bold text-[#27120b] shadow-lg transition-[filter] hover:brightness-110"
             >
               Votre avis
             </Button>
@@ -116,7 +116,7 @@ export function HomeScreen() {
             onClick={() => setReviewOpen(true)}
             variant="outline"
             size="sm"
-            className="review-button-blink group hidden h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition-[filter] hover:brightness-110 sm:inline-flex"
+            className="group hidden h-11 gap-2 rounded-full border border-amber-200/70 bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 px-5 font-bold text-[#27120b] shadow-lg transition-[filter] hover:brightness-110 sm:inline-flex"
           >
             Votre avis
           </Button>

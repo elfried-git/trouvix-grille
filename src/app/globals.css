@@ -291,10 +291,6 @@ body {
   animation: ai-selection-border-blink 2s ease-in-out infinite;
 }
 
-.review-button-blink {
-  box-shadow: 0 5px 18px rgb(251 146 60 / 30%);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .ai-selection-border-blink {
     animation: none;
@@ -376,28 +372,6 @@ body {
   pointer-events: none;
   animation: bombardment-fire 0.18s steps(2, end) 7 !important;
 }
-.review-button-blink {
-  box-shadow: 0 5px 18px rgb(251 146 60 / 30%);
-  animation: review-button-glow 1.8s ease-in-out infinite;
-}
-
-@keyframes review-button-glow {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 5px 14px rgb(251 146 60 / 35%), 0 0 0 0 rgb(252 211 77 / 0%);
-  }
-  50% {
-    transform: scale(1.06);
-    box-shadow: 0 0 34px 6px rgb(251 191 36 / 85%), 0 0 0 8px rgb(252 211 77 / 30%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .review-button-blink {
-    animation: none;
-  }
-}
-
 /* ===== Arena : habillage des écrans de partie (local, en ligne, salons, duel) ===== */
 @property --arena-angle {
   syntax: "<angle>";
