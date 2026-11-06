@@ -447,6 +447,12 @@ export function OnlineGameScreen() {
       </div>
 
       <div className="mx-auto flex min-h-0 w-full max-w-[700px] flex-1 flex-col gap-2 sm:gap-3">
+        {isSpectator && state.phase === "lobby" && (
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-center text-xs font-medium text-sky-200 shadow-sm sm:text-sm">
+            <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+            <span><strong className="font-bold">Salon en attente :</strong> La partie débutera dès que l&apos;hôte aura lancé le match.</span>
+          </div>
+        )}
         {/* Players list with live scores and active turn highlight */}
         <div className={`grid ${players.length <= 2 ? "grid-cols-2 max-w-[min(780px,calc(100vw-1rem))] mx-auto justify-items-center" : players.length === 3 ? "grid-cols-3 max-w-[min(780px,calc(100vw-1rem))] mx-auto justify-items-center" : "grid-cols-2 sm:grid-cols-4"} gap-1.5 sm:gap-2.5 w-full shrink-0`}>
           {players.map((p) => {

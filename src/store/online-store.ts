@@ -169,9 +169,18 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     if (socket.connected) set({ connected: true, connecting: false });
     else set({ connecting: true });
     socket.on("connect", () => {
-      const wasInRoom = Boolean(get().roomCode && get().myPlayerId);
+      const wasInRoom = Boolean(get().roomCode && get().myPlayerId && !get().isSpectator);
+      const wasSpectating = Boolean(get().isSpectator && get().roomCode);
       set({ connected: true, connecting: false });
-      if (wasInRoom) get().tryReconnect();
+      if (wasSpectating && get().roomCode) {
+        socket.emit("spectate-room", { roomCode: get().roomCode }, (res: { ok?: boolean; state?: OnlineGameState }) => {
+          if (res?.ok && res.state) {
+            set({ state: res.state });
+          }
+        });
+      } else if (wasInRoom) {
+        get().tryReconnect();
+      }
       // Auto-fetch public rooms immediately on connect (reactivity)
       socket.emit("list-public-rooms", {}, (res: { rooms?: PublicRoom[] }) => {
         if (res?.rooms) set({ publicRooms: res.rooms });
@@ -485,6 +494,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
           if (res?.error) {
             set({ errorMessage: res.error, roomCode: null, isSpectator: false });
           } else if (res?.ok) {
+            try {
+              sessionStorage.setItem("trouvix_spectate_room", upperCode);
+            } catch {}
             set({
               roomCode: upperCode,
               isSpectator: true,
@@ -676,6 +688,9 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     if (socket.connected) {
       socket.emit("leave-room");
     }
+    try {
+      sessionStorage.removeItem("trouvix_spectate_room");
+    } catch {}
     // Keep trouvix_room / trouvix_player so the online screen can offer to
     // rejoin the same room (host regains his role) during the grace window.
     set({

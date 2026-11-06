@@ -92,6 +92,7 @@ export function OnlineSetupScreen() {
   const [confirmDestroyRoom, setConfirmDestroyRoom] = useState(false);
   const [benchouPin, setBenchouPin] = useState("");
   const [showPinForm, setShowPinForm] = useState(false);
+  const [spectateInputCode, setSpectateInputCode] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Socket init + reconnect is handled by the parent OnlineRouter (called once)
@@ -740,6 +741,30 @@ export function OnlineSetupScreen() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Regarde les parties en cours en temps réel et soutiens les joueurs avec tes réactions.
               </p>
+            </div>
+
+            {/* Direct code entry for spectating */}
+            <div className="mb-4 flex items-center gap-2 rounded-2xl border border-sky-300/20 bg-sky-500/[0.04] p-2.5">
+              <input
+                type="text"
+                placeholder="Code du salon (ex: ABC123)"
+                value={spectateInputCode}
+                onChange={(e) => setSpectateInputCode(e.target.value.toUpperCase())}
+                maxLength={8}
+                className="h-10 flex-1 rounded-xl border border-border/50 bg-black/40 px-3 font-mono text-sm font-bold uppercase text-amber-200 placeholder:text-muted-foreground/60 focus:border-sky-400 focus:outline-none"
+              />
+              <Button
+                size="sm"
+                disabled={onlinePending || spectateInputCode.trim().length < 4}
+                onClick={async () => {
+                  if (spectateInputCode.trim().length >= 4) {
+                    await onlineSpectateRoom(spectateInputCode.trim());
+                  }
+                }}
+                className="h-10 shrink-0 gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 px-4 text-xs font-bold text-white shadow-md hover:from-sky-500 hover:to-sky-400"
+              >
+                <Eye className="h-3.5 w-3.5" /> Assister
+              </Button>
             </div>
 
             {/* List of rooms to spectate */}

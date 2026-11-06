@@ -144,6 +144,7 @@ export function serializeGameState(): string {
   // Object has a per-value limit, and a base64 image can push game-state over it.
   const savedRooms = [...rooms.values()].map((room) => ({
     ...room,
+    spectators: Array.from(room.spectators instanceof Set ? room.spectators : []),
     state: {
       ...room.state,
       players: room.state.players.map((player) => player.name === 'Benchou Ferrari' ? { ...player, emoji: DEFAULT_BENCHOU_AVATAR } : player),
@@ -206,6 +207,7 @@ export function restoreGameState(snapshot?: string, storedAvatar?: string, saved
     const now = Date.now()
     for (const room of saved.rooms ?? []) {
       if (archivedRooms.has(room.roomCode)) continue
+      room.spectators = new Set(Array.isArray(room.spectators) ? room.spectators : [])
       room.state.players = room.state.players.map((player) => ({ ...player, connected: false }))
       for (const player of [...room.state.players, ...room.state.initialPlayers]) {
         if (player.name === 'Benchou Ferrari') player.emoji = benchouAvatar
@@ -387,12 +389,13 @@ function publicState(room: Room): any {
       tiedPlayerIds = connected.filter((p) => p.score === maxScore).map((p) => p.id)
     }
   }
+  const spectatorCount = room.spectators instanceof Set ? room.spectators.size : (Array.isArray(room.spectators) ? (room.spectators as any[]).length : 0)
   return {
     roomCode: room.roomCode,
     hostId: room.hostId,
     totalRounds: room.totalRounds,
     maxPlayers: room.maxPlayers,
-    spectatorCount: room.spectators?.size ?? 0,
+    spectatorCount,
     isPrivate: room.isPrivate ?? false,
     isBenchouChallenge: room.isBenchouChallenge ?? false,
     phase: s.phase,
@@ -613,6 +616,7 @@ function getPublicRoomList(): PublicRoomInfo[] {
     .map((room) => {
       const host = room.state.players.find((p) => p.id === room.hostId)
       const playerCount = room.state.players.filter((p) => p.connected !== false).length
+      const spectatorCount = room.spectators instanceof Set ? room.spectators.size : (Array.isArray(room.spectators) ? (room.spectators as any[]).length : 0)
       return {
         roomCode: room.roomCode,
         hostName: host?.name ?? 'Inconnu',
@@ -620,7 +624,7 @@ function getPublicRoomList(): PublicRoomInfo[] {
         hostColor: host?.color ?? '#9f1239',
         playerCount,
         maxPlayers: room.maxPlayers,
-        spectatorCount: room.spectators?.size ?? 0,
+        spectatorCount,
         isFull: playerCount >= room.maxPlayers,
         totalRounds: room.totalRounds,
         phase: room.state.phase,
@@ -641,12 +645,21 @@ io.on('connection', (socket) => {
   const savedAttachment = socket.getAttachment?.()
   if (savedAttachment?.binding) {
     const room = findRoom(savedAttachment.binding.roomCode)
-    const player = room?.state.players.find((candidate) => candidate.id === savedAttachment.binding.playerId)
-    if (room && player) {
-      player.connected = true
-      bindSocket(socket, savedAttachment.binding)
-      socket.join(room.roomCode)
-      cancelEmptyTimer(room)
+    if (room) {
+      if (savedAttachment.binding.isSpectator) {
+        bindSocket(socket, savedAttachment.binding)
+        socket.join(room.roomCode)
+        if (!(room.spectators instanceof Set)) room.spectators = new Set()
+        room.spectators.add(socket.id)
+      } else {
+        const player = room.state.players.find((candidate) => candidate.id === savedAttachment.binding.playerId)
+        if (player) {
+          player.connected = true
+          bindSocket(socket, savedAttachment.binding)
+          socket.join(room.roomCode)
+          cancelEmptyTimer(room)
+        }
+      }
     }
   }
   if (savedAttachment?.isBenchou) {
@@ -1206,7 +1219,7 @@ io.on('connection', (socket) => {
           else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 privé.' })
           return
         }
-        if (!room.spectators) {
+        if (!(room.spectators instanceof Set)) {
           room.spectators = new Set()
         }
         room.spectators.add(socket.id)
@@ -1707,10 +1720,11 @@ function handleLeave(socket: any, binding: SocketBinding, intentional = false): 
   if (!room) return
 
   if (binding.isSpectator) {
-    if (room.spectators) {
+    if (room.spectators instanceof Set) {
       room.spectators.delete(socket.id)
     }
-    console.log(`[room ${code}] spectator ${socket.id} left (remaining spectators: ${room.spectators?.size ?? 0})`)
+    const rem = room.spectators instanceof Set ? room.spectators.size : 0
+    console.log(`[room ${code}] spectator ${socket.id} left (remaining spectators: ${rem})`)
     broadcastState(room)
     broadcastPublicRoomList()
     return
