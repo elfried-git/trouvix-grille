@@ -26,6 +26,7 @@ export interface PublicRoom {
   hostColor: string;
   playerCount: number;
   maxPlayers: number;
+  spectatorCount?: number;
   isFull: boolean;
   totalRounds: number;
   phase?: "lobby" | "playing" | "gameover";
@@ -87,6 +88,7 @@ interface OnlineStore {
   pendingAction: boolean;
   challenges: Challenge[]; // pending challenges for Benchou Ferrari
   isBenchou: boolean; // true if this client registered as Benchou Ferrari
+  isSpectator: boolean; // true if this client joined as a spectator
   benchouAvatar: string;
   benchouPin: string; // stored PIN for admin API calls (reviews, etc.)
   publicRooms: PublicRoom[]; // all lobby-phase rooms visible to everyone
@@ -103,6 +105,7 @@ interface OnlineStore {
   // actions
   createRoom: (player: SetupPlayer, totalRounds: number, maxPlayers?: number, isPrivate?: boolean) => Promise<void>;
   joinRoom: (roomCode: string, player: SetupPlayer, allowColorReassignment?: boolean) => Promise<void>;
+  spectateRoom: (roomCode: string) => Promise<void>;
   challengeBenchou: (player: SetupPlayer, totalRounds: number) => Promise<void>;
   registerAsBenchou: (pin: string) => Promise<boolean>;
   acceptChallenge: (challengeId: string) => Promise<void>;
@@ -141,6 +144,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   pendingAction: false,
   challenges: [],
   isBenchou: false,
+  isSpectator: false,
   benchouAvatar: DEFAULT_BENCHOU_AVATAR,
   challengeDeclined: false,
   publicRooms: [],
@@ -448,6 +452,52 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     });
   },
 
+  spectateRoom: async (roomCode: string) => {
+    const socket = getSocket();
+    get().init();
+    const upperCode = roomCode.toUpperCase();
+    set({ errorMessage: null, pendingAction: true, roomCode: upperCode, isSpectator: true, squareEvent: null });
+
+    const ensureConnected = (): Promise<void> => {
+      return new Promise((resolve) => {
+        if (socket.connected) return resolve();
+        const timeout = setTimeout(() => resolve(), 5000);
+        socket.once("connect", () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
+    };
+    await ensureConnected();
+
+    return new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        set({ pendingAction: false, errorMessage: "Le serveur ne répond pas. Réessaie.", isSpectator: false, roomCode: null });
+        resolve();
+      }, 8000);
+
+      socket.emit(
+        "spectate-room",
+        { roomCode: upperCode },
+        (res: { ok?: boolean; state?: OnlineGameState; error?: string }) => {
+          clearTimeout(timeout);
+          set({ pendingAction: false });
+          if (res?.error) {
+            set({ errorMessage: res.error, roomCode: null, isSpectator: false });
+          } else if (res?.ok) {
+            set({
+              roomCode: upperCode,
+              isSpectator: true,
+              myPlayerId: `spec-${socket.id || "guest"}`,
+              state: res.state ?? get().state,
+            });
+          }
+          resolve();
+        }
+      );
+    });
+  },
+
   challengeBenchou: async (player, totalRounds) => {
     const socket = getSocket();
     get().init(); // ensure listeners
@@ -636,6 +686,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       errorMessage: null,
       challenges: [],
       isBenchou: false,
+      isSpectator: false,
       challengeDeclined: false,
       kicked: false,
       reactions: [],

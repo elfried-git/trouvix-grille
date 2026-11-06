@@ -94,13 +94,15 @@ interface Room {
   emptySince: number | null
   resolveAt?: number
   resolveKind?: 'square' | 'board-full'
+  spectators?: Set<string>
   state: GameState
 }
 
-// socket.id -> { roomCode, playerId }
+// socket.id -> { roomCode, playerId, isSpectator?: boolean }
 interface SocketBinding {
   roomCode: string
   playerId: string
+  isSpectator?: boolean
 }
 
 // ====== In-memory stores ======
@@ -390,6 +392,7 @@ function publicState(room: Room): any {
     hostId: room.hostId,
     totalRounds: room.totalRounds,
     maxPlayers: room.maxPlayers,
+    spectatorCount: room.spectators?.size ?? 0,
     isPrivate: room.isPrivate ?? false,
     isBenchouChallenge: room.isBenchouChallenge ?? false,
     phase: s.phase,
@@ -597,6 +600,7 @@ interface PublicRoomInfo {
   hostColor: string
   playerCount: number
   maxPlayers: number
+  spectatorCount?: number
   isFull: boolean
   totalRounds: number
   phase: string
@@ -616,6 +620,7 @@ function getPublicRoomList(): PublicRoomInfo[] {
         hostColor: host?.color ?? '#9f1239',
         playerCount,
         maxPlayers: room.maxPlayers,
+        spectatorCount: room.spectators?.size ?? 0,
         isFull: playerCount >= room.maxPlayers,
         totalRounds: room.totalRounds,
         phase: room.state.phase,
@@ -649,6 +654,7 @@ io.on('connection', (socket) => {
     ;(socket as any).__isBenchou = true
   }
   socket.emit('benchou-avatar-update', { avatar: benchouAvatar })
+  socket.emit('public-rooms', { rooms: getPublicRoomList() })
 
   // ---- create-room ----
   const handleCreateRoom = (
@@ -1183,6 +1189,42 @@ io.on('connection', (socket) => {
     }
   )
 
+  // ---- spectate-room ----
+  socket.on(
+    'spectate-room',
+    (payload: { roomCode: string }, ack?: (res: any) => void) => {
+      try {
+        const code = (payload?.roomCode || '').toUpperCase()
+        const room = findRoom(code)
+        if (!room) {
+          if (ack) ack({ error: 'Salon introuvable' })
+          else socket.emit('error', { message: 'Salon introuvable' })
+          return
+        }
+        if (room.isBenchouChallenge) {
+          if (ack) ack({ error: 'Ce salon est un duel 1 vs 1 privé.' })
+          else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 privé.' })
+          return
+        }
+        if (!room.spectators) {
+          room.spectators = new Set()
+        }
+        room.spectators.add(socket.id)
+        socket.join(code)
+        bindSocket(socket, { roomCode: code, playerId: `spec-${socket.id}`, isSpectator: true })
+        console.log(`[room ${code}] spectator ${socket.id} joined (total spectators: ${room.spectators.size})`)
+        if (ack) ack({ ok: true, roomCode: code, state: publicState(room) })
+        socket.emit('state-update', { state: publicState(room) })
+        broadcastState(room)
+        broadcastPublicRoomList()
+      } catch (err) {
+        console.error('[spectate-room] error', err)
+        if (ack) ack({ error: 'Erreur interne' })
+        else socket.emit('error', { message: 'Erreur interne' })
+      }
+    }
+  )
+
   // ---- rejoin-room (reconnect) ----
   socket.on(
     'rejoin-room',
@@ -1663,6 +1705,17 @@ function handleLeave(socket: any, binding: SocketBinding, intentional = false): 
   socket.leave(code)
   const room = findRoom(code)
   if (!room) return
+
+  if (binding.isSpectator) {
+    if (room.spectators) {
+      room.spectators.delete(socket.id)
+    }
+    console.log(`[room ${code}] spectator ${socket.id} left (remaining spectators: ${room.spectators?.size ?? 0})`)
+    broadcastState(room)
+    broadcastPublicRoomList()
+    return
+  }
+
   // HOST leaves VOLUNTARILY ("Quitter le salon") in the LOBBY → the room does NOT
   // die instantly anymore. It stays reachable for EMPTY_ROOM_TTL_MS so the host
   // and the other players can come back with the same code. The host keeps his

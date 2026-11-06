@@ -29,6 +29,7 @@ import {
   Gamepad2,
   Globe2,
   LockKeyhole,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,7 +40,7 @@ const COLOR_PALETTE = [
 ];
 const ROUND_OPTIONS = [5, 10, 15];
 
-type Tab = "menu" | "create" | "join" | "benchou" | "lobby";
+type Tab = "menu" | "create" | "join" | "benchou" | "spectate" | "lobby";
 
 export function OnlineSetupScreen() {
   const backHome = useGameStore((s) => s.backHome);
@@ -57,6 +58,7 @@ export function OnlineSetupScreen() {
   const onlineChallengeDeclined = useOnlineStore((s) => s.challengeDeclined);
   const onlineCreateRoom = useOnlineStore((s) => s.createRoom);
   const onlineJoinRoom = useOnlineStore((s) => s.joinRoom);
+  const onlineSpectateRoom = useOnlineStore((s) => s.spectateRoom);
   const onlineChallengeBenchou = useOnlineStore((s) => s.challengeBenchou);
   const onlineRegisterAsBenchou = useOnlineStore((s) => s.registerAsBenchou);
   const onlineAcceptChallenge = useOnlineStore((s) => s.acceptChallenge);
@@ -135,11 +137,19 @@ export function OnlineSetupScreen() {
     }
   }, [onlineJoinRoom]);
 
-  // Request the public room list when on the menu tab (refresh every 5s)
+  // Handle direct navigation to spectate tab from home screen
   useEffect(() => {
-    if (activeTab !== "menu") return;
+    if (sessionStorage.getItem("trouvix_open_spectate")) {
+      sessionStorage.removeItem("trouvix_open_spectate");
+      setTab("spectate");
+    }
+  }, []);
+
+  // Request the public room list when on menu or spectate tab (refresh every 5s)
+  useEffect(() => {
+    if (activeTab !== "menu" && activeTab !== "spectate") return;
     onlineListPublicRooms();
-    const id = setInterval(() => onlineListPublicRooms(), 5000);
+    const id = setInterval(() => onlineListPublicRooms(), 4000);
     return () => clearInterval(id);
   }, [activeTab, onlineListPublicRooms]);
 
@@ -544,7 +554,7 @@ export function OnlineSetupScreen() {
               </button>
               <button
                 onClick={() => setTab("benchou")}
-                className="relative isolate overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-violet-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:col-span-2 sm:p-4"
+                className="relative isolate overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-violet-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:p-4"
               >
                 <div className="relative z-10 flex flex-col items-center justify-center text-center">
                   <img
@@ -561,6 +571,22 @@ export function OnlineSetupScreen() {
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
                     Défie Benchou en duel privé.
+                  </p>
+                </div>
+              </button>
+              <button
+                onClick={() => setTab("spectate")}
+                className="relative isolate overflow-hidden rounded-2xl border border-sky-300/35 bg-gradient-to-br from-sky-400/[0.16] via-[#102230]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-sky-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:p-4"
+              >
+                <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                  <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-sky-500/20 text-sky-200 ring-2 ring-sky-400/50 shadow-md">
+                    <Eye className="h-6 w-6" />
+                  </div>
+                  <p className="font-display text-base font-bold text-foreground sm:text-lg">
+                    Mode Spectateur
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                    Assiste aux parties en temps réel.
                   </p>
                 </div>
               </button>
@@ -698,6 +724,108 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* === SPECTATE TAB (Real-time live rooms) === */}
+        {activeTab === "spectate" && (
+          <div>
+            <div className="mb-5">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-sky-300/25 bg-sky-300/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-sky-200/90 shadow-[0_0_20px_rgba(56,189,248,0.12)]">
+                <Eye className="h-3.5 w-3.5" /> En direct
+              </div>
+              <h2 className="font-display text-3xl font-black tracking-tight text-gold-gradient drop-shadow-[0_4px_18px_rgba(245,158,11,0.18)] sm:text-4xl">
+                Mode Spectateur
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Regarde les parties en cours en temps réel et soutiens les joueurs avec tes réactions.
+              </p>
+            </div>
+
+            {/* List of rooms to spectate */}
+            {onlinePublicRooms.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/40 bg-card/20 p-8 text-center">
+                <p className="text-3xl">📭</p>
+                <p className="mt-2 text-base font-semibold text-foreground">Aucun salon public actif</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Crée un salon ou invite des amis à jouer pour assister à leurs parties !
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTab("create")}
+                  className="mt-4 rounded-full border-amber-400/30 text-amber-200 hover:bg-amber-500/10"
+                >
+                  Créer un salon
+                </Button>
+              </div>
+            ) : (
+              <div className="flex max-h-[460px] flex-col gap-2.5 overflow-y-auto scroll-romantic pr-1">
+                {onlinePublicRooms.map((room) => {
+                  const isPlaying = room.phase === "playing";
+                  const isGameOver = room.phase === "gameover";
+                  return (
+                    <div
+                      key={room.roomCode}
+                      className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 transition ${
+                        isPlaying
+                          ? "border-emerald-400/40 bg-gradient-to-r from-emerald-500/[0.08] via-card/70 to-card/40 shadow-[0_4px_18px_rgba(16,185,129,0.12)]"
+                          : isGameOver
+                            ? "border-amber-400/30 bg-amber-500/[0.06]"
+                            : "border-border/40 bg-card/40"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar
+                          avatar={room.hostEmoji}
+                          color={room.hostColor || COLOR_PALETTE[0]}
+                          size={44}
+                          emojiSize="text-xl"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-base font-bold text-amber-200">
+                              {room.roomCode}
+                            </span>
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                isPlaying
+                                  ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                                  : isGameOver
+                                    ? "border-amber-400/40 bg-amber-500/15 text-amber-200"
+                                    : "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                              }`}
+                            >
+                              {isPlaying ? "En jeu 🔥" : isGameOver ? "Terminé 🏆" : "En attente ⏳"}
+                            </span>
+                            {room.spectatorCount != null && room.spectatorCount > 0 && (
+                              <span className="flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-[10px] text-sky-200">
+                                <Eye className="h-3 w-3" />
+                                {room.spectatorCount}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                            Hôte : <span className="font-medium text-foreground">{room.hostName}</span> · {room.playerCount}/{room.maxPlayers} joueurs · {room.totalRounds} rounds
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        disabled={onlinePending}
+                        onClick={async () => {
+                          await onlineSpectateRoom(room.roomCode);
+                        }}
+                        className="h-11 shrink-0 gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 px-5 text-sm font-bold text-white shadow-md hover:from-sky-500 hover:to-sky-400"
+                      >
+                        <Eye className="h-4 w-4" /> Assister
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

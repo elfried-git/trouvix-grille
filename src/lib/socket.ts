@@ -174,6 +174,7 @@ function decodeBinary(value: any): any {
 
 let socket: Socket | CloudflareGameSocket | null = null;
 type GameSocket = {
+  id?: string;
   connected: boolean;
   connect(): any;
   on(event: string, listener: (...args: any[]) => void): any;
@@ -300,6 +301,7 @@ export interface OnlineGameState {
   hostId: string;
   totalRounds: number;
   maxPlayers: number;
+  spectatorCount?: number;
   isPrivate?: boolean;
   isBenchouChallenge?: boolean;
   phase: "lobby" | "playing" | "gameover";

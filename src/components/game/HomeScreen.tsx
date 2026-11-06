@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Play, Gift } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Play, Gift, Eye } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
@@ -88,6 +88,19 @@ export function HomeScreen() {
               Jouer en ligne
             </Button>
           </div>
+          <Button
+            onClick={() => {
+              prepareNotificationAudio();
+              sessionStorage.setItem("trouvix_open_spectate", "1");
+              goToOnlineSetup();
+            }}
+            size="lg"
+            variant="outline"
+            className="h-12 w-full gap-2.5 rounded-full border border-sky-300/40 bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-sky-500/15 px-6 text-sm font-extrabold uppercase tracking-wide text-sky-100 shadow-[0_4px_20px_-4px_rgba(56,189,248,0.35)] transition hover:border-sky-300/70 hover:bg-sky-500/25 hover:brightness-110 sm:w-auto"
+          >
+            <Eye className="h-4 w-4 text-sky-300 animate-pulse" />
+            Mode Spectateur
+          </Button>
           {/* CADEAU_NOEL_DEBUT : bouton masqué. Pour le réafficher, supprimer la ligne CADEAU_NOEL_DEBUT et la ligne CADEAU_NOEL_FIN ci-dessous.
           {giftEnabled && (
           <Button

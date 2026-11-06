@@ -11,7 +11,7 @@ import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { vividColor, pawnColor } from "@/lib/color";
-import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX } from "lucide-react";
+import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX, Eye, Users } from "lucide-react";
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
 import { BombardmentToken } from "./BombardmentToken";
@@ -35,6 +35,7 @@ export function OnlineGameScreen() {
     return () => window.clearInterval(timer);
   }, [state?.phase, state?.isPaused, state?.turnDeadlineAt]);
   const myId = useOnlineStore((s) => s.myPlayerId);
+  const isSpectator = useOnlineStore((s) => s.isSpectator);
   const placePawnAction = useOnlineStore((s) => s.placePawn);
   const bombardAction = useOnlineStore((s) => s.bombard);
   const togglePauseAction = useOnlineStore((s) => s.togglePause);
@@ -289,33 +290,46 @@ export function OnlineGameScreen() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              {(amHost || connectedTiedPlayers.some((p) => p.id === myId)) && (
+              {isSpectator ? (
                 <Button
-                  onClick={rematchTiedAction}
+                  onClick={handleQuit}
                   size="lg"
-                  disabled={!hasEnoughTiedToRematch}
-                  className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-[0_8px_24px_rgba(139,92,246,0.5)] transition hover:scale-105 hover:from-violet-500 hover:to-fuchsia-400 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-sky-600 to-sky-500 text-white shadow-[0_8px_24px_rgba(14,165,233,0.5)] transition hover:from-sky-500 hover:to-sky-400"
                 >
-                  <Swords className="mr-2 h-6 w-6" />
-                  Départager
+                  <Eye className="mr-2 h-6 w-6" />
+                  Quitter le mode spectateur
                 </Button>
-              )}
-              <Button
-                onClick={handleNewGame}
-                size="lg"
-                variant="outline"
-                className="h-14 px-6 text-base"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Nouveau salon
-              </Button>
-              <Button onClick={handleQuit} size="lg" variant="outline" className="h-14 px-6 text-base">
-                <Home className="mr-2 h-5 w-5" /> Accueil
-              </Button>
-              {!hasEnoughTiedToRematch && (
-                <p className="w-full text-center text-xs text-rose-300/90 mt-1 font-medium">
-                  Les autres joueurs à égalité ne sont plus connectés.
-                </p>
+              ) : (
+                <>
+                  {(amHost || connectedTiedPlayers.some((p) => p.id === myId)) && (
+                    <Button
+                      onClick={rematchTiedAction}
+                      size="lg"
+                      disabled={!hasEnoughTiedToRematch}
+                      className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-[0_8px_24px_rgba(139,92,246,0.5)] transition hover:scale-105 hover:from-violet-500 hover:to-fuchsia-400 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Swords className="mr-2 h-6 w-6" />
+                      Départager
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleNewGame}
+                    size="lg"
+                    variant="outline"
+                    className="h-14 px-6 text-base"
+                  >
+                    <Plus className="mr-2 h-5 w-5" />
+                    Nouveau salon
+                  </Button>
+                  <Button onClick={handleQuit} size="lg" variant="outline" className="h-14 px-6 text-base">
+                    <Home className="mr-2 h-5 w-5" /> Accueil
+                  </Button>
+                  {!hasEnoughTiedToRematch && (
+                    <p className="w-full text-center text-xs text-rose-300/90 mt-1 font-medium">
+                      Les autres joueurs à égalité ne sont plus connectés.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </motion.div>
@@ -332,7 +346,15 @@ export function OnlineGameScreen() {
         )}
 
         <div className="mt-6 flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-          {amHost ? (
+          {isSpectator ? (
+            <Button
+              onClick={handleQuit}
+              size="lg"
+              className="h-14 w-full rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 px-6 text-lg text-white shadow-[0_10px_28px_-12px_rgba(14,165,233,0.75)] transition hover:from-sky-500 hover:to-sky-400 sm:w-auto"
+            >
+              <Eye className="mr-2 h-6 w-6" /> Quitter le mode spectateur
+            </Button>
+          ) : amHost ? (
             <>
               <Button
                 onClick={restartAction}
@@ -360,14 +382,16 @@ export function OnlineGameScreen() {
               <Plus className="mr-2 h-5 w-5" /> Nouvelle partie
             </Button>
           )}
-          <Button
-            onClick={handleQuit}
-            size="lg"
-            variant="outline"
-            className="h-14 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-lg hover:bg-white/[0.08] sm:w-auto"
-          >
-            <Home className="mr-2 h-6 w-6" /> Accueil
-          </Button>
+          {!isSpectator && (
+            <Button
+              onClick={handleQuit}
+              size="lg"
+              variant="outline"
+              className="h-14 w-full rounded-xl border-white/15 bg-white/[0.03] px-6 text-lg hover:bg-white/[0.08] sm:w-auto"
+            >
+              <Home className="mr-2 h-6 w-6" /> Accueil
+            </Button>
+          )}
           {amHost && !hasEnoughPlayersToRestart && (
             <p className="w-full text-center text-sm text-rose-300/90">
               Plus aucun autre joueur dans le salon. Crée une nouvelle partie ou retourne à l’accueil.
@@ -395,6 +419,30 @@ export function OnlineGameScreen() {
             <span className="trouvix-wordmark-red">Trouv</span>
             <span className="trouvix-wordmark-gold">ix</span>
           </span>
+          {isSpectator && (
+            <div className="flex items-center gap-1.5 rounded-full border border-sky-400/40 bg-sky-500/15 px-2.5 py-1 text-xs font-bold text-sky-200 backdrop-blur-sm shadow-[0_0_12px_rgba(56,189,248,0.2)]">
+              <Eye className="h-3.5 w-3.5 text-sky-300 animate-pulse" />
+              <span>Spectateur (En direct)</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {state.spectatorCount != null && state.spectatorCount > 0 && (
+            <div className="flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-xs text-sky-200">
+              <Eye className="h-3 w-3 text-sky-300" />
+              <span>{state.spectatorCount}</span>
+            </div>
+          )}
+          {isSpectator && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleQuit}
+              className="h-8 rounded-full border-sky-400/30 bg-sky-500/10 px-3 text-xs text-sky-100 hover:bg-sky-500/20"
+            >
+              Quitter
+            </Button>
+          )}
         </div>
       </div>
 
@@ -405,7 +453,7 @@ export function OnlineGameScreen() {
             const isActive = p.id === current?.id;
             const isMe = p.id === myId;
             const isDisconnected = p.connected === false;
-            const canClick = !((state.resolving && isMe) || !myId);
+            const canClick = !isSpectator && !((state.resolving && isMe) || !myId);
             return (
               <div
                 role="button"
@@ -733,7 +781,7 @@ export function OnlineGameScreen() {
               onClick={handleQuit}
               className="h-9 px-3 text-sm text-muted-foreground hover:text-foreground sm:h-12 sm:px-4 sm:text-base"
             >
-              <Home className="mr-1.5 h-4 w-4" /> Quitter la partie
+              <Home className="mr-1.5 h-4 w-4" /> {isSpectator ? "Quitter le mode spectateur" : "Quitter la partie"}
             </Button>
           </div>
       </div>

@@ -13,6 +13,7 @@ export function OnlineRouter() {
   const clearKicked = useOnlineStore((s) => s.clearKicked);
   const backHome = useGameStore((s) => s.backHome);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
+  const isSpectator = useOnlineStore((s) => s.isSpectator);
 
   // Initialize socket ONCE on mount. Try reconnect only if we have saved data.
   useEffect(() => {
@@ -47,6 +48,12 @@ export function OnlineRouter() {
       return () => clearTimeout(id);
     }
   }, [kicked, kickedToOnline, clearKicked, backHome, goToOnlineSetup]);
+
+  // If we are spectating and have room state (any phase: playing, gameover, or lobby waiting for start),
+  // show the game screen in spectator mode.
+  if (isSpectator && state) {
+    return <OnlineGameScreen />;
+  }
 
   // If we have a server state and the phase is "playing" or "gameover", show the game screen.
   // Otherwise (lobby or no state), show the setup/lobby screen.
