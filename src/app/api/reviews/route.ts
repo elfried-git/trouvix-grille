@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createLocalReview,
   deleteLocalReviews,
+  getAdminPin,
   getProductionReviewsUrl,
-  isValidAdminPin,
+  isAdminAuthorized,
   listLocalReviews,
 } from "@/lib/review-storage";
 
@@ -13,12 +14,14 @@ const isProduction = process.env.NODE_ENV === "production";
 
 async function proxyToGameService(path: string, method: string, req: NextRequest, body?: unknown) {
   try {
+    const isAuthorized = isAdminAuthorized(req);
+    const pinHeader = isAuthorized ? getAdminPin() : req.headers.get("x-benchou-pin");
     const response = await fetch(getProductionReviewsUrl(path), {
       method,
       cache: "no-store",
       headers: {
         "Content-Type": "application/json",
-        ...(req.headers.get("x-benchou-pin") ? { "x-benchou-pin": req.headers.get("x-benchou-pin")! } : {}),
+        ...(pinHeader ? { "x-benchou-pin": pinHeader } : {}),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
@@ -31,11 +34,11 @@ async function proxyToGameService(path: string, method: string, req: NextRequest
 
 export async function GET(req: NextRequest) {
   const all = new URL(req.url).searchParams.get("all") === "true";
+  if (all && !isAdminAuthorized(req)) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 401 });
+  }
   if (isProduction) {
     return proxyToGameService(`/reviews${all ? "?all=true" : ""}`, "GET", req);
-  }
-  if (all && !isValidAdminPin(req.headers.get("x-benchou-pin"))) {
-    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
   }
   try {
     return NextResponse.json({ reviews: await listLocalReviews(all) });
@@ -73,8 +76,8 @@ export async function DELETE(req: NextRequest) {
   }
 
   if (isProduction) return proxyToGameService("/reviews", "DELETE", req, { ids });
-  if (!isValidAdminPin(req.headers.get("x-benchou-pin"))) {
-    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+  if (!isAdminAuthorized(req)) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 401 });
   }
   try {
     const deletedCount = await deleteLocalReviews(ids);

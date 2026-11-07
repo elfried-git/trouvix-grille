@@ -7,6 +7,7 @@ import { enableNotifications, notifyAdminChallenge, notifyRoomCreated } from "@/
 import { playReactionSound } from "@/lib/reaction-sounds";
 import { BOMBARDMENT_UNLOCK_SCORE } from "@/lib/bombardment";
 import { limitPlayerName } from "@/lib/player-name";
+import { sha256 } from "@/lib/crypto";
 
 export interface Challenge {
   id: string;
@@ -541,13 +542,26 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
     set({ errorMessage: null });
     // Permission and audio are initialized from the admin's button gesture.
     await enableNotifications();
+    const pinHash = await sha256(pin);
+    // Initialize server-side admin session via HttpOnly cookie
+    try {
+      await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pinHash }),
+      });
+    } catch {
+      // Non-blocking for offline or direct socket setups
+    }
     return new Promise<boolean>((resolve) => {
-      socket.emit("register-as-benchou", { pin }, (res: { ok?: boolean; pendingChallenges?: Challenge[]; avatar?: string; error?: string }) => {
+      // Send pinHash instead of cleartext pin over the network
+      socket.emit("register-as-benchou", { pinHash }, (res: { ok?: boolean; pendingChallenges?: Challenge[]; avatar?: string; error?: string }) => {
         if (res?.error) {
           set({ errorMessage: res.error });
           resolve(false);
         } else if (res?.ok) {
-          set({ isBenchou: true, benchouPin: pin, challenges: res.pendingChallenges ?? [], ...(res.avatar ? { benchouAvatar: res.avatar } : {}) });
+          // Never keep the clear PIN in memory/store
+          set({ isBenchou: true, benchouPin: "", challenges: res.pendingChallenges ?? [], ...(res.avatar ? { benchouAvatar: res.avatar } : {}) });
           resolve(true);
         } else {
           resolve(false);

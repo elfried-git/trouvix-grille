@@ -1,5 +1,6 @@
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import crypto from 'node:crypto'
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from '../../src/lib/bombardment'
 import { isValidPlayerName } from '../../src/lib/player-name'
 import { registerGiftHandlers } from './gift-rooms'
@@ -611,12 +612,24 @@ io.on('connection', (socket) => {
     handleCreateRoom({ ...payload, isPrivate: true }, ack)
   })
 
+function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
+  if (pin && pin.trim() === BENCHOU_PIN) return true
+  if (pinHash && typeof pinHash === 'string') {
+    try {
+      const expected = crypto.createHash('sha256').update(BENCHOU_PIN).digest('hex')
+      return pinHash.trim().toLowerCase() === expected.toLowerCase()
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
   // ---- register-as-benchou ----
   // Benchou Ferrari identifies himself with a secret PIN to receive challenge notifications + admin access.
-  socket.on('register-as-benchou', (payload: { pin?: string }, ack?: (res: any) => void) => {
-    const pin = payload?.pin
-    if (!pin || pin !== BENCHOU_PIN) {
-      console.log(`[benchou] Failed registration attempt — wrong PIN from socket ${socket.id}`)
+  socket.on('register-as-benchou', (payload: { pin?: string; pinHash?: string }, ack?: (res: any) => void) => {
+    if (!verifyPinOrHash(payload?.pin, payload?.pinHash)) {
+      console.log(`[benchou] Failed registration attempt — wrong PIN/hash from socket ${socket.id}`)
       if (ack) ack({ error: 'Code PIN incorrect. Accès refusé.' })
       return
     }

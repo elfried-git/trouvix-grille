@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProductionReviewsUrl, isValidAdminPin, updateLocalReview, deleteLocalReviews } from "@/lib/review-storage";
+import {
+  deleteLocalReviews,
+  getAdminPin,
+  getProductionReviewsUrl,
+  isAdminAuthorized,
+  updateLocalReview,
+} from "@/lib/review-storage";
 
 export const runtime = "nodejs";
 
@@ -7,12 +13,14 @@ const isProduction = process.env.NODE_ENV === "production";
 
 async function proxyToGameService(path: string, method: string, req: NextRequest, body?: unknown) {
   try {
+    const isAuthorized = isAdminAuthorized(req);
+    const pinHeader = isAuthorized ? getAdminPin() : req.headers.get("x-benchou-pin");
     const response = await fetch(getProductionReviewsUrl(path), {
       method,
       cache: "no-store",
       headers: {
         "Content-Type": "application/json",
-        ...(req.headers.get("x-benchou-pin") ? { "x-benchou-pin": req.headers.get("x-benchou-pin")! } : {}),
+        ...(pinHeader ? { "x-benchou-pin": pinHeader } : {}),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
@@ -34,8 +42,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   if (isProduction) return proxyToGameService(`/reviews/${encodeURIComponent(id)}`, "PATCH", req, changes);
-  if (!isValidAdminPin(req.headers.get("x-benchou-pin"))) {
-    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+  if (!isAdminAuthorized(req)) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 401 });
   }
   try {
     const review = await updateLocalReview(id, changes);
@@ -51,8 +59,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (isProduction) return proxyToGameService(`/reviews/${encodeURIComponent(id)}`, "DELETE", req);
-  if (!isValidAdminPin(req.headers.get("x-benchou-pin"))) {
-    return NextResponse.json({ error: "Code PIN incorrect" }, { status: 401 });
+  if (!isAdminAuthorized(req)) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 401 });
   }
   try {
     const deletedCount = await deleteLocalReviews([id]);

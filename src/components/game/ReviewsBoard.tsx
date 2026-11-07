@@ -36,11 +36,9 @@ export function ReviewsBoard() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const benchouPin = useOnlineStore((s) => s.benchouPin);
 
   const headers = (extra?: Record<string, string>): Record<string, string> => ({
     "Content-Type": "application/json",
-    "x-benchou-pin": benchouPin,
     ...extra,
   });
 
@@ -52,10 +50,10 @@ export function ReviewsBoard() {
   const loadReviews = useCallback(async () => {
     try {
       setLoading(true);
-      // ?all=true pour récupérer aussi les avis masqués (admin only)
+      // Récupération des avis (authentifié via cookie de session sécurisé HttpOnly)
       const res = await fetch("/api/reviews?all=true", {
         cache: "no-store",
-        headers: { "x-benchou-pin": benchouPin },
+        credentials: "same-origin",
       });
       if (!res.ok) throw new Error("Erreur");
       const data = await res.json();
@@ -66,7 +64,7 @@ export function ReviewsBoard() {
     } finally {
       setLoading(false);
     }
-  }, [benchouPin]);
+  }, []);
 
   useEffect(() => {
     loadReviews();

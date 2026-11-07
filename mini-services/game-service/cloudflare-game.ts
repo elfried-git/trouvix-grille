@@ -638,6 +638,20 @@ function broadcastPublicRoomList(): void {
   io.emit('public-rooms', { rooms: getPublicRoomList() })
 }
 
+async function verifyPinOrHash(pin?: string, pinHash?: string): Promise<boolean> {
+  if (pin && pin.trim() === BENCHOU_PIN) return true
+  if (pinHash && typeof pinHash === 'string') {
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(BENCHOU_PIN))
+      const expected = Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('')
+      return pinHash.trim().toLowerCase() === expected.toLowerCase()
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
 // ====== Connection handling ======
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`)
@@ -728,10 +742,10 @@ io.on('connection', (socket) => {
   })
 
   // ---- register-as-benchou ----
-  // Benchou Ferrari identifies himself with a secret PIN to receive challenge notifications + admin access.
-  socket.on('register-as-benchou', (payload: { pin?: string }, ack?: (res: any) => void) => {
-    const pin = payload?.pin
-    if (!pin || pin !== BENCHOU_PIN) {
+  // Benchou Ferrari identifies himself with a secret PIN (or SHA-256 hash) to receive challenge notifications + admin access.
+  socket.on('register-as-benchou', async (payload: { pin?: string; pinHash?: string }, ack?: (res: any) => void) => {
+    const isValid = await verifyPinOrHash(payload?.pin, payload?.pinHash)
+    if (!isValid) {
       console.log(`[benchou] Failed registration attempt — wrong PIN from socket ${socket.id}`)
       if (ack) ack({ error: 'Code PIN incorrect. Accès refusé.' })
       return

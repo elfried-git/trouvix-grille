@@ -4,6 +4,7 @@ import { MotionConfig } from "framer-motion";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { NoZoom } from "@/components/game/NoZoom";
+import { DomProtection } from "@/components/security/DomProtection";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -84,6 +85,7 @@ export default function RootLayout({
           {children}
           <Toaster />
           <NoZoom />
+          <DomProtection />
         </MotionConfig>
       </body>
     </html>

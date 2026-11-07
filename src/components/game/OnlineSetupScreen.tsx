@@ -624,6 +624,12 @@ export function OnlineSetupScreen() {
                     onChange={(e) => { setBenchouPin(e.target.value); onlineClearError(); }}
                     placeholder="Code PIN"
                     maxLength={6}
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-form-type="other"
                     className="bg-background/60 text-center text-lg tracking-[0.3em]"
                   />
                   {/* Error message displayed right here, next to the input — not at the top */}
@@ -644,10 +650,11 @@ export function OnlineSetupScreen() {
                     <Button
                       size="sm"
                       onClick={async () => {
-                        const success = await onlineRegisterAsBenchou(benchouPin);
+                        const entered = benchouPin;
+                        setBenchouPin("");
+                        const success = await onlineRegisterAsBenchou(entered);
                         if (success) {
                           setShowPinForm(false);
-                          setBenchouPin("");
                           onlineClearError();
                         }
                       }}
