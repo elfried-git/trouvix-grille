@@ -265,7 +265,7 @@ export function OnlineSetupScreen() {
   // Benchou 1v1 challenge rooms require exactly 2 players (Host + Benchou)
   const isBenchouChallengeRoom =
     (serverState as any)?.isBenchouChallenge ||
-    players.some((p) => p.name === "Benchou Ferrari");
+    players.some((p) => p.name === "FBI" || p.name === "Benchou Ferrari");
   const roomMaxPlayers = isBenchouChallengeRoom
     ? 2
     : serverState?.maxPlayers || 2;
@@ -560,7 +560,7 @@ export function OnlineSetupScreen() {
                 <div className="relative z-10 flex flex-col items-center justify-center text-center">
                   <img
                     src={onlineBenchouAvatar}
-                    alt="Benchou Ferrari"
+                    alt="FBI"
                     width={44}
                     height={44}
                     loading="eager"
@@ -568,10 +568,10 @@ export function OnlineSetupScreen() {
                     className="mb-1.5 h-11 w-11 rounded-full object-cover ring-2 ring-violet-400/50 shadow-md"
                   />
                   <p className="font-display text-base font-bold text-foreground sm:text-lg">
-                    Jouer contre Benchou
+                    Jouer contre FBI
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                    Défie Benchou en duel privé.
+                    Défie FBI en duel privé.
                   </p>
                 </div>
               </button>
@@ -593,7 +593,7 @@ export function OnlineSetupScreen() {
               </button>
             </div>
 
-            {/* Benchou Ferrari admin access with PIN */}
+            {/* FBI admin access with PIN */}
             <div className="mt-6 border-t border-border/40 pt-4 text-center">
               {!showPinForm && !onlineIsBenchou && (
                 <button
@@ -602,7 +602,7 @@ export function OnlineSetupScreen() {
                 >
                   <img
                     src={onlineBenchouAvatar}
-                    alt="Benchou Ferrari"
+                    alt="FBI"
                     width={20}
                     height={20}
                     loading="eager"
@@ -610,13 +610,13 @@ export function OnlineSetupScreen() {
                     className="h-5 w-5 rounded-full object-cover ring-1 ring-amber-400/40 transition group-hover:ring-amber-400/70"
                   />
                   <ShieldCheck className="h-3.5 w-3.5 text-amber-300/80 transition group-hover:text-amber-300" />
-                  <span className="tracking-wide">Je suis Benchou Ferrari</span>
+                  <span className="tracking-wide">Je suis FBI</span>
                 </button>
               )}
               {showPinForm && !onlineIsBenchou && (
                 <div className="mx-auto max-w-xs space-y-3">
                   <p className="text-base leading-relaxed text-muted-foreground">
-                    🔐 Saisis le code PIN pour t'identifier en tant que Benchou Ferrari.
+                    🔐 Saisis le code PIN pour t'identifier en tant que FBI.
                   </p>
                   <Input
                     type="password"
@@ -670,11 +670,11 @@ export function OnlineSetupScreen() {
                 <div className="mx-auto mt-4 flex max-w-lg flex-col items-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] p-4 sm:flex-row sm:text-left">
                   <img
                     src={onlineBenchouAvatar}
-                    alt="Photo de profil de Benchou Ferrari"
+                    alt="Photo de profil de FBI"
                     className="h-16 w-16 rounded-full object-cover ring-2 ring-emerald-300/50"
                   />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-emerald-200">Connecté en tant que Benchou Ferrari</p>
+                    <p className="text-sm font-semibold text-emerald-200">Connecté en tant que FBI</p>
                   </div>
                 </div>
               )}
@@ -723,7 +723,7 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Super Admin Rooms Board (visible only to Benchou Ferrari) */}
+            {/* Super Admin Rooms Board (visible only to FBI) */}
             {onlineIsBenchou && (
               <div className="mt-6 space-y-6">
                 <AdminRoomsBoard />
@@ -873,17 +873,17 @@ export function OnlineSetupScreen() {
                 {activeTab === "create"
                   ? "Créer un salon"
                   : activeTab === "benchou"
-                    ? "Jouer contre Benchou"
+                    ? "Jouer contre FBI"
                     : "Rejoindre un salon"}
               </h2>
             </div>
 
-            {/* Benchou Ferrari preview */}
+            {/* FBI preview */}
             {activeTab === "benchou" && (
               <div className="relative mt-4 flex items-center gap-3 overflow-hidden rounded-2xl border border-violet-300/30 bg-gradient-to-br from-violet-400/[0.14] via-fuchsia-500/[0.05] to-transparent p-4 shadow-[0_10px_28px_rgba(0,0,0,0.18)]">
                 <img
                   src={onlineBenchouAvatar}
-                  alt="Benchou Ferrari"
+                  alt="FBI"
                   width={56}
                   height={56}
                   loading="eager"
@@ -891,7 +891,7 @@ export function OnlineSetupScreen() {
                   className="h-14 w-14 rounded-full object-cover ring-2 ring-violet-200/50 shadow-[0_0_22px_rgba(167,139,250,0.25)]"
                 />
                 <div>
-                  <p className="font-display text-sm font-bold text-violet-200">Benchou Ferrari</p>
+                  <p className="font-display text-sm font-bold text-violet-200">FBI</p>
                   <p className="text-base leading-relaxed text-muted-foreground">Défi privé · 1 contre 1 🔥</p>
                 </div>
               </div>
@@ -1211,7 +1211,7 @@ export function OnlineSetupScreen() {
             {onlineChallengeDeclined && (
               <div className="mb-4 rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-center">
                 <p className="text-sm font-bold text-rose-200">
-                  😔 Benchou Ferrari a décliné ton défi.
+                  😔 FBI a décliné ton défi.
                 </p>
                 <p className="mt-2 text-base text-muted-foreground">
                   Tu peux quitter le salon ou réessayer plus tard.

@@ -114,9 +114,9 @@ export function ReviewForm({ open, onOpenChange, onSubmitted }: ReviewFormProps)
             </DialogHeader>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 rounded-xl border border-amber-400/20 bg-amber-500/5 p-3">
-                <img src={adminAvatar || "/benchou-ferrari-small.jpg"} alt="Profil de Benchou Ferrari" className="h-12 w-12 rounded-full border border-amber-400/40 object-cover" />
+                <img src={adminAvatar || "/benchou-ferrari-small.jpg"} alt="Profil de FBI" className="h-12 w-12 rounded-full border border-amber-400/40 object-cover" />
                 <div>
-                  <p className="font-semibold text-amber-100">Benchou Ferrari</p>
+                  <p className="font-semibold text-amber-100">FBI</p>
                   <p className="text-sm text-muted-foreground">Administrateur</p>
                 </div>
               </div>

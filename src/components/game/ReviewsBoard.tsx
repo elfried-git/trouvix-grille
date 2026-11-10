@@ -26,7 +26,7 @@ interface Review {
 }
 
 /**
- * Board Avis/Suggestions — utilisé dans le dashboard Benchou Ferrari.
+ * Board Avis/Suggestions — utilisé dans le dashboard FBI.
  * L'admin peut : supprimer, masquer/afficher, liker (coup de cœur).
  */
 export function ReviewsBoard() {

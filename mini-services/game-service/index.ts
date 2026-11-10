@@ -818,9 +818,9 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
       if (ack) ack({ error: 'Le salon est complet' })
       return
     }
-    // Check if Benchou is already in the room
-    if (room.state.players.some((p) => p.name === 'Benchou Ferrari')) {
-      if (ack) ack({ error: 'Benchou Ferrari est déjà dans ce salon.' })
+    // Check if Benchou/FBI is already in the room
+    if (room.state.players.some((p) => p.name === 'FBI' || p.name === 'Benchou Ferrari')) {
+      if (ack) ack({ error: 'FBI est déjà dans ce salon.' })
       return
     }
     const BENCHOU_COLORS = ['#b8860b', '#0f766e', '#6d28d9', '#0e7490', '#166534', '#1e3a8a']
@@ -828,7 +828,7 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
     const benchouColor = BENCHOU_COLORS.find((c) => !taken.has(c)) ?? '#b8860b'
     const benchou: Player = {
       id: makeId(),
-      name: 'Benchou Ferrari',
+      name: 'FBI',
       color: benchouColor,
       emoji: benchouAvatar,
       score: 0,
@@ -839,7 +839,7 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
     room.state.players.push(benchou)
     socket.join(code)
     socketBindings.set(socket.id, { roomCode: code, playerId: benchou.id })
-    room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/${MAX_PLAYERS})`
+    room.state.statusMessage = `FBI a rejoint le salon ! (${room.state.players.length}/${MAX_PLAYERS})`
     console.log(`[admin] Benchou Ferrari joined room ${code}`)
     if (ack) ack({ ok: true, roomCode: code, playerId: benchou.id })
     broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
@@ -887,7 +887,7 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
         }
         room.state.totalRounds = totalRounds
         room.state.players.push(player)
-        room.state.statusMessage = `En attente de Benchou Ferrari pour un duel 1 vs 1... (hôte: ${player.name})`
+        room.state.statusMessage = `En attente de FBI pour un duel 1 vs 1... (hôte: ${player.name})`
         rooms.set(roomCode, room)
         socket.join(roomCode)
         socketBindings.set(socket.id, { roomCode, playerId: player.id })
@@ -966,7 +966,7 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
         const benchouColor = BENCHOU_COLORS.find((c) => !taken.has(c)) ?? '#b8860b'
         const benchou: Player = {
           id: makeId(),
-          name: 'Benchou Ferrari',
+          name: 'FBI',
           color: benchouColor,
           emoji: benchouAvatar,
           score: 0,
@@ -979,7 +979,7 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
         socket.join(room.roomCode)
         socketBindings.set(socket.id, { roomCode: room.roomCode, playerId: benchou.id })
         challenge.status = 'accepted'
-        room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! Le duel 1 vs 1 peut commencer. (2/2)`
+        room.state.statusMessage = `FBI a rejoint le salon ! Le duel 1 vs 1 peut commencer. (2/2)`
         console.log(`[challenge] Benchou Ferrari accepted challenge — room ${room.roomCode}`)
         if (ack) ack({ ok: true, roomCode: room.roomCode, playerId: benchou.id })
         broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
@@ -1014,7 +1014,7 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
             challengerName: challenge.challengerName,
           })
           // Update room status message
-          room.state.statusMessage = `Benchou Ferrari a décliné le défi. Tu peux quitter le salon.`
+          room.state.statusMessage = `FBI a décliné le défi. Tu peux quitter le salon.`
           broadcastState(room); broadcastAdminRoomList()
         }
 
@@ -1044,8 +1044,8 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
           return
         }
         if (room.isBenchouChallenge) {
-          if (ack) ack({ error: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
-          else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
+          if (ack) ack({ error: 'Ce salon est un duel 1 vs 1 réservé à FBI.' })
+          else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 réservé à FBI.' })
           return
         }
         if (room.state.players.length >= room.maxPlayers) {
@@ -1188,7 +1188,7 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
       if (ack) ack({ error: 'Il faut au moins 2 joueurs pour commencer' })
       return
     }
-    const isBenchouMatch = room.isBenchouChallenge || room.state.players.some((p) => p.name === 'Benchou Ferrari')
+    const isBenchouMatch = room.isBenchouChallenge || room.state.players.some((p) => p.name === 'FBI' || p.name === 'Benchou Ferrari')
     if (!isBenchouMatch && connectedCount < room.maxPlayers) {
       const missing = room.maxPlayers - connectedCount
       const msg = `Il manque ${missing} joueur${missing > 1 ? 's' : ''} pour compléter le salon (${connectedCount}/${room.maxPlayers}).`

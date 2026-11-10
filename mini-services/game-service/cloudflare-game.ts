@@ -944,9 +944,9 @@ io.on('connection', (socket) => {
       if (ack) ack({ error: 'Le salon est complet' })
       return
     }
-    // Check if Benchou is already in the room
-    if (room.state.players.some((p) => p.name === 'Benchou Ferrari')) {
-      if (ack) ack({ error: 'Benchou Ferrari est déjà dans ce salon.' })
+    // Check if Benchou/FBI is already in the room
+    if (room.state.players.some((p) => p.name === 'FBI' || p.name === 'Benchou Ferrari')) {
+      if (ack) ack({ error: 'FBI est déjà dans ce salon.' })
       return
     }
     const BENCHOU_COLORS = ['#b8860b', '#0f766e', '#6d28d9', '#0e7490', '#166534', '#1e3a8a']
@@ -954,7 +954,7 @@ io.on('connection', (socket) => {
     const benchouColor = BENCHOU_COLORS.find((c) => !taken.has(c)) ?? '#b8860b'
     const benchou: Player = {
       id: makeId(),
-      name: 'Benchou Ferrari',
+      name: 'FBI',
       color: benchouColor,
       emoji: benchouAvatar,
       score: 0,
@@ -965,7 +965,7 @@ io.on('connection', (socket) => {
     room.state.players.push(benchou)
     socket.join(code)
     bindSocket(socket, { roomCode: code, playerId: benchou.id })
-    room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! (${room.state.players.length}/${MAX_PLAYERS})`
+    room.state.statusMessage = `FBI a rejoint le salon ! (${room.state.players.length}/${MAX_PLAYERS})`
     console.log(`[admin] Benchou Ferrari joined room ${code}`)
     if (ack) ack({ ok: true, roomCode: code, playerId: benchou.id })
     broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
@@ -1013,7 +1013,7 @@ io.on('connection', (socket) => {
         }
         room.state.totalRounds = totalRounds
         room.state.players.push(player)
-        room.state.statusMessage = `En attente de Benchou Ferrari pour un duel 1 vs 1... (hôte: ${player.name})`
+        room.state.statusMessage = `En attente de FBI pour un duel 1 vs 1... (hôte: ${player.name})`
         rooms.set(roomCode, room)
         socket.join(roomCode)
         bindSocket(socket, { roomCode, playerId: player.id })
@@ -1092,7 +1092,7 @@ io.on('connection', (socket) => {
         const benchouColor = BENCHOU_COLORS.find((c) => !taken.has(c)) ?? '#b8860b'
         const benchou: Player = {
           id: makeId(),
-          name: 'Benchou Ferrari',
+          name: 'FBI',
           color: benchouColor,
           emoji: benchouAvatar,
           score: 0,
@@ -1105,7 +1105,7 @@ io.on('connection', (socket) => {
         socket.join(room.roomCode)
         bindSocket(socket, { roomCode: room.roomCode, playerId: benchou.id })
         challenge.status = 'accepted'
-        room.state.statusMessage = `Benchou Ferrari a rejoint le salon ! Le duel 1 vs 1 peut commencer. (2/2)`
+        room.state.statusMessage = `FBI a rejoint le salon ! Le duel 1 vs 1 peut commencer. (2/2)`
         console.log(`[challenge] Benchou Ferrari accepted challenge — room ${room.roomCode}`)
         if (ack) ack({ ok: true, roomCode: room.roomCode, playerId: benchou.id })
         broadcastState(room); broadcastAdminRoomList(); broadcastPublicRoomList()
@@ -1140,7 +1140,7 @@ io.on('connection', (socket) => {
             challengerName: challenge.challengerName,
           })
           // Update room status message
-          room.state.statusMessage = `Benchou Ferrari a décliné le défi. Tu peux quitter le salon.`
+          room.state.statusMessage = `FBI a décliné le défi. Tu peux quitter le salon.`
           broadcastState(room); broadcastAdminRoomList()
         }
 
@@ -1170,8 +1170,8 @@ io.on('connection', (socket) => {
           return
         }
         if (room.isBenchouChallenge) {
-          if (ack) ack({ error: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
-          else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 réservé à Benchou Ferrari.' })
+          if (ack) ack({ error: 'Ce salon est un duel 1 vs 1 réservé à FBI.' })
+          else socket.emit('error', { message: 'Ce salon est un duel 1 vs 1 réservé à FBI.' })
           return
         }
         if (room.state.players.length >= room.maxPlayers) {
@@ -1314,7 +1314,7 @@ io.on('connection', (socket) => {
       if (ack) ack({ error: 'Il faut au moins 2 joueurs pour commencer' })
       return
     }
-    const isBenchouMatch = room.isBenchouChallenge || room.state.players.some((p) => p.name === 'Benchou Ferrari')
+    const isBenchouMatch = room.isBenchouChallenge || room.state.players.some((p) => p.name === 'FBI' || p.name === 'Benchou Ferrari')
     if (!isBenchouMatch && connectedCount < room.maxPlayers) {
       const missing = room.maxPlayers - connectedCount
       const msg = `Il manque ${missing} joueur${missing > 1 ? 's' : ''} pour compléter le salon (${connectedCount}/${room.maxPlayers}).`

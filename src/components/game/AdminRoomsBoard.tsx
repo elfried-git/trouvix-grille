@@ -90,7 +90,7 @@ function getRoomWinners(room: AdminRoom): WinnerInfo | null {
 }
 
 /**
- * Board Salons — visible uniquement par Benchou Ferrari (super admin).
+ * Board Salons — visible uniquement par FBI (super admin).
  * Affiche TOUS les salons (lobby + playing + gameover) avec mise en valeur des vainqueurs.
  */
 export function AdminRoomsBoard() {

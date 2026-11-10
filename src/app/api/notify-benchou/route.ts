@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       to: process.env.BENCHOU_EMAIL || "benchou@trouvix.com",
       subject: `🎮 ${challengerName} sollicite une partie de Trouvix Grille`,
       body: `
-Bonjour Benchou Ferrari,
+Bonjour FBI,
 
 ${challengerName} vient de vous défier sur Trouvix Grille !
 
