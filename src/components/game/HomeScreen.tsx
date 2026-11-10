@@ -101,8 +101,6 @@ export function HomeScreen() {
             <Eye className="h-4 w-4 text-sky-300 animate-pulse" />
             Mode Spectateur
           </Button>
-          {/* CADEAU_NOEL_DEBUT : bouton masqué. Pour le réafficher, supprimer la ligne CADEAU_NOEL_DEBUT et la ligne CADEAU_NOEL_FIN ci-dessous.
-          {giftEnabled && (
           <Button
             onClick={goToGift}
             size="lg"
@@ -111,8 +109,6 @@ export function HomeScreen() {
             <Gift className="h-5 w-5" />
             Cadeau Noël
           </Button>
-          )}
-          CADEAU_NOEL_FIN */}
           <div className="col-span-2 grid w-full grid-cols-2 gap-3 sm:hidden">
             <span className="col-span-2 flex justify-center">
             <Button

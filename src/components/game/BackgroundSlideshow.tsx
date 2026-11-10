@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 /**
- * 22 background images, one random pick per day (stable within the day):
+ * 21 background images, one random pick per day (stable within the day):
  * - 5 initial user images (bricks, door, globe, dice, barcelona)
  * - 5 added user images (eiffel, liberty, plane, skyline, star)
- * - 4 latest added user images (headphones, eyes, mosque, boat)
+ * - 3 latest added user images (eyes, mosque, boat)
  * - 5 premium chic images (lion, cybercity, dragon, samurai, phoenix)
  * - 3 football-themed images (football arena, world cup trophy, fire flower)
  */
@@ -27,7 +27,6 @@ const IMAGES = [
   "/images/backgrounds/bg-mosque.png",
   "/images/backgrounds/bg-liberty.png",
   "/images/backgrounds/bg-plane.png",
-  "/images/backgrounds/bg-headphones.png",
   "/images/backgrounds/bg-globe.png",
   "/images/backgrounds/bg-dice.png",
   "/images/backgrounds/bg-barcelona.png",
