@@ -1688,6 +1688,18 @@ io.on('connection', (socket) => {
     })
   })
 
+  // ---- voice-state ----
+  // Mic on/off announcement, relayed to the rest of the room so each player card can
+  // show who is speaking. Clients re-send it as a heartbeat; receivers expire it.
+  socket.on('voice-state', (payload: any) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding || binding.isSpectator) return
+    socket.to(binding.roomCode).emit('voice-state', {
+      playerId: binding.playerId,
+      on: payload?.on === true,
+    })
+  })
+
   // ---- destroy-room (HOST only) ----
   // The host explicitly closes the room: it is destroyed immediately and every
   // player still inside is sent home. A non-host cannot do this — their own

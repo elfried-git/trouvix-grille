@@ -51,13 +51,15 @@ export function OnlineGameScreen() {
   const sendReactionAction = useOnlineStore((s) => s.sendReaction);
   const voiceStatus = useOnlineStore((s) => s.voiceStatus);
   const setVoiceOn = useOnlineStore((s) => s.setVoiceOn);
-  // Mic is open by default for seated players and stops when leaving the room screen.
+  const voiceOnPlayers = useOnlineStore((s) => s.voiceOnPlayers);
+  // Mic opens when the game starts for seated players and closes when it ends or we leave.
+  const gamePlaying = state?.phase === "playing";
   useEffect(() => {
-    if (isSpectator) return;
+    if (isSpectator || !gamePlaying) return;
     setVoiceOn(true);
     return () => setVoiceOn(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSpectator]);
+  }, [isSpectator, gamePlaying]);
 
   // The game state is the source of truth. The dedicated socket event is only
   // an optimization for starting the celebration immediately.
@@ -436,23 +438,6 @@ export function OnlineGameScreen() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {!isSpectator && (
-            <button
-              type="button"
-              onClick={() => setVoiceOn(voiceStatus !== "on")}
-              disabled={voiceStatus === "unsupported"}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition disabled:opacity-50 ${
-                voiceStatus === "on"
-                  ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
-                  : "border-white/15 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
-              }`}
-              aria-label={voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
-              title={voiceStatus === "denied" ? "Micro refusé par le navigateur" : voiceStatus === "unsupported" ? "Micro non disponible" : voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
-            >
-              {voiceStatus === "on" ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
-              {voiceStatus === "on" ? "Micro ouvert" : voiceStatus === "denied" ? "Micro refusé" : "Micro coupé"}
-            </button>
-          )}
           {state.spectatorCount != null && state.spectatorCount > 0 && (
             <div className="flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-xs text-sky-200">
               <Eye className="h-3 w-3 text-sky-300" />
@@ -545,6 +530,12 @@ export function OnlineGameScreen() {
                   <span className={`whitespace-normal break-words text-center text-xs sm:text-sm font-bold leading-tight ${isActive ? "text-white" : "text-foreground"}`}>
                     {p.name}
                   </span>
+                  {(isMe ? voiceStatus === "on" : !!voiceOnPlayers[p.id]) && (
+                    <Mic
+                      className="h-3.5 w-3.5 shrink-0 text-emerald-300"
+                      aria-label={`Micro ouvert : ${p.name}`}
+                    />
+                  )}
                   {p.bombardmentUsed ? (
                     <motion.span
                       key={`${p.id}-${state.bombardmentEventId}`}
@@ -638,6 +629,23 @@ export function OnlineGameScreen() {
             <BombardmentDropZone
               className={`relative rounded-2xl border-2 border-amber-400/35 bg-gradient-to-br from-[#22131f] to-[#140b15] p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.7),inset_0_2px_4px_rgba(255,255,255,0.1)] sm:rounded-3xl ${bombardmentFlash ? "bombardment-flash" : ""}`}
             >
+              {gamePlaying && !isSpectator && (
+                <button
+                  type="button"
+                  onClick={() => setVoiceOn(voiceStatus !== "on")}
+                  disabled={voiceStatus === "unsupported"}
+                  className={`absolute -top-3 right-3 z-30 inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold shadow-lg transition disabled:opacity-50 ${
+                    voiceStatus === "on"
+                      ? "border-emerald-400/50 bg-emerald-600/90 text-white hover:bg-emerald-500"
+                      : "border-white/20 bg-black/80 text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-label={voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
+                  title={voiceStatus === "denied" ? "Micro refusé par le navigateur" : voiceStatus === "unsupported" ? "Micro non disponible" : voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
+                >
+                  {voiceStatus === "on" ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+                  {voiceStatus === "on" ? "Micro ouvert" : voiceStatus === "denied" ? "Micro refusé" : "Micro coupé"}
+                </button>
+              )}
               <div className="relative z-20 grid gap-1.5 rounded-xl bg-black/40 p-1 sm:gap-2 bg-[radial-gradient(circle,rgba(251,191,36,0.12)_1.5px,transparent_2px)] bg-[length:14px_14px]" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
                 {Array.from({ length: ROWS }).map((_, row) =>
                   Array.from({ length: COLS }).map((__, col) => {

@@ -89,6 +89,13 @@ let micNode: ScriptProcessorNode | null = null;
 let micSource: MediaStreamAudioSourceNode | null = null;
 let micSink: GainNode | null = null;
 let starting: Promise<void> | null = null;
+let heartbeat: ReturnType<typeof setInterval> | null = null;
+
+// Tell the room whether our mic is open. Re-sent every 2 s so late joiners
+// and reconnected clients learn the state; receivers expire it after ~5 s.
+function announce(on: boolean) {
+  getSocket().emit("voice-state", { on });
+}
 
 export async function startVoice(): Promise<void> {
   if (micStream) return;
@@ -153,6 +160,8 @@ export async function startVoice(): Promise<void> {
       micNode = node;
       micSink = sink;
       setStatus("on");
+      announce(true);
+      heartbeat = setInterval(() => announce(true), 2000);
     } catch {
       setStatus("denied");
     } finally {
@@ -163,6 +172,10 @@ export async function startVoice(): Promise<void> {
 }
 
 export function stopVoice(): void {
+  const wasOn = micStream !== null;
+  if (heartbeat) clearInterval(heartbeat);
+  heartbeat = null;
+  if (wasOn) announce(false);
   if (micNode) micNode.onaudioprocess = null;
   micSource?.disconnect();
   micNode?.disconnect();

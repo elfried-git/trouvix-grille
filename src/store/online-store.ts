@@ -134,8 +134,11 @@ interface OnlineStore {
   clearKicked: () => void;
   sendReaction: (emoji: string) => void;
   voiceStatus: VoiceStatus;
+  voiceOnPlayers: Record<string, true>;
   setVoiceOn: (on: boolean) => void;
 }
+
+const voiceExpiry = new Map<string, ReturnType<typeof setTimeout>>();
 
 export const useOnlineStore = create<OnlineStore>((set, get) => ({
   connected: false,
@@ -158,6 +161,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   benchouPin: "",
   reactions: [],
   voiceStatus: "off",
+  voiceOnPlayers: {},
   squareEvent: null,
 
   init: () => {
@@ -300,6 +304,24 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
       playVoiceChunk(payload.playerId ?? "", payload.data);
     });
     onVoiceStatus((voiceStatus) => set({ voiceStatus }));
+    // Mic-on badges on player cards. Each announcement is a heartbeat; a player
+    // whose heartbeat stops for 5 s is treated as muted again.
+    socket.on("voice-state", (payload: { playerId?: string; on?: boolean }) => {
+      const id = payload?.playerId;
+      if (!id) return;
+      const pending = voiceExpiry.get(id);
+      if (pending) clearTimeout(pending);
+      if (!payload.on) {
+        voiceExpiry.delete(id);
+        set((st) => { const next = { ...st.voiceOnPlayers }; delete next[id]; return { voiceOnPlayers: next }; });
+        return;
+      }
+      voiceExpiry.set(id, setTimeout(() => {
+        voiceExpiry.delete(id);
+        set((st) => { const next = { ...st.voiceOnPlayers }; delete next[id]; return { voiceOnPlayers: next }; });
+      }, 5000));
+      if (!get().voiceOnPlayers[id]) set((st) => ({ voiceOnPlayers: { ...st.voiceOnPlayers, [id]: true } }));
+    });
     // Room destroyed — the host closed it (or an admin deleted it).
     // • host-destroyed / new-game → everyone goes back to the ONLINE menu so the
     //   host can start a fresh game from scratch (new room, new settings).
