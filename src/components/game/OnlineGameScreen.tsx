@@ -11,7 +11,7 @@ import { ResultRanking, WinnerHero } from "./GameResultPresentation";
 import { Button } from "@/components/ui/button";
 import { findBestMove } from "@/lib/ai";
 import { vividColor, pawnColor } from "@/lib/color";
-import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX, Eye, Users } from "lucide-react";
+import { Home, Timer, Pause, WifiOff, Swords, RotateCcw, Plus, Volume2, VolumeX, Eye, Users, Mic, MicOff } from "lucide-react";
 import { areReactionSoundsEnabled, setReactionSoundsEnabled } from "@/lib/reaction-sounds";
 import { BOMBARDMENT_UNLOCK_SCORE, findBombardmentTargets } from "@/lib/bombardment";
 import { BombardmentToken } from "./BombardmentToken";
@@ -49,6 +49,15 @@ export function OnlineGameScreen() {
   const reactions = useOnlineStore((s) => s.reactions);
   const squareEvent = useOnlineStore((s) => s.squareEvent);
   const sendReactionAction = useOnlineStore((s) => s.sendReaction);
+  const voiceStatus = useOnlineStore((s) => s.voiceStatus);
+  const setVoiceOn = useOnlineStore((s) => s.setVoiceOn);
+  // Mic is open by default for seated players and stops when leaving the room screen.
+  useEffect(() => {
+    if (isSpectator) return;
+    setVoiceOn(true);
+    return () => setVoiceOn(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSpectator]);
 
   // The game state is the source of truth. The dedicated socket event is only
   // an optimization for starting the celebration immediately.
@@ -748,7 +757,20 @@ export function OnlineGameScreen() {
 
           {/* Reaction bar */}
           <div className="mx-auto w-full max-w-[min(780px,calc(100vw-1rem))] shrink-0">
-            <div className="mb-1 flex justify-end">
+            <div className="mb-1 flex items-center justify-end gap-2">
+              {!isSpectator && (
+                <button
+                  type="button"
+                  onClick={() => setVoiceOn(voiceStatus !== "on")}
+                  disabled={voiceStatus === "unsupported"}
+                  className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground disabled:opacity-50"
+                  aria-label={voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
+                  title={voiceStatus === "denied" ? "Micro refusé par le navigateur" : voiceStatus === "unsupported" ? "Micro non disponible" : voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
+                >
+                  {voiceStatus === "on" ? <Mic className="h-3.5 w-3.5 text-emerald-300" /> : <MicOff className="h-3.5 w-3.5" />}
+                  {voiceStatus === "on" ? "Micro ouvert" : voiceStatus === "denied" ? "Micro refusé" : "Micro coupé"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

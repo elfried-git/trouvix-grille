@@ -1548,6 +1548,22 @@ function verifyPinOrHash(pin?: string, pinHash?: string): boolean {
     })
   })
 
+  // ---- voice-chunk ----
+  // Push-to-room voice relay: raw 16 kHz mono PCM16 chunks from a seated player,
+  // forwarded to everyone else in the same room (never back to the sender).
+  // Spectators cannot talk. Nothing is stored.
+  socket.on('voice-chunk', (payload: any) => {
+    const binding = socketBindings.get(socket.id)
+    if (!binding || binding.isSpectator) return
+    const data = payload?.data
+    if (!(data instanceof ArrayBuffer || ArrayBuffer.isView(data))) return
+    if (data.byteLength === 0 || data.byteLength > 8192) return
+    socket.to(binding.roomCode).emit('voice-chunk', {
+      playerId: binding.playerId,
+      data,
+    })
+  })
+
   // ---- destroy-room (HOST only) ----
   // The host explicitly closes the room: it is destroyed immediately and every
   // player still inside is sent home. A non-host cannot do this — their own

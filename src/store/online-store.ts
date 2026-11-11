@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { getSocket, disconnectSocket, wakeGameService } from "@/lib/socket";
+import { playVoiceChunk, startVoice, stopVoice, onVoiceStatus, type VoiceStatus } from "@/lib/voice-chat";
 import type { OnlineGameState, SetupPlayer } from "@/lib/socket";
 import { enableNotifications, notifyAdminChallenge, notifyRoomCreated } from "@/lib/admin-notifications";
 import { playReactionSound } from "@/lib/reaction-sounds";
@@ -132,6 +133,8 @@ interface OnlineStore {
   adminPurgeRooms: (roomCodes: string[]) => Promise<number>;
   clearKicked: () => void;
   sendReaction: (emoji: string) => void;
+  voiceStatus: VoiceStatus;
+  setVoiceOn: (on: boolean) => void;
 }
 
 export const useOnlineStore = create<OnlineStore>((set, get) => ({
@@ -154,6 +157,7 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
   kickedToOnline: false,
   benchouPin: "",
   reactions: [],
+  voiceStatus: "off",
   squareEvent: null,
 
   init: () => {
@@ -290,6 +294,12 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
         set((s) => ({ reactions: s.reactions.filter((r) => r.id !== reaction.id) }));
       }, 3000);
     });
+    // Voice chat relay (seated players only; the server never echoes to the sender)
+    socket.on("voice-chunk", (payload: { playerId?: string; data?: ArrayBuffer }) => {
+      if (!payload?.data) return;
+      playVoiceChunk(payload.playerId ?? "", payload.data);
+    });
+    onVoiceStatus((voiceStatus) => set({ voiceStatus }));
     // Room destroyed — the host closed it (or an admin deleted it).
     // • host-destroyed / new-game → everyone goes back to the ONLINE menu so the
     //   host can start a fresh game from scratch (new room, new settings).
@@ -854,6 +864,10 @@ export const useOnlineStore = create<OnlineStore>((set, get) => ({
 
   clearKicked: () => set({ kicked: false, kickedToOnline: false, errorMessage: null }),
 
+  setVoiceOn: (on) => {
+    if (on) void startVoice();
+    else stopVoice();
+  },
   sendReaction: (emoji) => {
     playReactionSound(emoji);
     const reactionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
