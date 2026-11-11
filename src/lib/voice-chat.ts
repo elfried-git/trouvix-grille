@@ -97,6 +97,22 @@ function announce(on: boolean) {
   getSocket().emit("voice-state", { on });
 }
 
+// Resolve or fail a promise after `ms`, so a request the browser never answers
+// (common on mobile without a fresh tap) cannot leave the mic stuck "starting".
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const err = new Error("Timeout micro");
+      err.name = "TimeoutError";
+      reject(err);
+    }, ms);
+    p.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 export async function startVoice(): Promise<void> {
   if (micStream) return;
   if (starting) return starting;
@@ -104,15 +120,21 @@ export async function startVoice(): Promise<void> {
     setStatus("unsupported");
     return;
   }
+  // Create the audio context synchronously: when called from a tap, the browser
+  // treats it as the user gesture that lets audio run on mobile.
+  const Ctor = window.AudioContext ?? (window as any).webkitAudioContext;
+  const ctx: AudioContext = new Ctor();
+  void ctx.resume().catch(() => {});
   starting = (async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false,
-      });
-      const Ctor = window.AudioContext ?? (window as any).webkitAudioContext;
-      const ctx: AudioContext = new Ctor();
-      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+      const stream = await withTimeout(
+        navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false,
+        }),
+        10000,
+      );
+      void ctx.resume().catch(() => {});
 
       const source = ctx.createMediaStreamSource(stream);
       const node = ctx.createScriptProcessor(4096, 1, 1);
@@ -167,6 +189,7 @@ export async function startVoice(): Promise<void> {
       const name = (err as { name?: string })?.name ?? "";
       console.warn("[voice] micro indisponible:", name, err);
       setStatus(name === "NotAllowedError" || name === "SecurityError" ? "denied" : "error");
+      void ctx.close().catch(() => {});
     } finally {
       starting = null;
     }
