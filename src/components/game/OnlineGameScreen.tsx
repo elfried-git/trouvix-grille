@@ -436,6 +436,23 @@ export function OnlineGameScreen() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {!isSpectator && (
+            <button
+              type="button"
+              onClick={() => setVoiceOn(voiceStatus !== "on")}
+              disabled={voiceStatus === "unsupported"}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition disabled:opacity-50 ${
+                voiceStatus === "on"
+                  ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
+                  : "border-white/15 bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+              }`}
+              aria-label={voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
+              title={voiceStatus === "denied" ? "Micro refusé par le navigateur" : voiceStatus === "unsupported" ? "Micro non disponible" : voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
+            >
+              {voiceStatus === "on" ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+              {voiceStatus === "on" ? "Micro ouvert" : voiceStatus === "denied" ? "Micro refusé" : "Micro coupé"}
+            </button>
+          )}
           {state.spectatorCount != null && state.spectatorCount > 0 && (
             <div className="flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-xs text-sky-200">
               <Eye className="h-3 w-3 text-sky-300" />
@@ -757,20 +774,7 @@ export function OnlineGameScreen() {
 
           {/* Reaction bar */}
           <div className="mx-auto w-full max-w-[min(780px,calc(100vw-1rem))] shrink-0">
-            <div className="mb-1 flex items-center justify-end gap-2">
-              {!isSpectator && (
-                <button
-                  type="button"
-                  onClick={() => setVoiceOn(voiceStatus !== "on")}
-                  disabled={voiceStatus === "unsupported"}
-                  className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground disabled:opacity-50"
-                  aria-label={voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
-                  title={voiceStatus === "denied" ? "Micro refusé par le navigateur" : voiceStatus === "unsupported" ? "Micro non disponible" : voiceStatus === "on" ? "Couper le micro" : "Activer le micro"}
-                >
-                  {voiceStatus === "on" ? <Mic className="h-3.5 w-3.5 text-emerald-300" /> : <MicOff className="h-3.5 w-3.5" />}
-                  {voiceStatus === "on" ? "Micro ouvert" : voiceStatus === "denied" ? "Micro refusé" : "Micro coupé"}
-                </button>
-              )}
+            <div className="mb-1 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
