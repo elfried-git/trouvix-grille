@@ -97,22 +97,6 @@ function announce(on: boolean) {
   getSocket().emit("voice-state", { on });
 }
 
-// Resolve or fail a promise after `ms`, so a request the browser never answers
-// (common on mobile without a fresh tap) cannot leave the mic stuck "starting".
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      const err = new Error("Timeout micro");
-      err.name = "TimeoutError";
-      reject(err);
-    }, ms);
-    p.then(
-      (v) => { clearTimeout(timer); resolve(v); },
-      (e) => { clearTimeout(timer); reject(e); },
-    );
-  });
-}
-
 export async function startVoice(): Promise<void> {
   if (micStream) return;
   if (starting) return starting;
@@ -127,13 +111,10 @@ export async function startVoice(): Promise<void> {
   void ctx.resume().catch(() => {});
   starting = (async () => {
     try {
-      const stream = await withTimeout(
-        navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-          video: false,
-        }),
-        10000,
-      );
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false,
+      });
       void ctx.resume().catch(() => {});
 
       const source = ctx.createMediaStreamSource(stream);
