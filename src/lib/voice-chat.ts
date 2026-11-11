@@ -12,7 +12,7 @@ const CHUNK_SAMPLES = 1600; // 100 ms at 16 kHz
 const JITTER_S = 0.15; // lead time before first chunk plays
 const MAX_LAG_S = 0.6; // if we fall further behind than this, skip ahead
 
-export type VoiceStatus = "off" | "on" | "denied" | "unsupported";
+export type VoiceStatus = "off" | "on" | "denied" | "unsupported" | "error";
 
 type Listener = (status: VoiceStatus) => void;
 const listeners = new Set<Listener>();
@@ -162,8 +162,11 @@ export async function startVoice(): Promise<void> {
       setStatus("on");
       announce(true);
       heartbeat = setInterval(() => announce(true), 2000);
-    } catch {
-      setStatus("denied");
+    } catch (err) {
+      // Only a real permission refusal is "denied"; a missing or busy device is a different failure.
+      const name = (err as { name?: string })?.name ?? "";
+      console.warn("[voice] micro indisponible:", name, err);
+      setStatus(name === "NotAllowedError" || name === "SecurityError" ? "denied" : "error");
     } finally {
       starting = null;
     }
