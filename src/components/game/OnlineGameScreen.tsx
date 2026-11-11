@@ -660,7 +660,7 @@ export function OnlineGameScreen() {
           )}
 
           {/* Board */}
-          <div ref={boardRef} className="mx-auto w-full min-w-0 max-w-[min(780px,calc(100vw-1rem))] shrink-0">
+          <div ref={boardRef} className="mx-auto w-full min-w-0 max-w-[min(960px,calc(100vw-1rem))] shrink-0">
             <BombardmentDropZone
               className={`relative rounded-2xl border-2 border-amber-400/35 bg-gradient-to-br from-[#22131f] to-[#140b15] p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.7),inset_0_2px_4px_rgba(255,255,255,0.1)] sm:rounded-3xl ${bombardmentFlash ? "bombardment-flash" : ""}`}
             >
@@ -799,49 +799,33 @@ export function OnlineGameScreen() {
           )}
 
           {/* Reaction bar */}
-          <div className="mx-auto w-full max-w-[min(780px,calc(100vw-1rem))] shrink-0">
-            <div className="mb-1 flex justify-end">
+          <div className="mx-auto flex w-full max-w-[min(960px,calc(100vw-1rem))] shrink-0 items-center gap-1 rounded-xl border border-amber-300/20 bg-black/30 p-1 sm:gap-1.5">
+            {REACTION_EMOJIS.map((emoji) => (
               <button
                 type="button"
-                onClick={() => {
-                  const enabled = !reactionSoundsOn;
-                  setReactionSoundsOn(enabled);
-                  setReactionSoundsEnabled(enabled);
-                }}
-                className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-                aria-label={reactionSoundsOn ? "Désactiver le son des réactions" : "Activer le son des réactions"}
-                title={reactionSoundsOn ? "Couper le son des réactions" : "Activer le son des réactions"}
+                key={emoji}
+                onClick={() => sendReactionAction(emoji)}
+                className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg text-lg leading-none transition hover:scale-110 hover:bg-white/10 active:scale-95 sm:h-9 sm:text-xl"
+                title={`Réagir avec ${emoji}`}
               >
-                {reactionSoundsOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-                Son {reactionSoundsOn ? "activé" : "coupé"}
+                {emoji}
               </button>
-            </div>
-            <div className="grid w-full min-w-0 grid-cols-5 items-center gap-1.5 rounded-2xl border border-amber-300/20 bg-gradient-to-br from-amber-300/[0.09] via-rose-400/[0.06] to-violet-400/[0.09] p-2 shadow-[0_8px_24px_rgba(0,0,0,0.24)] ring-1 ring-white/[0.04] sm:gap-2.5 sm:p-2.5">
-              {REACTION_EMOJIS.map((emoji) => (
-                <button
-                  type="button"
-                  key={emoji}
-                  onClick={() => sendReactionAction(emoji)}
-                  className="flex aspect-square w-full min-w-0 items-center justify-center rounded-xl border border-white/[0.07] bg-black/20 text-2xl leading-none shadow-inner shadow-black/20 transition-all hover:scale-110 hover:border-amber-200/40 hover:bg-white/[0.08] active:scale-95 sm:rounded-2xl sm:text-3xl"
-                  title={`Réagir avec ${emoji}`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                const enabled = !reactionSoundsOn;
+                setReactionSoundsOn(enabled);
+                setReactionSoundsEnabled(enabled);
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-white/10 hover:text-foreground sm:h-9 sm:w-9"
+              aria-label={reactionSoundsOn ? "Désactiver le son des réactions" : "Activer le son des réactions"}
+              title={reactionSoundsOn ? "Couper le son des réactions" : "Activer le son des réactions"}
+            >
+              {reactionSoundsOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
           </div>
 
-          {/* Quit button */}
-          <div className="flex shrink-0 justify-center pt-0 sm:pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleQuit}
-              className="h-9 px-3 text-sm text-muted-foreground hover:text-foreground sm:h-12 sm:px-4 sm:text-base"
-            >
-              <Home className="mr-1.5 h-4 w-4" /> {isSpectator ? "Quitter le mode spectateur" : "Quitter la partie"}
-            </Button>
-          </div>
       </div>
     </div>
     </>
