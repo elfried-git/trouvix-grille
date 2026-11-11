@@ -798,32 +798,56 @@ export function OnlineGameScreen() {
             document.body
           )}
 
-          {/* Reaction bar */}
-          <div className="mx-auto flex w-full max-w-[min(960px,calc(100vw-1rem))] shrink-0 items-center gap-1 rounded-xl border border-amber-300/20 bg-black/30 p-1 sm:gap-1.5">
-            {REACTION_EMOJIS.map((emoji) => (
+          {/* Reaction bar: 2 rows of 5, compact */}
+          <div className="mx-auto w-full max-w-[min(960px,calc(100vw-1rem))] shrink-0 rounded-xl border border-amber-300/20 bg-black/30 p-1">
+            <div className="grid grid-cols-5 gap-1">
+              {REACTION_EMOJIS.map((emoji) => (
+                <button
+                  type="button"
+                  key={emoji}
+                  onClick={() => sendReactionAction(emoji)}
+                  className="flex h-7 min-w-0 items-center justify-center rounded-lg text-base leading-none transition hover:scale-110 hover:bg-white/10 active:scale-95 sm:h-8 sm:text-lg"
+                  title={`Réagir avec ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              {gamePlaying && !isSpectator ? (
+                <button
+                  type="button"
+                  onClick={() => setVoiceOn(voiceStatus !== "on")}
+                  disabled={voiceStatus === "unsupported"}
+                  aria-pressed={voiceStatus === "on"}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition disabled:opacity-50 ${
+                    voiceStatus === "on"
+                      ? "border-emerald-400/50 bg-emerald-600/90 text-white hover:bg-emerald-500"
+                      : "border-white/20 bg-black/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                  title={voiceStatus === "denied" ? "Micro refusé par le navigateur" : voiceStatus === "error" ? "Micro introuvable ou occupé" : voiceStatus === "unsupported" ? "Micro non disponible" : voiceStatus === "on" ? "Couper mon micro" : "Activer mon micro"}
+                >
+                  {voiceStatus === "on" ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+                  {voiceStatus === "on" ? "Micro ouvert" : voiceStatus === "denied" ? "Micro refusé" : voiceStatus === "error" ? "Micro indisponible" : "Micro coupé"}
+                </button>
+              ) : (
+                <span />
+              )}
               <button
                 type="button"
-                key={emoji}
-                onClick={() => sendReactionAction(emoji)}
-                className="flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg text-lg leading-none transition hover:scale-110 hover:bg-white/10 active:scale-95 sm:h-9 sm:text-xl"
-                title={`Réagir avec ${emoji}`}
+                onClick={() => {
+                  const enabled = !reactionSoundsOn;
+                  setReactionSoundsOn(enabled);
+                  setReactionSoundsEnabled(enabled);
+                }}
+                className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+                aria-label={reactionSoundsOn ? "Désactiver le son des réactions" : "Activer le son des réactions"}
+                title={reactionSoundsOn ? "Couper le son des réactions" : "Activer le son des réactions"}
               >
-                {emoji}
+                {reactionSoundsOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                Son {reactionSoundsOn ? "activé" : "coupé"}
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                const enabled = !reactionSoundsOn;
-                setReactionSoundsOn(enabled);
-                setReactionSoundsEnabled(enabled);
-              }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-white/10 hover:text-foreground sm:h-9 sm:w-9"
-              aria-label={reactionSoundsOn ? "Désactiver le son des réactions" : "Activer le son des réactions"}
-              title={reactionSoundsOn ? "Couper le son des réactions" : "Activer le son des réactions"}
-            >
-              {reactionSoundsOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </button>
+            </div>
           </div>
 
       </div>
