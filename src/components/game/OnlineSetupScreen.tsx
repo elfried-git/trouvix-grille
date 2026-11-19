@@ -30,6 +30,10 @@ import {
   Globe2,
   LockKeyhole,
   Eye,
+  KeyRound,
+  Plus,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -337,13 +341,17 @@ export function OnlineSetupScreen() {
         {/* === MENU TAB === */}
         {activeTab === "menu" && (
           <div>
-            <div className="text-center">
-              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-300/25 bg-amber-300/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-200/90 shadow-[0_0_20px_rgba(251,191,36,0.08)]">
-                <Gamepad2 className="h-3.5 w-3.5" /> Multijoueur
+            <div className="relative text-center">
+              <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-72 -translate-x-1/2 rounded-full bg-amber-400/10 blur-3xl" />
+              <div className="relative mb-3 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-gradient-to-r from-amber-300/[0.12] via-rose-300/[0.08] to-amber-300/[0.12] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-amber-100 shadow-[0_0_24px_rgba(251,191,36,0.15)]">
+                <Sparkles className="h-3.5 w-3.5 text-amber-300" /> Multijoueur
               </div>
-              <h2 className="font-display text-4xl font-black tracking-tight text-gold-gradient drop-shadow-[0_4px_18px_rgba(245,158,11,0.18)] sm:text-5xl">
+              <h2 className="relative font-display text-4xl font-black tracking-tight text-gold-gradient drop-shadow-[0_4px_18px_rgba(245,158,11,0.25)] sm:text-5xl">
                 Jouer en ligne
               </h2>
+              <p className="relative mt-2 text-sm text-muted-foreground sm:text-base">
+                Crée une table, rejoins tes amis ou défie l'adversaire du jour.
+              </p>
             </div>
 
             {/* Public rooms list — pinned at the top of the menu so everyone sees it */}
@@ -477,118 +485,115 @@ export function OnlineSetupScreen() {
               </div>
             )}
 
-            {/* Compact profile — name + color, shared with create/benchou */}
-            <div className="relative mt-6 overflow-hidden rounded-2xl border border-amber-200/15 bg-gradient-to-br from-rose-400/[0.08] via-card/70 to-amber-300/[0.07] p-4 shadow-[0_12px_36px_rgba(0,0,0,0.2)] sm:p-5">
-              <div className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-amber-300/[0.08] blur-3xl" />
-              <Label className="relative flex items-center gap-1 text-sm font-semibold text-amber-100/90 sm:text-base">
-                Ton profil <span className="text-rose-400">*</span>
-              </Label>
-              <div className="relative mt-2">
-                <div className="flex items-center gap-3">
-                  <div className="shrink-0 rounded-full bg-gradient-to-br from-white/90 via-amber-200/75 to-rose-400/80 p-[2px] shadow-[0_0_22px_rgba(251,191,36,0.2)]">
-                    <Avatar avatar={emoji} color={color} size={54} emojiSize="text-2xl" ring={false} />
-                  </div>
-                  <div className="flex-1">
-                    <Input
-                      ref={nameInputRef}
-                      value={name}
-                      onChange={(e) => setName(limitPlayerName(e.target.value))}
-                      placeholder="Pseudo"
-                      className={`h-14 rounded-xl bg-black/25 text-base shadow-inner shadow-black/20 transition focus-visible:ring-amber-300/40 sm:text-lg ${!profileValid ? "border-rose-400/60" : "border-border/60"
-                        }`}
-                    />
-                  </div>
-                  <label
-                    className="flex h-14 min-w-14 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-300/35 bg-amber-300/[0.09] px-4 text-base font-medium text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95"
-                    title="Téléverser une photo (optionnel)"
-                  >
-                    Photo
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => uploadPhoto(e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                </div>
-                <p className="mt-1.5 pl-[66px] text-xs text-muted-foreground">2 à 5 caractères · emojis acceptés</p>
+            {/* Profile card */}
+            <div className="group relative mt-7 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/[0.10] via-[#15110f]/80 to-amber-300/[0.08] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-5">
+              <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-amber-300/[0.10] blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-rose-500/[0.10] blur-3xl" />
+              <div className="relative flex items-center justify-between">
+                <Label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.2em] text-amber-100/80">
+                  Ton profil <span className="text-rose-400">*</span>
+                </Label>
+                <span className="text-[11px] text-muted-foreground">2 à 5 caractères · emojis ok</span>
               </div>
-              {/* Compact color picker */}
-              <div className="relative mt-4 grid w-full grid-cols-6 items-center justify-items-center gap-y-2 rounded-xl border border-white/[0.06] bg-black/15 px-2 py-2.5">
-                {COLOR_PALETTE.map((c) => {
-                  const selected = color === c;
-                  return (
-                    <ColorSwatch
-                      key={c}
-                      color={c}
-                      selected={selected}
-                      onClick={() => setColor(c)}
-                      sizeClass="h-[34px] w-[34px] sm:h-11 sm:w-11"
-                      title="Choisir"
-                    />
-                  );
-                })}
+              <div className="relative mt-3 flex items-center gap-3">
+                <div
+                  className="shrink-0 rounded-full p-[3px] shadow-[0_0_28px_rgba(251,191,36,0.25)]"
+                  style={{ background: `conic-gradient(from 200deg, ${color}, #fff8, ${color})` }}
+                >
+                  <Avatar avatar={emoji} color={color} size={58} emojiSize="text-2xl" ring={false} />
+                </div>
+                <Input
+                  ref={nameInputRef}
+                  value={name}
+                  onChange={(e) => setName(limitPlayerName(e.target.value))}
+                  placeholder="Ton pseudo"
+                  className={`h-14 flex-1 rounded-2xl border-0 bg-black/35 text-base shadow-inner shadow-black/30 ring-1 transition focus-visible:ring-2 focus-visible:ring-amber-300/50 sm:text-lg ${!profileValid ? "ring-rose-400/60" : "ring-white/10"}`}
+                />
+                <label className="flex h-14 cursor-pointer items-center gap-1.5 rounded-2xl border border-amber-300/30 bg-amber-300/[0.08] px-4 text-sm font-semibold text-amber-100 transition hover:border-amber-200/60 hover:bg-amber-300/[0.16] active:scale-95" title="Téléverser une photo (optionnel)">
+                  Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => uploadPhoto(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
+              <div className="relative mt-4 grid grid-cols-6 items-center justify-items-center gap-y-2 rounded-2xl border border-white/[0.06] bg-black/25 px-2 py-3">
+                {COLOR_PALETTE.map((c) => (
+                  <ColorSwatch
+                    key={c}
+                    color={c}
+                    selected={color === c}
+                    onClick={() => setColor(c)}
+                    sizeClass="h-[34px] w-[34px] sm:h-11 sm:w-11"
+                    title="Choisir"
+                  />
+                ))}
               </div>
             </div>
 
-            {/* Action cards */}
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-              {/* Join by code — the JOIN card */}
+            {/* Mode cards */}
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <button
                 onClick={() => setTab("join")}
-                className="relative isolate overflow-hidden rounded-2xl border border-emerald-300/35 bg-gradient-to-br from-emerald-400/[0.15] via-[#11231e]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-emerald-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:p-4"
+                className="group relative isolate overflow-hidden rounded-3xl border border-emerald-300/25 bg-gradient-to-br from-emerald-400/[0.16] via-[#0f1f1a]/85 to-slate-950 p-5 text-left shadow-[0_14px_36px_rgba(0,0,0,0.3)] transition duration-300 hover:-translate-y-1 hover:border-emerald-300/60 hover:shadow-[0_18px_44px_rgba(16,185,129,0.22)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
               >
-                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">Rejoindre un salon</p>
-                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">Entre le code pour retrouver tes amis.</p>
+                <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-400/20 blur-2xl transition group-hover:bg-emerald-400/30" />
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/15 ring-1 ring-emerald-300/40">
+                  <KeyRound className="h-6 w-6 text-emerald-200" />
+                </div>
+                <p className="relative mt-4 font-display text-lg font-bold text-foreground">Rejoindre un salon</p>
+                <p className="relative mt-1 text-sm text-muted-foreground">Entre le code pour retrouver tes amis.</p>
+                <ArrowRight className="absolute bottom-5 right-5 h-5 w-5 text-emerald-200/60 transition group-hover:translate-x-1 group-hover:text-emerald-200" />
               </button>
+
               <button
                 onClick={() => setTab("create")}
-                className="relative isolate overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-amber-400/[0.16] via-[#2a1d12]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-amber-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:p-4"
+                className="group relative isolate overflow-hidden rounded-3xl border border-amber-300/25 bg-gradient-to-br from-amber-400/[0.18] via-[#221a10]/85 to-slate-950 p-5 text-left shadow-[0_14px_36px_rgba(0,0,0,0.3)] transition duration-300 hover:-translate-y-1 hover:border-amber-300/60 hover:shadow-[0_18px_44px_rgba(251,191,36,0.2)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
               >
-                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">
-                  Créer un salon
-                </p>
-                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                  Lance ta partie et invite tes amis.
-                </p>
+                <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-amber-400/20 blur-2xl transition group-hover:bg-amber-400/30" />
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 ring-1 ring-amber-300/40">
+                  <Plus className="h-6 w-6 text-amber-200" />
+                </div>
+                <p className="relative mt-4 font-display text-lg font-bold text-foreground">Créer un salon</p>
+                <p className="relative mt-1 text-sm text-muted-foreground">Lance ta partie et invite tes amis.</p>
+                <ArrowRight className="absolute bottom-5 right-5 h-5 w-5 text-amber-200/60 transition group-hover:translate-x-1 group-hover:text-amber-200" />
               </button>
+
               <button
                 onClick={() => setTab("benchou")}
-                className="relative isolate overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-violet-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:p-4"
+                className="group relative isolate overflow-hidden rounded-3xl border border-violet-300/25 bg-gradient-to-br from-violet-400/[0.18] via-[#1d1430]/85 to-slate-950 p-5 text-left shadow-[0_14px_36px_rgba(0,0,0,0.3)] transition duration-300 hover:-translate-y-1 hover:border-violet-300/60 hover:shadow-[0_18px_44px_rgba(139,92,246,0.25)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
               >
-                <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-400/20 blur-2xl transition group-hover:bg-violet-400/30" />
+                <div className="relative flex items-center gap-3">
                   <img
                     src={onlineBenchouAvatar}
                     alt="FBI"
-                    width={44}
-                    height={44}
+                    width={48}
+                    height={48}
                     loading="eager"
                     fetchPriority="high"
-                    className="mb-1.5 h-11 w-11 rounded-full object-cover ring-2 ring-violet-400/50 shadow-md"
+                    className="h-12 w-12 rounded-2xl object-cover ring-1 ring-violet-300/50"
                   />
-                  <p className="font-display text-base font-bold text-foreground sm:text-lg">
-                    Jouer contre FBI
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                    Défie FBI en duel privé.
-                  </p>
+                  <Swords className="h-5 w-5 text-violet-200/80" />
                 </div>
+                <p className="relative mt-4 font-display text-lg font-bold text-foreground">Jouer contre FBI</p>
+                <p className="relative mt-1 text-sm text-muted-foreground">Défie FBI en duel privé.</p>
+                <ArrowRight className="absolute bottom-5 right-5 h-5 w-5 text-violet-200/60 transition group-hover:translate-x-1 group-hover:text-violet-200" />
               </button>
+
               <button
                 onClick={() => setTab("spectate")}
-                className="relative isolate overflow-hidden rounded-2xl border border-sky-300/35 bg-gradient-to-br from-sky-400/[0.16] via-[#102230]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-sky-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:p-4"
+                className="group relative isolate overflow-hidden rounded-3xl border border-sky-300/25 bg-gradient-to-br from-sky-400/[0.18] via-[#0e1d2a]/85 to-slate-950 p-5 text-left shadow-[0_14px_36px_rgba(0,0,0,0.3)] transition duration-300 hover:-translate-y-1 hover:border-sky-300/60 hover:shadow-[0_18px_44px_rgba(56,189,248,0.22)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
               >
-                <div className="relative z-10 flex flex-col items-center justify-center text-center">
-                  <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-sky-500/20 text-sky-200 ring-2 ring-sky-400/50 shadow-md">
-                    <Eye className="h-6 w-6" />
-                  </div>
-                  <p className="font-display text-base font-bold text-foreground sm:text-lg">
-                    Mode Spectateur
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                    Assiste aux parties en temps réel.
-                  </p>
+                <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-sky-400/20 blur-2xl transition group-hover:bg-sky-400/30" />
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-400/15 ring-1 ring-sky-300/40">
+                  <Eye className="h-6 w-6 text-sky-200" />
                 </div>
+                <p className="relative mt-4 font-display text-lg font-bold text-foreground">Mode Spectateur</p>
+                <p className="relative mt-1 text-sm text-muted-foreground">Assiste aux parties en temps réel.</p>
+                <ArrowRight className="absolute bottom-5 right-5 h-5 w-5 text-sky-200/60 transition group-hover:translate-x-1 group-hover:text-sky-200" />
               </button>
             </div>
 
