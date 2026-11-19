@@ -366,22 +366,16 @@ export function SetupScreen() {
                         type="button"
                         onClick={() => chooseAiProfile(option.id)}
                         aria-pressed={aiProfiles[1] === option.id}
-                        style={{
-                          background: `radial-gradient(120% 90% at 50% 0%, ${option.from}cc 0%, #05060bf2 70%)`,
-                          boxShadow: aiProfiles[1] === option.id
-                            ? `0 0 0 2px ${option.accent}, 0 0 28px ${option.glow}`
-                            : `0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)`,
-                        }}
-                        className={`group relative isolate flex min-h-[7rem] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border px-2 py-3 text-center transition duration-300 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${aiProfiles[1] === option.id ? "border-white/70" : "border-white/10 hover:border-white/30"}`}
+                        className="group relative flex flex-col items-center justify-center gap-1.5 px-2 py-2 text-center focus-visible:outline-none"
                       >
                         <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute -top-8 left-1/2 h-20 w-32 -translate-x-1/2 rounded-full opacity-60 blur-2xl transition duration-300 group-hover:opacity-100"
-                          style={{ background: option.glow }}
-                        />
-                        <span
-                          className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full p-[2px] transition duration-300 group-hover:scale-110"
-                          style={{ background: `conic-gradient(from 180deg, ${option.accent}, #ffffff80, ${option.accent})` }}
+                          className={`relative flex h-14 w-14 items-center justify-center rounded-full p-[2px] transition duration-300 group-hover:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-white/80 ${aiProfiles[1] === option.id ? "scale-110" : "opacity-80"}`}
+                          style={{
+                            background: aiProfiles[1] === option.id
+                              ? `conic-gradient(from 180deg, ${option.accent}, #ffffff, ${option.accent})`
+                              : `${option.accent}55`,
+                            boxShadow: aiProfiles[1] === option.id ? `0 0 22px ${option.glow}` : undefined,
+                          }}
                         >
                           <img
                             src={AI_PROFILE_AVATARS[option.id]}
@@ -390,24 +384,15 @@ export function SetupScreen() {
                             className="h-full w-full rounded-full bg-white object-cover"
                           />
                         </span>
-                        <span className="relative z-10 font-display text-sm font-black tracking-wider text-white sm:text-base">
+                        <span className="font-display text-sm font-black tracking-wider text-white sm:text-base">
                           {option.name}
                         </span>
                         <span
-                          className="relative z-10 rounded-full px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.18em]"
-                          style={{ color: option.accent, background: `${option.accent}1f`, boxShadow: `inset 0 0 0 1px ${option.accent}55` }}
+                          className="text-[0.62rem] font-bold uppercase tracking-[0.18em]"
+                          style={{ color: option.accent }}
                         >
                           {option.style}
                         </span>
-                        {aiProfiles[1] === option.id && (
-                          <span
-                            aria-hidden="true"
-                            className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black text-slate-900 shadow-md"
-                            style={{ background: option.accent }}
-                          >
-                            ✓
-                          </span>
-                        )}
                       </button>
                     ))}
                   </div>
