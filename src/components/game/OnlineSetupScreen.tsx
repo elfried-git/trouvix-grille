@@ -533,6 +533,25 @@ export function OnlineSetupScreen() {
 
             {/* Action cards */}
             <div className="mt-4 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+              {/* Join by code — the JOIN card */}
+              <button
+                onClick={() => setTab("join")}
+                className="relative isolate overflow-hidden rounded-2xl border border-emerald-300/35 bg-gradient-to-br from-emerald-400/[0.15] via-[#11231e]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-emerald-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:p-4"
+              >
+                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">Rejoindre un salon</p>
+                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">Entre le code pour retrouver tes amis.</p>
+              </button>
+              <button
+                onClick={() => setTab("create")}
+                className="relative isolate overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-amber-400/[0.16] via-[#2a1d12]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-amber-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:p-4"
+              >
+                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">
+                  Créer un salon
+                </p>
+                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                  Lance ta partie et invite tes amis.
+                </p>
+              </button>
               <button
                 onClick={() => setTab("benchou")}
                 className="relative isolate overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-violet-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:p-4"
