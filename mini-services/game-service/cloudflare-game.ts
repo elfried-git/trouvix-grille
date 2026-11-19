@@ -612,7 +612,7 @@ interface PublicRoomInfo {
 
 function getPublicRoomList(): PublicRoomInfo[] {
   return Array.from(rooms.values())
-    .filter((room) => !room.isBenchouChallenge && !room.isPrivate)
+    .filter((room) => !room.isBenchouChallenge)
     .map((room) => {
       const host = room.state.players.find((p) => p.id === room.hostId)
       const playerCount = room.state.players.filter((p) => p.connected !== false).length

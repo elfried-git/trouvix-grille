@@ -92,7 +92,6 @@ export function OnlineSetupScreen() {
   const [confirmDestroyRoom, setConfirmDestroyRoom] = useState(false);
   const [benchouPin, setBenchouPin] = useState("");
   const [showPinForm, setShowPinForm] = useState(false);
-  const [spectateInputCode, setSpectateInputCode] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Socket init + reconnect is handled by the parent OnlineRouter (called once)
@@ -534,25 +533,6 @@ export function OnlineSetupScreen() {
 
             {/* Action cards */}
             <div className="mt-4 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-              {/* Join by code — the JOIN card */}
-              <button
-                onClick={() => setTab("join")}
-                className="relative isolate overflow-hidden rounded-2xl border border-emerald-300/35 bg-gradient-to-br from-emerald-400/[0.15] via-[#11231e]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-emerald-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:p-4"
-              >
-                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">Rejoindre un salon</p>
-                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">Entre le code pour retrouver tes amis.</p>
-              </button>
-              <button
-                onClick={() => setTab("create")}
-                className="relative isolate overflow-hidden rounded-2xl border border-amber-300/35 bg-gradient-to-br from-amber-400/[0.16] via-[#2a1d12]/85 to-slate-950 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-amber-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:p-4"
-              >
-                <p className="relative z-10 font-display text-base font-bold text-foreground sm:text-lg">
-                  Créer un salon
-                </p>
-                <p className="relative z-10 mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                  Lance ta partie et invite tes amis.
-                </p>
-              </button>
               <button
                 onClick={() => setTab("benchou")}
                 className="relative isolate overflow-hidden rounded-2xl border border-violet-300/35 bg-gradient-to-br from-violet-400/[0.16] via-[#21172b]/85 to-slate-950 p-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.22)] before:pointer-events-none before:absolute before:inset-x-[4%] before:top-0 before:h-1/2 before:rounded-[50%] before:bg-gradient-to-b before:from-white/[0.07] before:to-transparent before:content-[''] transition-all hover:scale-[1.01] hover:border-violet-300/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 sm:p-4"
@@ -750,46 +730,14 @@ export function OnlineSetupScreen() {
               </p>
             </div>
 
-            {/* Direct code entry for spectating */}
-            <div className="mb-4 flex items-center gap-2 rounded-2xl border border-sky-300/20 bg-sky-500/[0.04] p-2.5">
-              <input
-                type="text"
-                placeholder="Code du salon (ex: ABC123)"
-                value={spectateInputCode}
-                onChange={(e) => setSpectateInputCode(e.target.value.toUpperCase())}
-                maxLength={8}
-                className="h-10 flex-1 rounded-xl border border-border/50 bg-black/40 px-3 font-mono text-sm font-bold uppercase text-amber-200 placeholder:text-muted-foreground/60 focus:border-sky-400 focus:outline-none"
-              />
-              <Button
-                size="sm"
-                disabled={onlinePending || spectateInputCode.trim().length < 4}
-                onClick={async () => {
-                  if (spectateInputCode.trim().length >= 4) {
-                    await onlineSpectateRoom(spectateInputCode.trim());
-                  }
-                }}
-                className="h-10 shrink-0 gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 px-4 text-xs font-bold text-white shadow-md hover:from-sky-500 hover:to-sky-400"
-              >
-                <Eye className="h-3.5 w-3.5" /> Assister
-              </Button>
-            </div>
-
             {/* List of rooms to spectate */}
             {onlinePublicRooms.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border/40 bg-card/20 p-8 text-center">
                 <p className="text-3xl">📭</p>
                 <p className="mt-2 text-base font-semibold text-foreground">Aucun salon public actif</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Crée un salon ou invite des amis à jouer pour assister à leurs parties !
+                  Dès qu'une partie est lancée, elle apparaît ici.
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTab("create")}
-                  className="mt-4 rounded-full border-amber-400/30 text-amber-200 hover:bg-amber-500/10"
-                >
-                  Créer un salon
-                </Button>
               </div>
             ) : (
               <div className="flex max-h-[460px] flex-col gap-2.5 overflow-y-auto scroll-romantic pr-1">
