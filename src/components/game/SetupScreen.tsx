@@ -23,13 +23,13 @@ const COLOR_PALETTE = [
   "#d500f9", // violet
 ];
 
-const AI_OPTIONS: { id: AIProfile; name: string; style: string; color: string; border: string }[] = [
-  { id: "gpt", name: "GPT", style: "Équilibré", color: "from-blue-500/40 via-blue-950 to-slate-950", border: "border-blue-400/50" },
-  { id: "gemini", name: "GEMINI", style: "Créatif", color: "from-rose-500/40 via-rose-950 to-slate-950", border: "border-rose-400/50" },
-  { id: "claude", name: "CLAUDE", style: "Prudent", color: "from-emerald-500/40 via-emerald-950 to-slate-950", border: "border-emerald-400/50" },
-  { id: "grok", name: "GROK", style: "Offensif", color: "from-red-500/40 via-red-950 to-slate-950", border: "border-red-400/50" },
-  { id: "copilot", name: "COPILOT", style: "Méthodique", color: "from-amber-500/40 via-amber-950 to-slate-950", border: "border-amber-400/50" },
-  { id: "siri", name: "SIRI", style: "Tactique", color: "from-violet-500/40 via-violet-950 to-slate-950", border: "border-violet-400/50" },
+const AI_OPTIONS: { id: AIProfile; name: string; style: string; accent: string; glow: string; from: string }[] = [
+  { id: "gpt", name: "GPT", style: "Équilibré", accent: "#60a5fa", glow: "rgba(96,165,250,0.55)", from: "#1e3a8a" },
+  { id: "gemini", name: "GEMINI", style: "Créatif", accent: "#f472b6", glow: "rgba(244,114,182,0.55)", from: "#831843" },
+  { id: "claude", name: "CLAUDE", style: "Prudent", accent: "#34d399", glow: "rgba(52,211,153,0.55)", from: "#064e3b" },
+  { id: "grok", name: "GROK", style: "Offensif", accent: "#f87171", glow: "rgba(248,113,113,0.55)", from: "#7f1d1d" },
+  { id: "copilot", name: "COPILOT", style: "Méthodique", accent: "#fbbf24", glow: "rgba(251,191,36,0.55)", from: "#78350f" },
+  { id: "siri", name: "SIRI", style: "Tactique", accent: "#a78bfa", glow: "rgba(167,139,250,0.55)", from: "#4c1d95" },
 ];
 const AI_NAMES = AI_OPTIONS.map((ai) => ai.name);
 
@@ -359,29 +359,55 @@ export function SetupScreen() {
               {count === 2 && i === 1 && isAI[i] && (
                 <div className="mt-4 rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-400/[0.1] to-fuchsia-500/[0.04] p-3 shadow-inner shadow-black/20">
                   <p className="mb-2 text-base font-semibold text-violet-100">Choisis ton adversaire IA</p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {AI_OPTIONS.map((option) => (
                       <button
                         key={option.id}
                         type="button"
                         onClick={() => chooseAiProfile(option.id)}
                         aria-pressed={aiProfiles[1] === option.id}
-                        className={`relative isolate flex min-h-[6rem] items-center justify-center overflow-hidden rounded-2xl border bg-gradient-to-br px-2 py-3 text-center text-white shadow-[inset_0_2px_3px_rgba(255,255,255,0.28),inset_0_-8px_12px_rgba(0,0,0,0.35),0_6px_12px_rgba(0,0,0,0.3)] before:pointer-events-none before:absolute before:inset-x-[5%] before:top-[5%] before:h-[42%] before:rounded-[50%] before:bg-gradient-to-b before:from-white/25 before:to-transparent before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${option.color} ${option.border} ${aiProfiles[1] === option.id ? "border-amber-100 ring-2 ring-amber-100/90 shadow-[0_0_0_3px_rgba(255,198,76,0.3),0_0_24px_rgba(255,198,76,0.4),inset_0_2px_3px_rgba(255,255,255,0.35),inset_0_-8px_12px_rgba(0,0,0,0.35)]" : ""}`}
+                        style={{
+                          background: `radial-gradient(120% 90% at 50% 0%, ${option.from}cc 0%, #05060bf2 70%)`,
+                          boxShadow: aiProfiles[1] === option.id
+                            ? `0 0 0 2px ${option.accent}, 0 0 28px ${option.glow}`
+                            : `0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)`,
+                        }}
+                        className={`group relative isolate flex min-h-[7rem] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border px-2 py-3 text-center transition duration-300 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${aiProfiles[1] === option.id ? "border-white/70" : "border-white/10 hover:border-white/30"}`}
                       >
-                        <span className="relative z-10 flex w-full flex-col items-center justify-center gap-1 py-1">
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute -top-8 left-1/2 h-20 w-32 -translate-x-1/2 rounded-full opacity-60 blur-2xl transition duration-300 group-hover:opacity-100"
+                          style={{ background: option.glow }}
+                        />
+                        <span
+                          className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full p-[2px] transition duration-300 group-hover:scale-110"
+                          style={{ background: `conic-gradient(from 180deg, ${option.accent}, #ffffff80, ${option.accent})` }}
+                        >
                           <img
                             src={AI_PROFILE_AVATARS[option.id]}
                             alt=""
                             aria-hidden="true"
-                            className="h-9 w-9 rounded-full border border-white/40 bg-white/90 object-cover shadow-[0_2px_6px_rgba(0,0,0,0.4)] sm:h-10 sm:w-10"
+                            className="h-full w-full rounded-full bg-white object-cover"
                           />
-                          <span className="font-sans text-sm font-bold tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)] sm:text-base">
-                            {option.name}
-                          </span>
-                          <span className="text-[0.7rem] font-medium uppercase tracking-wider text-white/75">
-                            {option.style}
-                          </span>
                         </span>
+                        <span className="relative z-10 font-display text-sm font-black tracking-wider text-white sm:text-base">
+                          {option.name}
+                        </span>
+                        <span
+                          className="relative z-10 rounded-full px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.18em]"
+                          style={{ color: option.accent, background: `${option.accent}1f`, boxShadow: `inset 0 0 0 1px ${option.accent}55` }}
+                        >
+                          {option.style}
+                        </span>
+                        {aiProfiles[1] === option.id && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black text-slate-900 shadow-md"
+                            style={{ background: option.accent }}
+                          >
+                            ✓
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
