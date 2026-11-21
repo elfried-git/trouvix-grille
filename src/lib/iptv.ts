@@ -9,6 +9,9 @@ export type TvChannel = {
   url: string;
   // Hauteur déduite du nom, ex. "(1080p)" -> 1080. null si inconnue.
   height: number | null;
+  // Tags iptv-org : [Geo-blocked] = lecture possible seulement dans le pays ; [Not 24/7] = pas diffusée en continu.
+  geoBlocked: boolean;
+  notAlwaysOn: boolean;
 };
 
 export type TvCountry = {
@@ -43,8 +46,18 @@ export function parseM3U(text: string): TvChannel[] {
       if (height === null && fhdTag) height = 1080;
       if (height === null && hdTag) height = 720;
 
+      const tags = [...displayName.matchAll(/\[([^\]]*)\]/g)]
+        .flatMap((m) => m[1].split(";").map((t) => t.trim().toLowerCase()));
+      const cleanName = displayName
+        .replace(/\[[^\]]*\]/g, "")
+        .replace(/\s*\(\d{3,4}p\)\s*$/i, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
       pending = {
-        name: displayName.replace(/\s*\(\d{3,4}p\)\s*$/i, "").trim() || "Chaîne",
+        name: cleanName || "Chaîne",
+        geoBlocked: tags.includes("geo-blocked"),
+        notAlwaysOn: tags.includes("not 24/7"),
         country: attrs["group-title"] || "Autre",
         logo: attrs["tvg-logo"] || "",
         height,

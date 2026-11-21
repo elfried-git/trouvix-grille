@@ -21,6 +21,27 @@ let cachedCountries: TvCountry[] | null = null;
 let cachedTotal = 0;
 let cachedPlayable = 0;
 
+// Chaînes qui ne se lisent pas : mémorisées localement pour ne plus les proposer par défaut.
+const FAILED_KEY = "trouvix_tv_failed";
+const LOAD_TIMEOUT_MS = 20000;
+
+function loadFailed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FAILED_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveFailed(set: Set<string>) {
+  try {
+    localStorage.setItem(FAILED_KEY, JSON.stringify([...set]));
+  } catch {
+    // stockage indisponible : on ignore
+  }
+}
+
 function qualityLabel(height: number | null): string | null {
   if (height === null) return null;
   if (height >= 1080) return "FHD";
@@ -47,6 +68,12 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
   const [levelChoice, setLevelChoice] = useState<number>(-1); // -1 = Auto
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const [failed, setFailed] = useState<Set<string>>(new Set());
+  const [showFailed, setShowFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(loadFailed());
+  }, []);
 
   useEffect(() => {
     if (cachedCountries) return;
@@ -77,16 +104,43 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !channel) return;
+    const url = channel.url;
+
+    const markFailed = () =>
+      setFailed((prev) => {
+        if (prev.has(url)) return prev;
+        const next = new Set(prev).add(url);
+        saveFailed(next);
+        return next;
+      });
+    const markOk = () =>
+      setFailed((prev) => {
+        if (!prev.has(url)) return prev;
+        const next = new Set(prev);
+        next.delete(url);
+        saveFailed(next);
+        return next;
+      });
 
     setStatus("loading");
     setLevels([]);
     setLevelChoice(-1);
 
-    let hls: Hls | null = null;
+    let started = false;
+    const timer = window.setTimeout(() => {
+      if (started) return;
+      setStatus("error");
+      markFailed();
+    }, LOAD_TIMEOUT_MS);
+
+    let instance: Hls | null = null;
     if (Hls.isSupported()) {
-      hls = new Hls({ enableWorker: true, capLevelToPlayerSize: false, startLevel: -1 });
+      const hls = new Hls({ enableWorker: true, capLevelToPlayerSize: false, startLevel: -1 });
+      instance = hls;
       hlsRef.current = hls;
-      hls.loadSource(channel.url);
+      let netRetries = 0;
+      let mediaRetries = 0;
+      hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
         const seen = new Map<number, number>();
@@ -99,26 +153,47 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
         video.play().catch(() => {});
       });
       hls.on(Hls.Events.ERROR, (_e, data) => {
-        if (data.fatal) setStatus("error");
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && netRetries < 2) {
+          netRetries++;
+          hls.startLoad();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRetries < 1) {
+          mediaRetries++;
+          hls.recoverMediaError();
+          return;
+        }
+        window.clearTimeout(timer);
+        setStatus("error");
+        markFailed();
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = channel.url;
+      video.src = url;
       video.play().catch(() => {});
     } else {
+      window.clearTimeout(timer);
       setStatus("error");
+      markFailed();
       return;
     }
 
-    const onPlaying = () => setStatus("playing");
+    const onPlaying = () => {
+      started = true;
+      window.clearTimeout(timer);
+      setStatus("playing");
+      markOk();
+    };
     const onWaiting = () => setStatus((s) => (s === "error" ? s : "loading"));
     video.addEventListener("playing", onPlaying);
     video.addEventListener("waiting", onWaiting);
 
     return () => {
+      window.clearTimeout(timer);
       video.removeEventListener("playing", onPlaying);
       video.removeEventListener("waiting", onWaiting);
-      hls?.destroy();
-      if (hlsRef.current === hls) hlsRef.current = null;
+      instance?.destroy();
+      if (hlsRef.current === instance) hlsRef.current = null;
       video.removeAttribute("src");
       video.load();
     };
@@ -141,13 +216,28 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
     [countries, selectedCountry],
   );
 
+  const failedInCountry = useMemo(
+    () => (activeCountry ? activeCountry.channels.filter((c) => failed.has(c.url)).length : 0),
+    [activeCountry, failed],
+  );
+
   const visibleChannels = useMemo(() => {
     if (!activeCountry) return [];
     const q = channelQuery.trim().toLowerCase();
     return activeCountry.channels.filter(
-      (c) => matchesQuality(c, quality) && (!q || c.name.toLowerCase().includes(q)),
+      (c) =>
+        matchesQuality(c, quality) &&
+        (!q || c.name.toLowerCase().includes(q)) &&
+        (showFailed || !failed.has(c.url)),
     );
-  }, [activeCountry, channelQuery, quality]);
+  }, [activeCountry, channelQuery, quality, failed, showFailed]);
+
+  const resetFailed = () => {
+    const empty = new Set<string>();
+    saveFailed(empty);
+    setFailed(empty);
+    setShowFailed(false);
+  };
 
   const openCountry = (name: string) => {
     setSelectedCountry(name);
@@ -283,6 +373,16 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
                   <QualityChip active={quality === "fhd"} onClick={() => setQuality("fhd")}>
                     FHD
                   </QualityChip>
+                  {failedInCountry > 0 && (
+                    <QualityChip active={showFailed} onClick={() => setShowFailed((v) => !v)}>
+                      {showFailed ? "Masquer" : `${failedInCountry} masquée${failedInCountry > 1 ? "s" : ""}`}
+                    </QualityChip>
+                  )}
+                  {failedInCountry > 0 && showFailed && (
+                    <QualityChip active={false} onClick={resetFailed}>
+                      Réinitialiser
+                    </QualityChip>
+                  )}
                 </div>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -298,11 +398,16 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
                     <li key={c.id}>
                       <button
                         onClick={() => setChannel(c)}
+                        title={[
+                          c.geoBlocked && "Géo-bloquée : ne se lit que depuis le pays",
+                          c.notAlwaysOn && "Pas diffusée en continu",
+                          failed.has(c.url) && "Déjà testée : ne se lit pas",
+                        ].filter(Boolean).join(" · ") || undefined}
                         className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
                           channel?.id === c.id
                             ? "border-emerald-300/60 bg-emerald-400/15"
                             : "border-white/10 bg-black/20 hover:border-white/25 hover:bg-white/5"
-                        }`}
+                        } ${failed.has(c.url) ? "opacity-50" : ""}`}
                       >
                         {c.logo ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -320,11 +425,28 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
                           </span>
                         )}
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{c.name}</span>
-                        {qualityLabel(c.height) && (
-                          <span className="shrink-0 rounded-md bg-white/10 px-1.5 py-0.5 text-[11px] font-bold">
-                            {qualityLabel(c.height)}
-                          </span>
-                        )}
+                        <span className="flex shrink-0 items-center gap-1">
+                          {c.geoBlocked && (
+                            <span className="rounded-md bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-200">
+                              Géo
+                            </span>
+                          )}
+                          {c.notAlwaysOn && (
+                            <span className="rounded-md bg-slate-400/20 px-1.5 py-0.5 text-[10px] font-bold text-slate-200">
+                              Pas 24/7
+                            </span>
+                          )}
+                          {failed.has(c.url) && (
+                            <span className="rounded-md bg-rose-400/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-200">
+                              Échec
+                            </span>
+                          )}
+                          {qualityLabel(c.height) && (
+                            <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[11px] font-bold">
+                              {qualityLabel(c.height)}
+                            </span>
+                          )}
+                        </span>
                       </button>
                     </li>
                   ))}
