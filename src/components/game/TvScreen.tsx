@@ -239,6 +239,16 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
     setShowFailed(false);
   };
 
+  // Pays par défaut : France si le navigateur est en français (un tap de moins).
+  const defaultApplied = useRef(false);
+  useEffect(() => {
+    if (!countries || defaultApplied.current) return;
+    defaultApplied.current = true;
+    if (navigator.language?.toLowerCase().startsWith("fr") && countries.some((c) => c.name === "France")) {
+      setSelectedCountry("France");
+    }
+  }, [countries]);
+
   const openCountry = (name: string) => {
     setSelectedCountry(name);
     setChannelQuery("");
@@ -262,7 +272,7 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
       </div>
 
       {channel && (
-        <div className="glass-card flex flex-col gap-3 rounded-2xl p-3">
+        <div className="glass-card sticky top-2 z-20 flex flex-col gap-3 rounded-2xl bg-[#120a0d]/95 p-3 shadow-2xl backdrop-blur-md md:static">
           <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
             <video
               ref={videoRef}
@@ -322,9 +332,9 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
       )}
 
       {countries && (
-        <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[260px_minmax(0,1fr)]">
           {/* Pays A-Z */}
-          <div className="glass-card flex min-h-0 flex-col gap-2 rounded-2xl p-3 md:max-h-[70vh]">
+          <div className={`glass-card min-h-0 flex-col gap-2 rounded-2xl p-3 md:flex md:max-h-[70vh] ${selectedCountry ? "hidden" : "flex"}`}>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -357,12 +367,19 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
           </div>
 
           {/* Chaînes du pays */}
-          <div className="glass-card flex min-h-0 flex-col gap-3 rounded-2xl p-3 md:max-h-[70vh]">
+          <div className={`glass-card min-h-0 flex-col gap-3 rounded-2xl p-3 md:flex md:max-h-[70vh] ${selectedCountry ? "flex" : "hidden"}`}>
             {!activeCountry ? (
               <p className="py-10 text-center text-sm text-muted-foreground">Choisis un pays pour voir ses chaînes.</p>
             ) : (
               <>
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setSelectedCountry(null)}
+                    className="inline-flex h-8 items-center gap-1 rounded-full border border-white/15 bg-white/5 px-3 text-xs font-bold md:hidden"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Pays
+                  </button>
                   <h2 className="mr-auto font-display text-lg font-bold">{activeCountry.name}</h2>
                   <QualityChip active={quality === "all"} onClick={() => setQuality("all")}>
                     Toutes
@@ -393,7 +410,7 @@ export function TvScreen({ onBack }: { onBack: () => void }) {
                     className="h-10 w-full rounded-full border border-white/15 bg-black/30 pl-9 pr-3 text-sm outline-none focus:border-emerald-300/60"
                   />
                 </div>
-                <ul className="grid gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                <ul className="grid min-w-0 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                   {visibleChannels.map((c) => (
                     <li key={c.id}>
                       <button
