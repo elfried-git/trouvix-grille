@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/store/game-store";
-import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Play, Gift, Eye } from "lucide-react";
+import { Timer, Square, Users, Grid3x3, Trophy, MousePointerClick, Globe2, LockKeyhole, Play, Gift, Eye, Tv } from "lucide-react";
 import { TutorialVideoScreen } from "./TutorialVideoScreen";
 import { ReviewForm } from "./ReviewForm";
 import { TrouvixHeroTitle } from "./TrouvixHeroTitle";
@@ -13,6 +13,7 @@ import { enableNotifications, prepareNotificationAudio } from "@/lib/admin-notif
 import { toast } from "sonner";
 import { BackgroundSlideshow } from "./BackgroundSlideshow";
 import { useGiftEnabled } from "./useGiftEnabled";
+import { TvScreen } from "./TvScreen";
 
 const FEATURES = [
   { icon: Square, label: "Forme un carré 2×2", desc: "4 pions en bloc", color: "text-rose-300" },
@@ -25,6 +26,7 @@ const FEATURES = [
 
 export function HomeScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [tvOpen, setTvOpen] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const goToSetup = useGameStore((s) => s.goToSetup);
   const goToOnlineSetup = useGameStore((s) => s.goToOnlineSetup);
@@ -47,6 +49,8 @@ export function HomeScreen() {
     else if (permission === "denied") toast.error("Autorise les notifications de Trouvix dans les réglages du téléphone.");
     else toast.error("Les notifications ne sont pas disponibles dans ce navigateur.");
   };
+
+  if (tvOpen) return <TvScreen onBack={() => setTvOpen(false)} />;
 
   return (
     <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 pb-16 pt-10">
@@ -108,6 +112,15 @@ export function HomeScreen() {
           >
             <Gift className="h-5 w-5" />
             Cadeau Noël
+          </Button>
+          <Button
+            onClick={() => setTvOpen(true)}
+            size="lg"
+            variant="outline"
+            className="h-12 w-full gap-3 rounded-full border border-emerald-300/50 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 px-6 text-sm font-extrabold uppercase tracking-wide text-emerald-100 shadow-[0_4px_20px_-4px_rgba(16,185,129,0.35)] transition hover:border-emerald-300/70 hover:bg-emerald-500/25 hover:brightness-110 sm:w-auto"
+          >
+            <Tv className="h-5 w-5 text-emerald-300" />
+            TV
           </Button>
           <div className="col-span-2 grid w-full grid-cols-2 gap-3 sm:hidden">
             <span className="col-span-2 flex justify-center">
