@@ -13,6 +13,7 @@ import {
   isValidCapacity,
   validateGiftName,
 } from '../../src/lib/gift-draw'
+import { type GiftGender, type GiftSpaceViewWithGender, isGiftGender } from '../../src/lib/gift-gender'
 
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -26,6 +27,7 @@ interface StoredParticipant {
   /** Secret côté navigateur : ne jamais l'envoyer aux autres participants. */
   clientId: string
   name: string
+  gender?: GiftGender
   joinedAt: number
 }
 
@@ -89,7 +91,7 @@ function isHostRegistered(space: StoredSpace): boolean {
   return space.participants.some((p) => p.clientId === space.hostClientId)
 }
 
-function toView(space: StoredSpace): GiftSpaceView {
+function toView(space: StoredSpace): GiftSpaceViewWithGender {
   return {
     code: space.code,
     title: GIFT_TITLE,
@@ -99,6 +101,7 @@ function toView(space: StoredSpace): GiftSpaceView {
       id: p.id,
       name: p.name,
       isHost: p.clientId === space.hostClientId,
+      gender: p.gender ?? null,
     })),
     drawn: space.assignments !== null,
     drawnAt: space.drawnAt,
@@ -211,6 +214,7 @@ export function registerGiftHandlers(io: GiftBroadcaster, socket: GiftSocket): v
     }
     const hostName = validateGiftName(payload?.hostName)
     if (!hostName.ok) return reply(ack, { error: hostName.error })
+    if (!isGiftGender(payload?.gender)) return reply(ack, { error: 'Choisis masculin ou féminin.' })
     const now = Date.now()
     pruneExpired(now)
     if (spaces.size >= MAX_SPACES) return reply(ack, { error: 'Trop d\'espaces actifs, réessaie plus tard.' })
@@ -223,7 +227,7 @@ export function registerGiftHandlers(io: GiftBroadcaster, socket: GiftSocket): v
       hostClientId: clientId,
       createdAt: now,
       updatedAt: now,
-      participants: [{ id: randomString(10, ID_ALPHABET), clientId, name: hostName.name, joinedAt: now }],
+      participants: [{ id: randomString(10, ID_ALPHABET), clientId, name: hostName.name, gender: payload.gender, joinedAt: now }],
       assignments: null,
       drawnAt: null,
     }
@@ -251,6 +255,7 @@ export function registerGiftHandlers(io: GiftBroadcaster, socket: GiftSocket): v
     if (!clientId) return reply(ack, { error: 'Session invalide, recharge la page.' })
     const checked = validateGiftName(payload?.name)
     if (!checked.ok) return reply(ack, { error: checked.error })
+    if (!isGiftGender(payload?.gender)) return reply(ack, { error: 'Choisis masculin ou féminin.' })
 
     const error = registrationError(space, clientId, checked.name)
     if (error) return reply(ack, { error })
@@ -259,8 +264,9 @@ export function registerGiftHandlers(io: GiftBroadcaster, socket: GiftSocket): v
     const existing = space.participants.find((p) => p.clientId === clientId)
     if (existing) {
       existing.name = checked.name
+      existing.gender = payload.gender
     } else {
-      space.participants.push({ id: randomString(10, ID_ALPHABET), clientId, name: checked.name, joinedAt: now })
+      space.participants.push({ id: randomString(10, ID_ALPHABET), clientId, name: checked.name, gender: payload.gender, joinedAt: now })
     }
     space.updatedAt = now
     subscribe(socket, space.code)

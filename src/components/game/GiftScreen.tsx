@@ -10,13 +10,61 @@ import {
   GIFT_NAME_MAX_LENGTH,
   GIFT_TITLE,
   validateGiftName,
-  type GiftSpaceView,
   type GiftYou,
 } from "@/lib/gift-draw";
+import {
+  GIFT_GENDERS,
+  GIFT_GENDER_LABELS,
+  type GiftGender,
+  type GiftSpaceViewWithGender as GiftSpaceView,
+} from "@/lib/gift-gender";
 import { BackgroundSlideshow } from "./BackgroundSlideshow";
 import { GiftLoader } from "./GiftLoader";
 
 const REVEAL_MS = 3800;
+
+// Choix du genre : masculin ou féminin, obligatoire pour chaque participant.
+function GenderPicker({ value, onChange, idPrefix }: { value: GiftGender | null; onChange: (g: GiftGender) => void; idPrefix: string }) {
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <p className="text-sm font-semibold">Genre</p>
+      <div role="radiogroup" aria-label="Genre" className="grid grid-cols-2 gap-2">
+        {GIFT_GENDERS.map((g) => {
+          const selected = value === g;
+          return (
+            <button
+              key={`${idPrefix}-${g}`}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange(g)}
+              className={`h-11 rounded-xl border text-sm font-bold transition ${
+                selected
+                  ? "border-yellow-300 bg-gradient-to-br from-[#15803d] to-[#166534] text-white shadow-[0_0_18px_-4px_rgba(250,204,21,0.7)]"
+                  : "border-white/15 bg-white/5 text-muted-foreground hover:bg-white/10"
+              }`}
+            >
+              {GIFT_GENDER_LABELS[g]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GenderBadge({ gender }: { gender: GiftGender | null | undefined }) {
+  if (!gender) return null;
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+        gender === "masculin" ? "bg-sky-400/20 text-sky-200" : "bg-pink-400/20 text-pink-200"
+      }`}
+    >
+      {GIFT_GENDER_LABELS[gender]}
+    </span>
+  );
+}
 
 const CLIENT_ID_KEY = "trouvix_gift_client_id";
 const CLIENT_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
@@ -103,6 +151,8 @@ export function GiftScreen() {
   const [capacity, setCapacity] = useState<number>(GIFT_ALLOWED_CAPACITIES[0]);
   const [name, setName] = useState("");
   const [hostName, setHostName] = useState("");
+  const [hostGender, setHostGender] = useState<GiftGender | null>(null);
+  const [joinGender, setJoinGender] = useState<GiftGender | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [opening, setOpening] = useState(false);
@@ -194,9 +244,13 @@ export function GiftScreen() {
       setError(checked.error);
       return;
     }
+    if (!hostGender) {
+      setError("Choisis masculin ou féminin.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    const res = await request("gift:create", { clientId: clientRef.current, capacity, hostName: checked.name });
+    const res = await request("gift:create", { clientId: clientRef.current, capacity, hostName: checked.name, gender: hostGender });
     setBusy(false);
     if (res.error || !res.view) {
       setError(res.error ?? "Impossible de créer l'espace.");
@@ -216,9 +270,13 @@ export function GiftScreen() {
       setError(checked.error);
       return;
     }
+    if (!joinGender) {
+      setError("Choisis masculin ou féminin.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    const res = await request("gift:register", { code, clientId: clientRef.current, name: checked.name });
+    const res = await request("gift:register", { code, clientId: clientRef.current, name: checked.name, gender: joinGender });
     setBusy(false);
     if (res.error || !res.view) {
       setError(res.error ?? "Impossible de valider ton nom.");
@@ -357,6 +415,7 @@ export function GiftScreen() {
                 className="h-11 w-full rounded-lg border border-white/15 bg-black/30 px-3 text-sm"
               />
             </div>
+            <GenderPicker value={hostGender} onChange={setHostGender} idPrefix="host" />
             <Button
               onClick={createSpace}
               disabled={busy}
@@ -416,7 +475,10 @@ export function GiftScreen() {
                     key={p.id}
                     className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm"
                   >
-                    <span className="truncate font-semibold">{p.name}</span>
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1">
+                      <span className="min-w-0 break-words font-semibold">{p.name}</span>
+                      <GenderBadge gender={p.gender} />
+                    </span>
                     {p.isHost && (
                       <span className="shrink-0 rounded-full bg-yellow-300/20 px-2 py-0.5 text-[10px] font-bold uppercase text-yellow-200">
                         Hôte
@@ -443,6 +505,7 @@ export function GiftScreen() {
                 <label htmlFor="gift-name" className="text-sm font-semibold">
                   {isHost ? "Ton prénom (tu réserves ta place)" : "Ton prénom"}
                 </label>
+                <GenderPicker value={joinGender} onChange={setJoinGender} idPrefix="join" />
                 <div className="flex items-center gap-2">
                   <input
                     id="gift-name"
@@ -510,6 +573,7 @@ export function GiftScreen() {
                         <td className="border-b border-white/10 px-3 py-4 leading-relaxed">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg sm:text-xl">
                             <span className="font-extrabold text-emerald-200">{giver.name}</span>
+                            <GenderBadge gender={giver.gender} />
                             {giver.isHost && (
                               <span className="rounded-full bg-yellow-300/20 px-2 py-0.5 text-xs font-bold uppercase text-yellow-200">
                                 Hôte
@@ -524,6 +588,7 @@ export function GiftScreen() {
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-base sm:text-lg">
                             <span className="text-sm text-muted-foreground sm:text-base">donnera son cadeau à</span>
                             <span className="font-extrabold text-rose-200">{receiver?.name ?? "?"}</span>
+                            <GenderBadge gender={receiver?.gender} />
                           </div>
                         </td>
                       </tr>
